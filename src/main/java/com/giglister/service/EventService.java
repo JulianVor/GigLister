@@ -24,8 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -173,9 +175,24 @@ public class EventService {
         return new PageImpl<>(filtered.subList(pageStart, pageEnd), pageable, filtered.size());
     }
 
-    public List<CalendarDayCount> calendarCounts(LocalDate from, LocalDate to) {
-        return eventRepository.countByDateBetween(EventStatus.PUBLISHED, from, to).stream()
-                .map(dc -> new CalendarDayCount(dc.getDay(), dc.getCnt()))
+    /** Without a location filter this uses a single GROUP BY count query; with one, distance
+     * filtering has to happen in Java (like listUpcoming), so counts are grouped here instead. */
+    public List<CalendarDayCount> calendarCounts(String city, Double centerLat, Double centerLon, Integer radiusKm,
+                                                  LocalDate from, LocalDate to) {
+        if ((city == null || city.isBlank()) && radiusKm == null) {
+            return eventRepository.countByDateBetween(EventStatus.PUBLISHED, from, to).stream()
+                    .map(dc -> new CalendarDayCount(dc.getDay(), dc.getCnt()))
+                    .toList();
+        }
+        List<Event> all = eventRepository
+                .findByStatusAndDateBetweenOrderByDateAscStartTimeAsc(EventStatus.PUBLISHED, from, to, Pageable.unpaged())
+                .getContent();
+        List<Event> filtered = filterByLocationRadius(all, city, centerLat, centerLon, radiusKm);
+        return filtered.stream()
+                .collect(Collectors.groupingBy(Event::getDate, Collectors.counting()))
+                .entrySet().stream()
+                .map(e -> new CalendarDayCount(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparing(CalendarDayCount::date))
                 .toList();
     }
 

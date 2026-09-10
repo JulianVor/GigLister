@@ -126,8 +126,10 @@ export function getEvent(id: number, token?: string) {
   return apiFetch<EventResponse>(`/api/events/${id}`, { token });
 }
 
-export function getCalendar(year: number, month: number) {
-  return apiFetch<CalendarDayCount[]>(`/api/events/calendar${toQuery({ year, month })}`);
+export function getCalendar(
+  params: { year: number; month: number; city?: string; lat?: number; lon?: number; radiusKm?: number }
+) {
+  return apiFetch<CalendarDayCount[]>(`/api/events/calendar${toQuery(params)}`);
 }
 
 export interface EventInput {

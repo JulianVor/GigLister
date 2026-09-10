@@ -50,17 +50,22 @@ export function Calendar({ year, month, counts }: { year: number; month: number;
         {days.map((day) => {
           const iso = toDateOnly(day);
           const count = countByDate.get(iso) ?? 0;
+          if (count === 0) {
+            return (
+              <div key={iso} className="flex h-16 flex-col items-center justify-center bg-surface text-muted">
+                <span>{format(day, "d")}</span>
+              </div>
+            );
+          }
           return (
-            <Link
+            <a
               key={iso}
-              href={`/konzerte?from=${iso}&to=${iso}`}
-              className={`flex h-16 flex-col items-center justify-center bg-surface hover:bg-bg ${
-                count > 0 ? "text-fg" : "text-muted"
-              }`}
+              href={`#d-${iso}`}
+              className="flex h-16 flex-col items-center justify-center bg-surface text-fg hover:bg-bg"
             >
               <span>{format(day, "d")}</span>
-              {count > 0 && <span className="font-display text-xs text-accent">{count}</span>}
-            </Link>
+              <span className="font-display text-xs text-accent">{count}</span>
+            </a>
           );
         })}
       </div>

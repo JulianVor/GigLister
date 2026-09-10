@@ -45,9 +45,16 @@ public class EventController {
     }
 
     @GetMapping("/calendar")
-    public List<CalendarDayCount> calendar(@RequestParam int year, @RequestParam int month) {
+    public List<CalendarDayCount> calendar(
+            @RequestParam int year,
+            @RequestParam int month,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lon,
+            @RequestParam(required = false) Integer radiusKm
+    ) {
         YearMonth ym = YearMonth.of(year, month);
-        return eventService.calendarCounts(ym.atDay(1), ym.atEndOfMonth());
+        return eventService.calendarCounts(city, lat, lon, radiusKm, ym.atDay(1), ym.atEndOfMonth());
     }
 
     @GetMapping("/{id}")

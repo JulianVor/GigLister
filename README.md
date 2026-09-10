@@ -103,11 +103,13 @@ before a user creates a brand new entity.
 
 Implemented: the full V1 scope table from the concept (§51), backend and
 frontend — discovery by date/city/radius (including a real device-location
-radius search via "Standort verwenden", §13), calendar counts,
-event/band/location CRUD, claim workflow, multiple managers per entity,
-stub-on-the-fly creation, duplicate detection + admin merge, follow/save,
-search, discover sections, admin dashboard, registration with email
-verification, and self-service password reset.
+radius search via "Standort verwenden", §13), a month calendar (§16) that
+goes beyond the concept's plain day-count grid to also list every concert
+of the selected month underneath (grouped by day, full band names, radius-
+filtered the same as the grid), event/band/location CRUD, claim workflow,
+multiple managers per entity, stub-on-the-fly creation, duplicate detection
++ admin merge, follow/save, search, discover sections, admin dashboard,
+registration with email verification, and self-service password reset.
 
 Deliberately deferred (matches §45 "was V1 nicht enthält" plus normal
 backend-first sequencing): no image upload (media fields are plain URLs),
