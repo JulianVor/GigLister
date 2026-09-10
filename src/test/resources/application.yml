@@ -15,3 +15,7 @@ giglister:
   jwt:
     secret: test-only-secret-test-only-secret-test-only-secret
     expiration-minutes: 60
+  mail:
+    from: no-reply@giglister.test
+  frontend:
+    base-url: http://localhost:3000

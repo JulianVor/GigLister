@@ -3,7 +3,7 @@ package com.giglister.dto.admin;
 public record AdminUserResponse(
         Long id,
         String email,
-        String displayName,
+        String username,
         boolean platformAdmin
 ) {
 }

@@ -25,7 +25,9 @@ import type {
   Page,
   PermissionLevel,
   PermissionResponse,
+  RegisterResponse,
   SearchResults,
+  UsernameAvailabilityResponse,
 } from "./types";
 
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:8080";
@@ -86,8 +88,16 @@ async function apiFetch<T>(
 
 // --- Auth ---
 
-export function register(data: { email: string; password: string; displayName: string }) {
-  return apiFetch<AuthResponse>("/api/auth/register", { method: "POST", body: data });
+export function register(data: { email: string; password: string; username: string }) {
+  return apiFetch<RegisterResponse>("/api/auth/register", { method: "POST", body: data });
+}
+
+export function usernameAvailable(username: string) {
+  return apiFetch<UsernameAvailabilityResponse>(`/api/auth/username-available${toQuery({ username })}`);
+}
+
+export function verifyEmail(token: string) {
+  return apiFetch<AuthResponse>("/api/auth/verify-email", { method: "POST", body: { token } });
 }
 
 export function login(data: { email: string; password: string }) {
@@ -276,7 +286,7 @@ export function getMe(token: string) {
 }
 
 export function updateProfile(
-  data: { displayName?: string; homeCity?: string; homeLatitude?: number; homeLongitude?: number; radiusKm?: number },
+  data: { username?: string; homeCity?: string; homeLatitude?: number; homeLongitude?: number; radiusKm?: number },
   token: string
 ) {
   return apiFetch<MeResponse>("/api/me", { method: "PUT", body: data, token });

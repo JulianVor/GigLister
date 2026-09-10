@@ -1,6 +1,7 @@
 package com.giglister.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.giglister.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -31,19 +32,12 @@ class EventFlowIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @Test
     void registerAndCreateEventWithNewBandAndLocationStubs() throws Exception {
-        var registerResult = mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(
-                                "email", "anna@example.com",
-                                "password", "password123",
-                                "displayName", "Anna"
-                        ))))
-                .andExpect(status().isCreated())
-                .andReturn();
-
-        String token = objectMapper.readTree(registerResult.getResponse().getContentAsString()).get("token").asText();
+        String token = register("anna@example.com", "password123", "Anna");
 
         Map<String, Object> eventRequest = Map.of(
                 "date", LocalDate.now().plusDays(7).toString(),
@@ -83,5 +77,23 @@ class EventFlowIntegrationTest {
         mockMvc.perform(get("/api/events"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[?(@.id == " + eventId + ")]").exists());
+    }
+
+    /** Registers and immediately confirms the email (looking the token up directly,
+     * the way the frontend does after the user follows the link), returning a usable token. */
+    private String register(String email, String password, String username) throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", email, "password", password, "username", username))))
+                .andExpect(status().isCreated());
+
+        String verificationToken = userRepository.findByEmailIgnoreCase(email).orElseThrow().getVerificationToken();
+        var result = mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("token", verificationToken))))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
     }
 }

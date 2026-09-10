@@ -5,7 +5,7 @@ import com.giglister.domain.enums.PermissionLevel;
 public record PermissionResponse(
         Long userId,
         String email,
-        String displayName,
+        String username,
         PermissionLevel permission
 ) {
 }

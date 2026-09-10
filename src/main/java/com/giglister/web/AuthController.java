@@ -3,6 +3,9 @@ package com.giglister.web;
 import com.giglister.dto.auth.AuthResponse;
 import com.giglister.dto.auth.LoginRequest;
 import com.giglister.dto.auth.RegisterRequest;
+import com.giglister.dto.auth.RegisterResponse;
+import com.giglister.dto.auth.UsernameAvailabilityResponse;
+import com.giglister.dto.auth.VerifyEmailRequest;
 import com.giglister.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +21,18 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    }
+
+    @GetMapping("/username-available")
+    public UsernameAvailabilityResponse usernameAvailable(@RequestParam String username) {
+        return new UsernameAvailabilityResponse(authService.usernameAvailable(username));
+    }
+
+    @PostMapping("/verify-email")
+    public AuthResponse verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        return authService.verifyEmail(request.token());
     }
 
     @PostMapping("/login")

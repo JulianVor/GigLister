@@ -62,7 +62,7 @@ export function PermissionsPanel({
         {permissions.map((p) => (
           <li key={p.userId} className="flex items-center justify-between py-2">
             <div>
-              <div className="font-meta text-sm">{p.displayName}</div>
+              <div className="font-meta text-sm">{p.username}</div>
               <div className="font-meta text-xs text-muted">{p.email}</div>
             </div>
             <div className="flex items-center gap-3">

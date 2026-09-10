@@ -101,14 +101,24 @@ export interface AuthResponse {
   token: string;
   userId: number;
   email: string;
-  displayName: string;
+  username: string;
   platformAdmin: boolean;
+}
+
+export interface RegisterResponse {
+  userId: number;
+  email: string;
+  message: string;
+}
+
+export interface UsernameAvailabilityResponse {
+  available: boolean;
 }
 
 export interface MeResponse {
   id: number;
   email: string;
-  displayName: string;
+  username: string;
   homeCity: string | null;
   radiusKm: number | null;
   platformAdmin: boolean;
@@ -125,7 +135,7 @@ export interface MeResponse {
 export interface PermissionResponse {
   userId: number;
   email: string;
-  displayName: string;
+  username: string;
   permission: PermissionLevel;
 }
 
@@ -144,7 +154,7 @@ export interface ClaimResponse {
 export interface AdminUserResponse {
   id: number;
   email: string;
-  displayName: string;
+  username: string;
   platformAdmin: boolean;
 }
 

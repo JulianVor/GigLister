@@ -22,7 +22,7 @@ export default async function MeinGigListerPage() {
     <div>
       <h1 className="font-display text-3xl">Mein GigLister</h1>
       <p className="mt-1 font-meta text-sm text-muted">
-        {session.displayName} · {session.email}
+        {session.username} · {session.email}
       </p>
 
       <section className="mt-10">

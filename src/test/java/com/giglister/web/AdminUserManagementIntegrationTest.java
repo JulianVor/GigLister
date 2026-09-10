@@ -1,6 +1,7 @@
 package com.giglister.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.giglister.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -32,6 +33,9 @@ class AdminUserManagementIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @Test
     void adminCanPromoteAndDemoteOtherUsersButNotThemselves() throws Exception {
         String adminToken = register("admin@giglister.test", "adminpass123", "Admin");
@@ -41,12 +45,13 @@ class AdminUserManagementIntegrationTest {
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "email", "max@example.com",
                                 "password", "password123",
-                                "displayName", "Max"
+                                "username", "Max"
                         ))))
                 .andExpect(status().isCreated())
                 .andReturn();
         var regularJson = objectMapper.readTree(regularResult.getResponse().getContentAsString());
         long regularUserId = regularJson.get("userId").asLong();
+        verifyEmail("max@example.com");
         long adminUserId = objectMapper.readTree(fetchMe(adminToken)).get("id").asLong();
 
         mockMvc.perform(get("/api/admin/users").header("Authorization", "Bearer " + adminToken))
@@ -77,12 +82,21 @@ class AdminUserManagementIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-    private String register(String email, String password, String displayName) throws Exception {
-        var result = mockMvc.perform(post("/api/auth/register")
+    private String register(String email, String password, String username) throws Exception {
+        mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "email", email, "password", password, "displayName", displayName))))
-                .andExpect(status().isCreated())
+                                "email", email, "password", password, "username", username))))
+                .andExpect(status().isCreated());
+        return verifyEmail(email);
+    }
+
+    private String verifyEmail(String email) throws Exception {
+        String verificationToken = userRepository.findByEmailIgnoreCase(email).orElseThrow().getVerificationToken();
+        var result = mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("token", verificationToken))))
+                .andExpect(status().isOk())
                 .andReturn();
         return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
     }

@@ -33,8 +33,16 @@ public class User {
     @Column(nullable = false)
     private String passwordHash;
 
+    @Column(nullable = false, unique = true)
+    private String username;
+
     @Column(nullable = false)
-    private String displayName;
+    @Builder.Default
+    private boolean emailVerified = false;
+
+    private String verificationToken;
+
+    private Instant verificationTokenExpiresAt;
 
     private String homeCity;
 

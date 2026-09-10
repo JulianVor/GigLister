@@ -28,3 +28,14 @@ giglister:
     expiration-minutes: 1440
   admin:
     bootstrap-email: ${GIGLISTER_ADMIN_EMAIL:}
+  # Mail is built manually in MailService (not via Spring Boot's mail
+  # auto-configuration) so that an unset host just logs the verification
+  # link instead of trying - and failing - to connect. See MailService.
+  mail:
+    host: ${GIGLISTER_MAIL_HOST:}
+    port: ${GIGLISTER_MAIL_PORT:587}
+    username: ${GIGLISTER_MAIL_USER:}
+    password: ${GIGLISTER_MAIL_PASSWORD:}
+    from: ${GIGLISTER_MAIL_FROM:no-reply@giglister.local}
+  frontend:
+    base-url: ${GIGLISTER_FRONTEND_URL:http://localhost:3000}

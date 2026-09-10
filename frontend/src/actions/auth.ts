@@ -6,6 +6,7 @@ import { ApiError, login as apiLogin, register as apiRegister } from "@/lib/api"
 import { TOKEN_COOKIE } from "@/lib/session";
 
 export type AuthFormState = { error?: string } | undefined;
+export type RegisterFormState = { error?: string; success?: boolean; email?: string } | undefined;
 
 async function setSessionCookie(token: string) {
   const store = await cookies();
@@ -39,12 +40,12 @@ export async function loginAction(_prevState: AuthFormState, formData: FormData)
   redirect("/mein-giglister");
 }
 
-export async function registerAction(_prevState: AuthFormState, formData: FormData): Promise<AuthFormState> {
+export async function registerAction(_prevState: RegisterFormState, formData: FormData): Promise<RegisterFormState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const displayName = String(formData.get("displayName") ?? "").trim();
+  const username = String(formData.get("username") ?? "").trim();
 
-  if (!email || !password || !displayName) {
+  if (!email || !password || !username) {
     return { error: "Bitte alle Felder ausfüllen." };
   }
   if (password.length < 8) {
@@ -52,16 +53,15 @@ export async function registerAction(_prevState: AuthFormState, formData: FormDa
   }
 
   try {
-    const res = await apiRegister({ email, password, displayName });
-    await setSessionCookie(res.token);
+    await apiRegister({ email, password, username });
   } catch (err) {
     if (err instanceof ApiError) {
-      return { error: err.status === 409 ? "Für diese E-Mail existiert bereits ein Konto." : err.message };
+      return { error: err.message };
     }
     throw err;
   }
 
-  redirect("/mein-giglister");
+  return { success: true, email };
 }
 
 export async function logoutAction() {

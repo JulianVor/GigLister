@@ -96,7 +96,7 @@ public class PermissionService {
                 .map(p -> {
                     User u = userRepository.findById(p.getUserId())
                             .orElseThrow(() -> new NotFoundException("User not found"));
-                    return new PermissionResponse(u.getId(), u.getEmail(), u.getDisplayName(), p.getPermission());
+                    return new PermissionResponse(u.getId(), u.getEmail(), u.getUsername(), p.getPermission());
                 })
                 .toList();
     }

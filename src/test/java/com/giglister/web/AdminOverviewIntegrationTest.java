@@ -1,6 +1,7 @@
 package com.giglister.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.giglister.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -32,6 +33,9 @@ class AdminOverviewIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Test
     void adminSeesAllBandsLocationsAndEventsAcrossEveryStatus() throws Exception {
@@ -89,12 +93,18 @@ class AdminOverviewIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-    private String register(String email, String password, String displayName) throws Exception {
-        var result = mockMvc.perform(post("/api/auth/register")
+    private String register(String email, String password, String username) throws Exception {
+        mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "email", email, "password", password, "displayName", displayName))))
-                .andExpect(status().isCreated())
+                                "email", email, "password", password, "username", username))))
+                .andExpect(status().isCreated());
+
+        String verificationToken = userRepository.findByEmailIgnoreCase(email).orElseThrow().getVerificationToken();
+        var result = mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("token", verificationToken))))
+                .andExpect(status().isOk())
                 .andReturn();
         return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
     }

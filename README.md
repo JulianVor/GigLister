@@ -44,6 +44,15 @@ or demote any other user via `POST /api/admin/users/{id}/promote|demote`
 (surfaced in the frontend under `/admin/users`) — a user can never remove
 their own admin rights, so the platform can't end up without one.
 
+Registration only needs a unique username, an email (used for password
+recovery, not implemented yet) and a password; the account stays unverified
+and login is blocked until the confirmation link is followed. Mail is sent
+via `GIGLISTER_MAIL_HOST`/`GIGLISTER_MAIL_PORT`/`GIGLISTER_MAIL_USER`/
+`GIGLISTER_MAIL_PASSWORD`/`GIGLISTER_MAIL_FROM`; with `GIGLISTER_MAIL_HOST`
+unset (the local default), the verification link is written to the server
+log instead of actually being sent. `GIGLISTER_FRONTEND_URL` controls which
+frontend origin that link points at (defaults to `http://localhost:3000`).
+
 ## Domain model
 
 - **User** — single account type; `platformAdmin` is the only special flag.

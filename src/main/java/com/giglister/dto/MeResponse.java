@@ -9,7 +9,7 @@ import java.util.List;
 public record MeResponse(
         Long id,
         String email,
-        String displayName,
+        String username,
         String homeCity,
         Integer radiusKm,
         boolean platformAdmin,

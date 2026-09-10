@@ -91,10 +91,10 @@ public class AdminService {
     public List<AdminUserResponse> listUsers(String query) {
         List<User> users = (query == null || query.isBlank())
                 ? userRepository.findAll()
-                : userRepository.findByEmailContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(query, query);
+                : userRepository.findByEmailContainingIgnoreCaseOrUsernameContainingIgnoreCase(query, query);
         return users.stream()
                 .sorted(Comparator.comparing(User::getEmail))
-                .map(u -> new AdminUserResponse(u.getId(), u.getEmail(), u.getDisplayName(), u.isPlatformAdmin()))
+                .map(u -> new AdminUserResponse(u.getId(), u.getEmail(), u.getUsername(), u.isPlatformAdmin()))
                 .toList();
     }
 
@@ -107,7 +107,7 @@ public class AdminService {
                 .orElseThrow(() -> new NotFoundException("User " + userId + " not found"));
         user.setPlatformAdmin(platformAdmin);
         userRepository.save(user);
-        return new AdminUserResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.isPlatformAdmin());
+        return new AdminUserResponse(user.getId(), user.getEmail(), user.getUsername(), user.isPlatformAdmin());
     }
 
     /**

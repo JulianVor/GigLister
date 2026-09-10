@@ -11,6 +11,7 @@ import com.giglister.dto.MeResponse;
 import com.giglister.dto.ProfileUpdateRequest;
 import com.giglister.dto.band.BandResponse;
 import com.giglister.dto.common.EventSummary;
+import com.giglister.exception.ConflictException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandFollowRepository;
 import com.giglister.repository.EntityPermissionRepository;
@@ -60,8 +61,11 @@ public class UserService {
     @Transactional
     public User updateProfile(Long userId, ProfileUpdateRequest request) {
         User user = getOrThrow(userId);
-        if (request.displayName() != null && !request.displayName().isBlank()) {
-            user.setDisplayName(request.displayName());
+        if (request.username() != null && !request.username().isBlank() && !request.username().equals(user.getUsername())) {
+            if (userRepository.existsByUsernameIgnoreCase(request.username())) {
+                throw new ConflictException("This username is already taken");
+            }
+            user.setUsername(request.username());
         }
         user.setHomeCity(request.homeCity());
         user.setHomeLatitude(request.homeLatitude());
@@ -99,7 +103,7 @@ public class UserService {
                 })
                 .toList();
 
-        return new MeResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.getHomeCity(),
+        return new MeResponse(user.getId(), user.getEmail(), user.getUsername(), user.getHomeCity(),
                 user.getRadiusKm(), user.isPlatformAdmin(), saved, followedBands, managed);
     }
 

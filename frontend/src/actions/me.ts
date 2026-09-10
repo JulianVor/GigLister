@@ -6,7 +6,7 @@ import { getToken } from "@/lib/session";
 import type { ActionResult } from "@/lib/action-result";
 
 export async function updateProfileAction(input: {
-  displayName?: string;
+  username?: string;
   homeCity?: string;
   homeLatitude?: number;
   homeLongitude?: number;

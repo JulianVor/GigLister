@@ -28,7 +28,7 @@ export function UsersList({ users, currentUserId }: { users: AdminUserResponse[]
           <li key={user.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
             <div>
               <div className="font-display text-lg">
-                {user.displayName}
+                {user.username}
                 {isSelf && <span className="ml-2 font-meta text-xs text-muted">(du)</span>}
               </div>
               <div className="font-meta text-sm text-muted">{user.email}</div>

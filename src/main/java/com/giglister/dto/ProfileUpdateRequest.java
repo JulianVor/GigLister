@@ -1,7 +1,7 @@
 package com.giglister.dto;
 
 public record ProfileUpdateRequest(
-        String displayName,
+        String username,
         String homeCity,
         Double homeLatitude,
         Double homeLongitude,
