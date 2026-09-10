@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:giglister-test;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+giglister:
+  jwt:
+    secret: test-only-secret-test-only-secret-test-only-secret
+    expiration-minutes: 60

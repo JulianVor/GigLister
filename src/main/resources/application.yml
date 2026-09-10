@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: giglister-backend
+
+  datasource:
+    url: jdbc:h2:file:./data/giglister;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+server:
+  port: 8080
+
+giglister:
+  jwt:
+    secret: ${GIGLISTER_JWT_SECRET:dev-only-secret-change-me-dev-only-secret-change-me}
+    expiration-minutes: 1440
+  admin:
+    bootstrap-email: ${GIGLISTER_ADMIN_EMAIL:}
