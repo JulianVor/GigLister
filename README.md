@@ -13,10 +13,33 @@ single account type (**User**) with per-entity permissions.
 
 ## Running
 
+### Everything at once (Docker Compose)
+
+```
+docker compose up --build
+```
+
+Builds and starts Postgres, the backend and the frontend together:
+frontend on `:3000`, API on `:8080`, Postgres on `:5432`. The frontend image
+is built with `NEXT_PUBLIC_API_URL=http://localhost:8080` by default (the
+*browser* calls that URL directly, not through the Docker network) — override
+it with `GIGLISTER_PUBLIC_API_URL` if the app won't be reached via
+`localhost` (e.g. a remote host or a different port mapping). Data persists
+in the `giglister-db-data` volume across restarts; `docker compose down -v`
+wipes it.
+
+`GIGLISTER_ADMIN_EMAIL` and `GIGLISTER_JWT_SECRET` (see below) can be set in
+the shell before `docker compose up`, or in a `.env` file next to
+`docker-compose.yml`, and are picked up automatically. Mail isn't configured
+by default in Compose either — see the registration section below for what
+that means and how to turn on real SMTP.
+
+### Backend only, for local development
+
 Start a local Postgres (or point at any existing one — see env vars below):
 
 ```
-docker compose up -d
+docker compose up -d db
 ```
 
 Then:
@@ -34,7 +57,9 @@ Connection defaults match `docker-compose.yml` (`localhost:5432/giglister`,
 user/password `giglister`); override with `GIGLISTER_DB_HOST`,
 `GIGLISTER_DB_PORT`, `GIGLISTER_DB_NAME`, `GIGLISTER_DB_USER`,
 `GIGLISTER_DB_PASSWORD` to point at a different instance (a managed Postgres
-in production, for instance).
+in production, for instance). Run the frontend separately with `npm run dev`
+inside `frontend/` (see `frontend/README.md` or just `npm install && npm run
+dev`) — it defaults to talking to `http://localhost:8080`.
 
 On first `register`, set
 `GIGLISTER_ADMIN_EMAIL` to that email beforehand to bootstrap the first
