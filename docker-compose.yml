@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: giglister
+      POSTGRES_USER: giglister
+      POSTGRES_PASSWORD: giglister
+    ports:
+      - "5432:5432"
+    volumes:
+      - giglister-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U giglister -d giglister"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  giglister-db-data:

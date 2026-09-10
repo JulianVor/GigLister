@@ -7,18 +7,36 @@ single account type (**User**) with per-entity permissions.
 ## Stack
 
 - Java 21, Spring Boot 3.3 (Web, Data JPA, Security, Validation)
-- H2 (file-based for dev, in-memory for tests) — swap the datasource in
-  `application.yml` for Postgres when moving beyond local development
+- Postgres (H2 only for the test suite, in-memory)
 - JWT auth (stateless, `jjwt`)
 - Maven
 
 ## Running
 
+Start a local Postgres (or point at any existing one — see env vars below):
+
+```
+docker compose up -d
+```
+
+Then:
+
 ```
 mvn spring-boot:run
 ```
 
-The API listens on `:8080`. On first `register`, set
+The API listens on `:8080`. Schema is created/updated automatically by
+Hibernate (`ddl-auto: update`) — fine for V1, but the first thing to swap
+for a real migration tool (Flyway) once the schema needs to evolve under
+real data.
+
+Connection defaults match `docker-compose.yml` (`localhost:5432/giglister`,
+user/password `giglister`); override with `GIGLISTER_DB_HOST`,
+`GIGLISTER_DB_PORT`, `GIGLISTER_DB_NAME`, `GIGLISTER_DB_USER`,
+`GIGLISTER_DB_PASSWORD` to point at a different instance (a managed Postgres
+in production, for instance).
+
+On first `register`, set
 `GIGLISTER_ADMIN_EMAIL` to that email beforehand to bootstrap the first
 `PLATFORM_ADMIN` account (there's no separate admin account type — it's just a
 flag on a normal user, as in the concept). From there, that admin can promote

@@ -3,10 +3,10 @@ spring:
     name: giglister-backend
 
   datasource:
-    url: jdbc:h2:file:./data/giglister;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    url: jdbc:postgresql://${GIGLISTER_DB_HOST:localhost}:${GIGLISTER_DB_PORT:5432}/${GIGLISTER_DB_NAME:giglister}
+    driver-class-name: org.postgresql.Driver
+    username: ${GIGLISTER_DB_USER:giglister}
+    password: ${GIGLISTER_DB_PASSWORD:giglister}
 
   jpa:
     hibernate:
@@ -15,11 +15,9 @@ spring:
     properties:
       hibernate:
         format_sql: false
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+        jdbc:
+          lob:
+            non_contextual_creation: true
 
 server:
   port: 8080
