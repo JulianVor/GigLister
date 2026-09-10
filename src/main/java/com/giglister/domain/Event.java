@@ -44,7 +44,10 @@ public class Event {
     @Column(nullable = false)
     private Long locationId;
 
-    @ElementCollection
+    // Eager: every DTO mapping needs the line-up, and that mapping happens outside the
+    // request's transaction (open-in-view is off), so a lazy collection would throw
+    // LazyInitializationException.
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "event_band", joinColumns = @JoinColumn(name = "event_id"))
     @Column(name = "band_id", nullable = false)
     @OrderColumn(name = "position")

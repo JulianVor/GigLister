@@ -69,5 +69,17 @@ class EventFlowIntegrationTest {
         mockMvc.perform(get("/api/bands").param("city", "Hamburg"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isEmpty());
+
+        // Regression check: reading a previously-created event back (detail, and an
+        // unfiltered list) must not throw LazyInitializationException on Event.bandIds -
+        // this only surfaces once the entity is read back detached from its original
+        // transaction, which the assertions above (same-request city filter) don't exercise.
+        mockMvc.perform(get("/api/events/" + eventId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bands[0].name").value("HOME"));
+
+        mockMvc.perform(get("/api/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.id == " + eventId + ")]").exists());
     }
 }

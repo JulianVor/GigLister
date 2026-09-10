@@ -4,7 +4,7 @@ import com.giglister.domain.Claim;
 import com.giglister.domain.EntityMerge;
 import com.giglister.dto.admin.AdminDashboardResponse;
 import com.giglister.dto.admin.ClaimResponse;
-import com.giglister.dto.admin.DuplicateCandidate;
+import com.giglister.dto.admin.DuplicatePair;
 import com.giglister.dto.admin.MergeRequest;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.AdminService;
@@ -35,7 +35,7 @@ public class AdminController {
     }
 
     @GetMapping("/duplicates")
-    public List<DuplicateCandidate> duplicates() {
+    public List<DuplicatePair> duplicates() {
         return adminService.possibleDuplicates();
     }
 

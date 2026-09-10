@@ -43,7 +43,8 @@ public class Band {
 
     private String titleImageUrl;
 
-    @ElementCollection
+    // Eager for the same reason as Event.bandIds - DTO mapping happens outside the transaction.
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "band_genre", joinColumns = @JoinColumn(name = "band_id"))
     @Column(name = "genre")
     @Builder.Default
