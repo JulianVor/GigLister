@@ -3,14 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { updateLocationAction, updateLocationStatusAction } from "@/actions/locations";
+import { ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { EntityStatus, LocationResponse } from "@/lib/types";
 
-const STATUS_OPTIONS: { value: EntityStatus; label: string }[] = [
-  { value: "STUB", label: "Stub" },
-  { value: "DRAFT", label: "Entwurf" },
-  { value: "PUBLISHED", label: "Veröffentlicht" },
-  { value: "ARCHIVED", label: "Archiviert" },
-];
+const STATUS_OPTIONS: { value: EntityStatus; label: string }[] = (
+  Object.keys(ENTITY_STATUS_LABELS) as EntityStatus[]
+).map((value) => ({ value, label: ENTITY_STATUS_LABELS[value] }));
 
 export function LocationForm({ location }: { location: LocationResponse }) {
   const router = useRouter();

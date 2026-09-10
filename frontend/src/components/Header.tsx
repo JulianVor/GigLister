@@ -30,7 +30,7 @@ export async function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <LocationPicker city={prefs.city} radiusKm={prefs.radiusKm} />
+          <LocationPicker city={prefs.city} radiusKm={prefs.radiusKm} usingDeviceLocation={prefs.lat !== null} />
           {session ? (
             <div className="flex items-center gap-3 font-meta text-sm">
               <Link href="/konzerte/neu" className="hover:text-accent">

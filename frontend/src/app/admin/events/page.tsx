@@ -4,6 +4,7 @@ import { getToken } from "@/lib/session";
 import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
 import { dayAndMonth, weekdayShort } from "@/lib/format";
+import { EVENT_STATUS_LABELS } from "@/lib/status-labels";
 import type { EventStatus } from "@/lib/types";
 
 const STATUSES: EventStatus[] = ["DRAFT", "PUBLISHED", "CANCELLED"];
@@ -23,7 +24,7 @@ export default async function AdminEventsPage({
       <p className="mt-1 font-meta text-sm text-muted">Alle Konzerte, unabhängig vom Status.</p>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <StatusFilter basePath="/admin/events" statuses={STATUSES} active={status} query={q} />
+        <StatusFilter basePath="/admin/events" statuses={STATUSES} active={status} query={q} labels={EVENT_STATUS_LABELS} />
         <AdminSearchForm
           action="/admin/events"
           query={q}
@@ -51,7 +52,7 @@ export default async function AdminEventsPage({
               </div>
               <div className="flex items-center gap-3">
                 <span className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted">
-                  {event.status}
+                  {EVENT_STATUS_LABELS[event.status]}
                 </span>
                 <Link href={`/konzerte/${event.id}/bearbeiten`} className="font-meta text-sm text-accent hover:underline">
                   Bearbeiten

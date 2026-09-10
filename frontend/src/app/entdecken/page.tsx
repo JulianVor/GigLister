@@ -8,7 +8,12 @@ import { StatusBadge } from "@/components/StatusBadge";
 
 export default async function EntdeckenPage() {
   const prefs = await getLocationPrefs();
-  const data = await discover({ city: prefs.city ?? undefined, radiusKm: prefs.radiusKm ?? undefined });
+  const data = await discover({
+    city: prefs.city ?? undefined,
+    lat: prefs.lat ?? undefined,
+    lon: prefs.lon ?? undefined,
+    radiusKm: prefs.radiusKm ?? undefined,
+  });
 
   return (
     <div>

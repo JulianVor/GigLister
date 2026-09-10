@@ -12,6 +12,8 @@ export default async function HomePage() {
 
   const page = await getEvents({
     city: prefs.city ?? undefined,
+    lat: prefs.lat ?? undefined,
+    lon: prefs.lon ?? undefined,
     radiusKm: prefs.radiusKm ?? undefined,
     from: today,
     to: today,

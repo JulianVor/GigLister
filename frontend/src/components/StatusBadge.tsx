@@ -1,17 +1,14 @@
 import type { EntityStatus } from "@/lib/types";
-
-const LABELS: Record<EntityStatus, string> = {
-  STUB: "Stub",
-  DRAFT: "Entwurf",
-  PUBLISHED: "Veröffentlicht",
-  ARCHIVED: "Archiviert",
-};
+import { ENTITY_STATUS_HINTS, ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 
 export function StatusBadge({ status }: { status: EntityStatus }) {
   if (status === "PUBLISHED") return null;
   return (
-    <span className="inline-block border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted">
-      {LABELS[status]}
+    <span
+      title={ENTITY_STATUS_HINTS[status]}
+      className="inline-block border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted"
+    >
+      {ENTITY_STATUS_LABELS[status]}
     </span>
   );
 }

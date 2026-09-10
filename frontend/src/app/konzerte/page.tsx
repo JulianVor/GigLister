@@ -20,6 +20,8 @@ export default async function KonzerteePage({
 
   const result = await getEvents({
     city: prefs.city ?? undefined,
+    lat: prefs.lat ?? undefined,
+    lon: prefs.lon ?? undefined,
     radiusKm: prefs.radiusKm ?? undefined,
     from,
     to,
@@ -38,9 +40,13 @@ export default async function KonzerteePage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Konzerte {prefs.city ? `in ${prefs.city}` : ""}</h1>
+      <h1 className="font-display text-3xl">Konzerte {prefs.city ? `in ${prefs.city}` : prefs.lat ? "in deiner Nähe" : ""}</h1>
       <p className="mt-1 font-meta text-sm text-muted">
-        {prefs.city ? `${prefs.city} · ${prefs.radiusKm ?? 25} km` : "Standort oben rechts wählen für eine Umkreissuche"}
+        {prefs.city
+          ? `${prefs.city} · ${prefs.radiusKm ?? 25} km`
+          : prefs.lat
+            ? `Aktueller Standort · ${prefs.radiusKm ?? 25} km`
+            : "Standort oben rechts wählen für eine Umkreissuche"}
       </p>
 
       <div className="mt-6">

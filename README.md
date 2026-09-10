@@ -101,13 +101,19 @@ before a user creates a brand new entity.
 
 ## What's implemented vs. deferred
 
-Implemented: the full V1 scope table from the concept (§51) at the API
-level — discovery by date/city/radius, calendar counts, event/band/location
-CRUD, claim workflow, multiple managers per entity, stub-on-the-fly
-creation, duplicate detection + admin merge, follow/save, search, discover
-sections, admin dashboard.
+Implemented: the full V1 scope table from the concept (§51), backend and
+frontend — discovery by date/city/radius (including a real device-location
+radius search via "Standort verwenden", §13), calendar counts,
+event/band/location CRUD, claim workflow, multiple managers per entity,
+stub-on-the-fly creation, duplicate detection + admin merge, follow/save,
+search, discover sections, admin dashboard, registration with email
+verification, and self-service password reset.
 
 Deliberately deferred (matches §45 "was V1 nicht enthält" plus normal
-backend-first sequencing): no frontend yet, no image upload (media fields
-are plain URLs), no geocoding (lat/lng must be supplied by the client), no
-notifications/emails.
+backend-first sequencing): no image upload (media fields are plain URLs),
+no reverse geocoding (a typed city stays a plain name match; only
+"Standort verwenden" gives a real coordinate radius), no genre filter on
+the concert/discover lists (bands carry genres, but nothing filters by them
+yet), no distance shown per event, and merged entities don't yet redirect
+their old URL to the surviving one (§36) — the alias is stored, just not
+acted on.

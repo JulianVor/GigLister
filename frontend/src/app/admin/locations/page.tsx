@@ -3,6 +3,7 @@ import { getAdminLocations } from "@/lib/api";
 import { getToken } from "@/lib/session";
 import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
+import { ENTITY_STATUS_HINTS, ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { EntityStatus } from "@/lib/types";
 
 const STATUSES: EntityStatus[] = ["STUB", "DRAFT", "PUBLISHED", "ARCHIVED"];
@@ -24,7 +25,7 @@ export default async function AdminLocationsPage({
       </p>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <StatusFilter basePath="/admin/locations" statuses={STATUSES} active={status} query={q} />
+        <StatusFilter basePath="/admin/locations" statuses={STATUSES} active={status} query={q} labels={ENTITY_STATUS_LABELS} />
         <AdminSearchForm action="/admin/locations" query={q} placeholder="Suche nach Name …" hidden={{ status }} />
       </div>
 
@@ -43,8 +44,11 @@ export default async function AdminLocationsPage({
                 {location.city && <div className="font-meta text-sm text-muted">{location.city}</div>}
               </div>
               <div className="flex items-center gap-3">
-                <span className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted">
-                  {location.status}
+                <span
+                  title={ENTITY_STATUS_HINTS[location.status]}
+                  className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted"
+                >
+                  {ENTITY_STATUS_LABELS[location.status]}
                 </span>
                 <Link href={`/orte/${location.id}/bearbeiten`} className="font-meta text-sm text-accent hover:underline">
                   Bearbeiten

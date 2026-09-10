@@ -3,6 +3,7 @@ import { getAdminBands } from "@/lib/api";
 import { getToken } from "@/lib/session";
 import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
+import { ENTITY_STATUS_HINTS, ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { EntityStatus } from "@/lib/types";
 
 const STATUSES: EntityStatus[] = ["STUB", "DRAFT", "PUBLISHED", "ARCHIVED"];
@@ -24,7 +25,7 @@ export default async function AdminBandsPage({
       </p>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <StatusFilter basePath="/admin/bands" statuses={STATUSES} active={status} query={q} />
+        <StatusFilter basePath="/admin/bands" statuses={STATUSES} active={status} query={q} labels={ENTITY_STATUS_LABELS} />
         <AdminSearchForm action="/admin/bands" query={q} placeholder="Suche nach Name …" hidden={{ status }} />
       </div>
 
@@ -43,8 +44,11 @@ export default async function AdminBandsPage({
                 {band.city && <div className="font-meta text-sm text-muted">{band.city}</div>}
               </div>
               <div className="flex items-center gap-3">
-                <span className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted">
-                  {band.status}
+                <span
+                  title={ENTITY_STATUS_HINTS[band.status]}
+                  className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted"
+                >
+                  {ENTITY_STATUS_LABELS[band.status]}
                 </span>
                 <Link href={`/bands/${band.id}/bearbeiten`} className="font-meta text-sm text-accent hover:underline">
                   Bearbeiten

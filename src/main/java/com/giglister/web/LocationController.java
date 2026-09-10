@@ -44,10 +44,13 @@ public class LocationController {
     @GetMapping
     public Page<LocationListItem> list(
             @RequestParam(required = false) String city,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lon,
+            @RequestParam(required = false) Integer radiusKm,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return locationService.listPublished(city, PageRequest.of(page, size)).map(locationService::toListItem);
+        return locationService.listPublished(city, lat, lon, radiusKm, PageRequest.of(page, size)).map(locationService::toListItem);
     }
 
     @GetMapping("/duplicates")

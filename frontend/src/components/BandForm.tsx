@@ -3,14 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { updateBandAction, updateBandStatusAction } from "@/actions/bands";
+import { ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { BandResponse, EntityStatus } from "@/lib/types";
 
-const STATUS_OPTIONS: { value: EntityStatus; label: string }[] = [
-  { value: "STUB", label: "Stub" },
-  { value: "DRAFT", label: "Entwurf" },
-  { value: "PUBLISHED", label: "Veröffentlicht" },
-  { value: "ARCHIVED", label: "Archiviert" },
-];
+const STATUS_OPTIONS: { value: EntityStatus; label: string }[] = (
+  Object.keys(ENTITY_STATUS_LABELS) as EntityStatus[]
+).map((value) => ({ value, label: ENTITY_STATUS_LABELS[value] }));
 
 export function BandForm({ band }: { band: BandResponse }) {
   const router = useRouter();

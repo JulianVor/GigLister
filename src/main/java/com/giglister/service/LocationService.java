@@ -16,6 +16,7 @@ import com.giglister.repository.EventRepository;
 import com.giglister.repository.LocationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,17 +36,36 @@ public class LocationService {
     private final EventRepository eventRepository;
     private final PermissionService permissionService;
     private final SummaryMapper summaryMapper;
+    private final GeoService geoService;
 
     public Location getOrThrow(Long id) {
         return locationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Location " + id + " not found"));
     }
 
-    public Page<Location> listPublished(String city, Pageable pageable) {
-        if (city != null && !city.isBlank()) {
-            return locationRepository.findByStatusAndCityIgnoreCase(EntityStatus.PUBLISHED, city, pageable);
+    /**
+     * A real coordinate radius (from "Standort verwenden", §13) takes precedence
+     * over the plain city-name match once given - locations without coordinates
+     * still show up (see GeoService.withinRadius), so STUBs are never hidden.
+     */
+    public Page<Location> listPublished(String city, Double centerLat, Double centerLon, Integer radiusKm, Pageable pageable) {
+        if (radiusKm == null || centerLat == null || centerLon == null) {
+            if (city != null && !city.isBlank()) {
+                return locationRepository.findByStatusAndCityIgnoreCase(EntityStatus.PUBLISHED, city, pageable);
+            }
+            return locationRepository.findByStatus(EntityStatus.PUBLISHED, pageable);
         }
-        return locationRepository.findByStatus(EntityStatus.PUBLISHED, pageable);
+        List<Location> filtered = locationRepository.findByStatus(EntityStatus.PUBLISHED, Pageable.unpaged())
+                .getContent().stream()
+                .filter(l -> city == null || city.isBlank() || city.equalsIgnoreCase(l.getCity()))
+                .filter(l -> geoService.withinRadius(l.getLatitude(), l.getLongitude(), centerLat, centerLon, radiusKm))
+                .toList();
+        int start = (int) pageable.getOffset();
+        if (start >= filtered.size()) {
+            return new PageImpl<>(List.of(), pageable, filtered.size());
+        }
+        int end = Math.min(start + pageable.getPageSize(), filtered.size());
+        return new PageImpl<>(filtered.subList(start, end), pageable, filtered.size());
     }
 
     @Transactional

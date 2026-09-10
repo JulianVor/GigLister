@@ -225,7 +225,7 @@ export function unfollowBand(id: number, token: string) {
 
 // --- Locations ---
 
-export function getLocations(params: { city?: string; page?: number; size?: number }) {
+export function getLocations(params: { city?: string; lat?: number; lon?: number; radiusKm?: number; page?: number; size?: number }) {
   return apiFetch<Page<LocationListItem>>(`/api/locations${toQuery(params)}`);
 }
 
