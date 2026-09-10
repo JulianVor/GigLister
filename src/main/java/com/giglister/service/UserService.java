@@ -9,6 +9,8 @@ import com.giglister.domain.enums.EntityType;
 import com.giglister.domain.enums.EventStatus;
 import com.giglister.dto.MeResponse;
 import com.giglister.dto.ProfileUpdateRequest;
+import com.giglister.dto.band.BandResponse;
+import com.giglister.dto.common.EventSummary;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandFollowRepository;
 import com.giglister.repository.EntityPermissionRepository;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,6 +101,33 @@ public class UserService {
 
         return new MeResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.getHomeCity(),
                 user.getRadiusKm(), user.isPlatformAdmin(), saved, followedBands, managed);
+    }
+
+    private List<Long> myManagedBandIds(Long userId) {
+        return entityPermissionRepository.findByUserId(userId).stream()
+                .filter(p -> p.getEntityType() == EntityType.BAND)
+                .map(EntityPermission::getEntityId)
+                .distinct()
+                .toList();
+    }
+
+    /** "Meine Bands": every band the user holds EDIT/MANAGE on, full detail. */
+    public List<BandResponse> myManagedBands(Long userId) {
+        return bandService.findByIds(myManagedBandIds(userId)).stream()
+                .sorted(Comparator.comparing(Band::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(bandService::toResponse)
+                .toList();
+    }
+
+    /** "Meine Veranstaltungen": upcoming events across all of the user's bands, band-übergreifend. */
+    public List<EventSummary> myBandEvents(Long userId) {
+        List<Long> bandIds = myManagedBandIds(userId);
+        if (bandIds.isEmpty()) {
+            return List.of();
+        }
+        return eventRepository.findUpcomingForAnyBand(bandIds, EventStatus.PUBLISHED, LocalDate.now()).stream()
+                .map(summaryMapper::eventSummary)
+                .toList();
     }
 
     private String safeName(java.util.function.Supplier<String> supplier) {

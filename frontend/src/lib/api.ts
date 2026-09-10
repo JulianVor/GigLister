@@ -17,6 +17,7 @@ import type {
   EntityType,
   EventResponse,
   EventStatus,
+  EventSummary,
   EntityStatus,
   LocationListItem,
   LocationResponse,
@@ -279,6 +280,16 @@ export function updateProfile(
   token: string
 ) {
   return apiFetch<MeResponse>("/api/me", { method: "PUT", body: data, token });
+}
+
+/** "Meine Bands": every band the current user holds EDIT/MANAGE on. */
+export function getMyBands(token: string) {
+  return apiFetch<BandResponse[]>("/api/me/bands", { token });
+}
+
+/** "Meine Veranstaltungen": upcoming events across all of the user's bands, band-übergreifend. */
+export function getMyEvents(token: string) {
+  return apiFetch<EventSummary[]>("/api/me/events", { token });
 }
 
 // --- Admin ---

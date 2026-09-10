@@ -35,6 +35,10 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("select e from Event e where :bandId member of e.bandIds")
     List<Event> findByBandId(@Param("bandId") Long bandId);
 
+    /** Cross-band: every upcoming event featuring any of the given bands, deduplicated. */
+    @Query("select distinct e from Event e join e.bandIds b where b in :bandIds and e.status = :status and e.date >= :from order by e.date asc, e.startTime asc")
+    List<Event> findUpcomingForAnyBand(@Param("bandIds") List<Long> bandIds, @Param("status") EventStatus status, @Param("from") LocalDate from);
+
     @Query("select e from Event e where e.status = :status and e.date between :from and :to and lower(coalesce(e.title, '')) like lower(concat('%', :q, '%'))")
     List<Event> searchByTitleAndStatus(@Param("q") String query, @Param("status") EventStatus status,
                                         @Param("from") LocalDate from, @Param("to") LocalDate to);

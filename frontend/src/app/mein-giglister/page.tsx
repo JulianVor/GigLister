@@ -1,12 +1,22 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
+import { getSession, getToken } from "@/lib/session";
+import { getMyBands, getMyEvents } from "@/lib/api";
 import { EventCard } from "@/components/EventCard";
 import { EmptyState } from "@/components/EmptyState";
+import { StatusBadge } from "@/components/StatusBadge";
+import type { BandResponse, EventSummary } from "@/lib/types";
 
 export default async function MeinGigListerPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const token = await getToken();
+  const [myBands, myEvents]: [BandResponse[], EventSummary[]] = token
+    ? await Promise.all([getMyBands(token), getMyEvents(token)])
+    : [[], []];
+
+  const myLocations = session.managedEntities.filter((e) => e.entityType === "LOCATION");
 
   return (
     <div>
@@ -45,21 +55,62 @@ export default async function MeinGigListerPage() {
       </section>
 
       <section className="mt-10">
-        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Von mir verwaltet</h2>
+        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Bands</h2>
         <div className="mt-2 divide-y divide-line border-y border-line">
-          {session.managedEntities.length === 0 ? (
-            <EmptyState>Du verwaltest noch keine Bands oder Orte.</EmptyState>
+          {myBands.length === 0 ? (
+            <EmptyState>Du verwaltest noch keine Bands.</EmptyState>
           ) : (
-            session.managedEntities.map((entity) => (
+            myBands.map((band) => {
+              const permission = session.managedEntities.find(
+                (e) => e.entityType === "BAND" && e.entityId === band.id
+              )?.permission;
+              return (
+                <Link
+                  key={band.id}
+                  href={`/bands/${band.id}`}
+                  className="flex items-center justify-between gap-4 py-3 hover:text-accent"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="font-display text-lg">{band.name}</span>
+                    <StatusBadge status={band.status} />
+                  </span>
+                  <span className="font-meta text-sm text-muted">
+                    {band.city ?? "—"}
+                    {permission ? ` · ${permission}` : ""}
+                  </span>
+                </Link>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Veranstaltungen</h2>
+        <p className="mt-1 font-meta text-xs text-muted">Kommende Konzerte über alle deine Bands hinweg.</p>
+        <div className="mt-2">
+          {myEvents.length === 0 ? (
+            <EmptyState>Keine kommenden Konzerte deiner Bands.</EmptyState>
+          ) : (
+            myEvents.map((e) => <EventCard key={e.id} event={e} />)
+          )}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Orte</h2>
+        <div className="mt-2 divide-y divide-line border-y border-line">
+          {myLocations.length === 0 ? (
+            <EmptyState>Du verwaltest noch keine Orte.</EmptyState>
+          ) : (
+            myLocations.map((entity) => (
               <Link
-                key={`${entity.entityType}-${entity.entityId}`}
-                href={entity.entityType === "BAND" ? `/bands/${entity.entityId}` : `/orte/${entity.entityId}`}
+                key={entity.entityId}
+                href={`/orte/${entity.entityId}`}
                 className="flex items-center justify-between gap-4 py-3 hover:text-accent"
               >
                 <span className="font-display text-lg">{entity.name}</span>
-                <span className="font-meta text-sm text-muted">
-                  {entity.entityType === "BAND" ? "Band" : "Location"} · {entity.permission}
-                </span>
+                <span className="font-meta text-sm text-muted">Location · {entity.permission}</span>
               </Link>
             ))
           )}
