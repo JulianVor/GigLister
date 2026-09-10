@@ -3,6 +3,7 @@ package com.giglister.web;
 import com.giglister.domain.Claim;
 import com.giglister.domain.EntityMerge;
 import com.giglister.dto.admin.AdminDashboardResponse;
+import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.ClaimResponse;
 import com.giglister.dto.admin.DuplicatePair;
 import com.giglister.dto.admin.MergeRequest;
@@ -59,5 +60,20 @@ public class AdminController {
     @PostMapping("/merge")
     public EntityMerge merge(@Valid @RequestBody MergeRequest request) {
         return mergeService.merge(request.entityType(), request.sourceEntityId(), request.targetEntityId(), CurrentUser.requireId());
+    }
+
+    @GetMapping("/users")
+    public List<AdminUserResponse> users(@RequestParam(required = false) String q) {
+        return adminService.listUsers(q);
+    }
+
+    @PostMapping("/users/{id}/promote")
+    public AdminUserResponse promote(@PathVariable Long id) {
+        return adminService.setPlatformAdmin(id, true, CurrentUser.requireId());
+    }
+
+    @PostMapping("/users/{id}/demote")
+    public AdminUserResponse demote(@PathVariable Long id) {
+        return adminService.setPlatformAdmin(id, false, CurrentUser.requireId());
     }
 }

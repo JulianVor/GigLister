@@ -2,18 +2,25 @@ package com.giglister.service;
 
 import com.giglister.domain.Band;
 import com.giglister.domain.Location;
+import com.giglister.domain.User;
 import com.giglister.domain.enums.ClaimStatus;
 import com.giglister.domain.enums.EntityStatus;
 import com.giglister.domain.enums.EntityType;
 import com.giglister.dto.admin.AdminDashboardResponse;
+import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.DuplicatePair;
+import com.giglister.exception.BadRequestException;
+import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandRepository;
 import com.giglister.repository.ClaimRepository;
 import com.giglister.repository.LocationRepository;
+import com.giglister.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -23,6 +30,7 @@ public class AdminService {
     private final ClaimRepository claimRepository;
     private final BandRepository bandRepository;
     private final LocationRepository locationRepository;
+    private final UserRepository userRepository;
 
     public AdminDashboardResponse dashboard() {
         long openClaims = claimRepository.findByStatus(ClaimStatus.PENDING).size();
@@ -68,5 +76,27 @@ public class AdminService {
 
     private boolean sameCity(String a, String b) {
         return a != null && b != null && TextNormalizer.normalize(a).equals(TextNormalizer.normalize(b));
+    }
+
+    public List<AdminUserResponse> listUsers(String query) {
+        List<User> users = (query == null || query.isBlank())
+                ? userRepository.findAll()
+                : userRepository.findByEmailContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(query, query);
+        return users.stream()
+                .sorted(Comparator.comparing(User::getEmail))
+                .map(u -> new AdminUserResponse(u.getId(), u.getEmail(), u.getDisplayName(), u.isPlatformAdmin()))
+                .toList();
+    }
+
+    @Transactional
+    public AdminUserResponse setPlatformAdmin(Long userId, boolean platformAdmin, Long actingUserId) {
+        if (!platformAdmin && userId.equals(actingUserId)) {
+            throw new BadRequestException("You cannot remove your own admin rights");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User " + userId + " not found"));
+        user.setPlatformAdmin(platformAdmin);
+        userRepository.save(user);
+        return new AdminUserResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.isPlatformAdmin());
     }
 }

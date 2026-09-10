@@ -20,6 +20,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link href="/admin/duplicates" className="hover:text-accent">
           Duplikate
         </Link>
+        <Link href="/admin/users" className="hover:text-accent">
+          Nutzer
+        </Link>
       </nav>
       {children}
     </div>

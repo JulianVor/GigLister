@@ -21,7 +21,10 @@ mvn spring-boot:run
 The API listens on `:8080`. On first `register`, set
 `GIGLISTER_ADMIN_EMAIL` to that email beforehand to bootstrap the first
 `PLATFORM_ADMIN` account (there's no separate admin account type — it's just a
-flag on a normal user, as in the concept).
+flag on a normal user, as in the concept). From there, that admin can promote
+or demote any other user via `POST /api/admin/users/{id}/promote|demote`
+(surfaced in the frontend under `/admin/users`) — a user can never remove
+their own admin rights, so the platform can't end up without one.
 
 ## Domain model
 
@@ -54,7 +57,7 @@ requires a Bearer JWT; `/admin/**` additionally requires `platformAdmin`.
 | Locations | same shape as Bands (no `follow`) |
 | Discovery | `GET /discover`, `GET /search?q=&type=` |
 | Me | `GET/PUT /me` — saved events, followed bands, managed entities |
-| Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge` |
+| Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge`, `GET /admin/users`, `POST /admin/users/{id}/promote\|demote` |
 
 **Creating an event** (`POST /events`) accepts either an existing
 `location`/`band` id, or just a `name`+`city` to create a `STUB` inline —

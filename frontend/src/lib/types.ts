@@ -141,6 +141,13 @@ export interface ClaimResponse {
   requestedAt: string;
 }
 
+export interface AdminUserResponse {
+  id: number;
+  email: string;
+  displayName: string;
+  platformAdmin: boolean;
+}
+
 export interface DuplicateCandidate {
   entityType: EntityType;
   id: number;

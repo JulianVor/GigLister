@@ -55,7 +55,7 @@ Mirrors the concept's information architecture directly:
 /suche                      Gruppierte Suche über Konzerte/Bands/Orte
 /mein-giglister              Gemerkt / Gefolgt / Verwaltet
 /login, /registrieren
-/admin, /admin/claims, /admin/duplicates   Nur für platformAdmin
+/admin, /admin/claims, /admin/duplicates, /admin/users   Nur für platformAdmin
 ```
 
 ## Known V1 gaps

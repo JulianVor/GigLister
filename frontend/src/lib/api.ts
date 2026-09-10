@@ -1,6 +1,7 @@
 import "server-only";
 import type {
   AdminDashboardResponse,
+  AdminUserResponse,
   AuthResponse,
   BandResponse,
   CalendarDayCount,
@@ -301,4 +302,16 @@ export function rejectClaim(id: number, token: string) {
 
 export function mergeEntities(data: { entityType: EntityType; sourceEntityId: number; targetEntityId: number }, token: string) {
   return apiFetch<EntityMerge>("/api/admin/merge", { method: "POST", body: data, token });
+}
+
+export function getAdminUsers(query: string | undefined, token: string) {
+  return apiFetch<AdminUserResponse[]>(`/api/admin/users${toQuery({ q: query })}`, { token });
+}
+
+export function promoteUser(id: number, token: string) {
+  return apiFetch<AdminUserResponse>(`/api/admin/users/${id}/promote`, { method: "POST", token });
+}
+
+export function demoteUser(id: number, token: string) {
+  return apiFetch<AdminUserResponse>(`/api/admin/users/${id}/demote`, { method: "POST", token });
 }
