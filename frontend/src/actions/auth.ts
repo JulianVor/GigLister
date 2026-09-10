@@ -2,11 +2,19 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ApiError, login as apiLogin, register as apiRegister } from "@/lib/api";
+import {
+  ApiError,
+  forgotPassword as apiForgotPassword,
+  login as apiLogin,
+  register as apiRegister,
+  resetPassword as apiResetPassword,
+} from "@/lib/api";
 import { TOKEN_COOKIE } from "@/lib/session";
 
 export type AuthFormState = { error?: string } | undefined;
 export type RegisterFormState = { error?: string; success?: boolean; email?: string } | undefined;
+export type ForgotPasswordFormState = { error?: string; message?: string } | undefined;
+export type ResetPasswordFormState = { error?: string } | undefined;
 
 async function setSessionCookie(token: string) {
   const store = await cookies();
@@ -62,6 +70,57 @@ export async function registerAction(_prevState: RegisterFormState, formData: Fo
   }
 
   return { success: true, email };
+}
+
+export async function forgotPasswordAction(
+  _prevState: ForgotPasswordFormState,
+  formData: FormData
+): Promise<ForgotPasswordFormState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) {
+    return { error: "Bitte eine E-Mail-Adresse angeben." };
+  }
+
+  try {
+    const res = await apiForgotPassword(email);
+    return { message: res.message };
+  } catch (err) {
+    if (err instanceof ApiError) {
+      return { error: err.message };
+    }
+    throw err;
+  }
+}
+
+export async function resetPasswordAction(
+  _prevState: ResetPasswordFormState,
+  formData: FormData
+): Promise<ResetPasswordFormState> {
+  const token = String(formData.get("token") ?? "");
+  const newPassword = String(formData.get("newPassword") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (!token) {
+    return { error: "Ungültiger Link zum Zurücksetzen des Passworts." };
+  }
+  if (newPassword.length < 8) {
+    return { error: "Das Passwort muss mindestens 8 Zeichen haben." };
+  }
+  if (newPassword !== confirmPassword) {
+    return { error: "Die Passwörter stimmen nicht überein." };
+  }
+
+  try {
+    const res = await apiResetPassword(token, newPassword);
+    await setSessionCookie(res.token);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      return { error: err.message };
+    }
+    throw err;
+  }
+
+  redirect("/mein-giglister");
 }
 
 export async function logoutAction() {

@@ -45,11 +45,16 @@ or demote any other user via `POST /api/admin/users/{id}/promote|demote`
 their own admin rights, so the platform can't end up without one.
 
 Registration only needs a unique username, an email (used for password
-recovery, not implemented yet) and a password; the account stays unverified
-and login is blocked until the confirmation link is followed. Mail is sent
+recovery) and a password; the account stays unverified and login is blocked
+until the confirmation link is followed. `POST /api/auth/forgot-password`
+sends a reset link the same way (and always answers identically whether or
+not the email is registered, so it can't be used to enumerate accounts);
+following it via `POST /api/auth/reset-password` sets a new password, logs
+the user in, and — since it proves the same inbox ownership as the
+verification link — verifies the email too. Mail is sent
 via `GIGLISTER_MAIL_HOST`/`GIGLISTER_MAIL_PORT`/`GIGLISTER_MAIL_USER`/
 `GIGLISTER_MAIL_PASSWORD`/`GIGLISTER_MAIL_FROM`; with `GIGLISTER_MAIL_HOST`
-unset (the local default), the verification link is written to the server
+unset (the local default), the verification/reset link is written to the server
 log instead of actually being sent. `GIGLISTER_FRONTEND_URL` controls which
 frontend origin that link points at (defaults to `http://localhost:3000`).
 

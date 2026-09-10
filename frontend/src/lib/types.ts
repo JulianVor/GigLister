@@ -115,6 +115,10 @@ export interface UsernameAvailabilityResponse {
   available: boolean;
 }
 
+export interface MessageResponse {
+  message: string;
+}
+
 export interface MeResponse {
   id: number;
   email: string;

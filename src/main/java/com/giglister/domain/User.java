@@ -44,6 +44,10 @@ public class User {
 
     private Instant verificationTokenExpiresAt;
 
+    private String resetToken;
+
+    private Instant resetTokenExpiresAt;
+
     private String homeCity;
 
     private Double homeLatitude;

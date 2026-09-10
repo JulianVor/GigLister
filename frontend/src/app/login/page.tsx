@@ -8,7 +8,12 @@ export default function LoginPage() {
       <div className="mt-6">
         <LoginForm />
       </div>
-      <p className="mt-6 font-meta text-sm text-muted">
+      <p className="mt-4 font-meta text-sm text-muted">
+        <Link href="/passwort-vergessen" className="text-accent hover:underline">
+          Passwort vergessen?
+        </Link>
+      </p>
+      <p className="mt-2 font-meta text-sm text-muted">
         Noch kein Konto?{" "}
         <Link href="/registrieren" className="text-accent hover:underline">
           Registrieren

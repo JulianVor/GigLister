@@ -22,6 +22,7 @@ import type {
   LocationListItem,
   LocationResponse,
   MeResponse,
+  MessageResponse,
   Page,
   PermissionLevel,
   PermissionResponse,
@@ -98,6 +99,14 @@ export function usernameAvailable(username: string) {
 
 export function verifyEmail(token: string) {
   return apiFetch<AuthResponse>("/api/auth/verify-email", { method: "POST", body: { token } });
+}
+
+export function forgotPassword(email: string) {
+  return apiFetch<MessageResponse>("/api/auth/forgot-password", { method: "POST", body: { email } });
+}
+
+export function resetPassword(token: string, newPassword: string) {
+  return apiFetch<AuthResponse>("/api/auth/reset-password", { method: "POST", body: { token, newPassword } });
 }
 
 export function login(data: { email: string; password: string }) {

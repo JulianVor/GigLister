@@ -26,6 +26,7 @@ import java.util.UUID;
 public class AuthService {
 
     private static final long VERIFICATION_TOKEN_VALID_HOURS = 24;
+    private static final long RESET_TOKEN_VALID_HOURS = 1;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -78,6 +79,34 @@ public class AuthService {
         user.setEmailVerified(true);
         user.setVerificationToken(null);
         user.setVerificationTokenExpiresAt(null);
+        user = userRepository.save(user);
+        return toAuthResponse(user);
+    }
+
+    /** Always succeeds silently, whether or not the email is registered - so this endpoint can't be used to enumerate accounts. */
+    @Transactional
+    public void forgotPassword(String email) {
+        userRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
+            String token = UUID.randomUUID().toString();
+            user.setResetToken(token);
+            user.setResetTokenExpiresAt(Instant.now().plus(RESET_TOKEN_VALID_HOURS, ChronoUnit.HOURS));
+            userRepository.save(user);
+            mailService.sendPasswordResetEmail(user.getEmail(), user.getUsername(), token);
+        });
+    }
+
+    @Transactional
+    public AuthResponse resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetToken(token)
+                .orElseThrow(() -> new BadRequestException("Ungültiger Link zum Zurücksetzen des Passworts"));
+        if (user.getResetTokenExpiresAt() == null || user.getResetTokenExpiresAt().isBefore(Instant.now())) {
+            throw new BadRequestException("Der Link zum Zurücksetzen des Passworts ist abgelaufen");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiresAt(null);
+        // Following an emailed link proves control of the inbox, same as the verification flow.
+        user.setEmailVerified(true);
         user = userRepository.save(user);
         return toAuthResponse(user);
     }

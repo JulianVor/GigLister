@@ -50,6 +50,17 @@ public class MailService {
         send(to, subject, body, link);
     }
 
+    public void sendPasswordResetEmail(String to, String username, String token) {
+        String link = frontendBaseUrl + "/passwort-zuruecksetzen?token=" + token;
+        String subject = "Passwort zurücksetzen bei GigLister";
+        String body = "Hallo " + username + ",\n\n"
+                + "du (oder jemand in deinem Namen) hat ein neues Passwort angefordert. Klicke auf den Link, um ein neues Passwort zu vergeben:\n"
+                + link + "\n\n"
+                + "Der Link ist 1 Stunde gültig.\n\n"
+                + "Falls du das nicht warst, kannst du diese Mail ignorieren - dein Passwort bleibt unverändert.";
+        send(to, subject, body, link);
+    }
+
     private void send(String to, String subject, String body, String logLink) {
         if (host == null || host.isBlank()) {
             log.info("[DEV] No SMTP configured - would send \"{}\" to {}: {}", subject, to, logLink);
