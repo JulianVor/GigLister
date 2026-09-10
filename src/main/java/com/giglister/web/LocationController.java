@@ -16,7 +16,6 @@ import com.giglister.dto.location.LocationListItem;
 import com.giglister.dto.location.LocationResponse;
 import com.giglister.dto.location.LocationUpdateRequest;
 import com.giglister.exception.NotFoundException;
-import com.giglister.security.AppUserPrincipal;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.ClaimService;
 import com.giglister.service.DuplicateDetectionService;
@@ -63,14 +62,17 @@ public class LocationController {
         return locationService.toResponse(location);
     }
 
+    /**
+     * PUBLISHED locations are visible to everyone. A STUB/DRAFT location has no
+     * real public profile yet, so it's hidden from anonymous visitors - but any
+     * logged-in user can still reach it, otherwise nobody could ever discover
+     * and claim a venue they just saw referenced in an event.
+     */
     private void assertVisible(Location location) {
         if (location.getStatus() == EntityStatus.PUBLISHED) {
             return;
         }
-        AppUserPrincipal user = CurrentUser.getOrNull();
-        boolean allowed = user != null && (user.isPlatformAdmin()
-                || permissionService.has(user.getId(), false, EntityType.LOCATION, location.getId(), PermissionLevel.EDIT));
-        if (!allowed) {
+        if (CurrentUser.getOrNull() == null) {
             throw new NotFoundException("Location " + location.getId() + " not found");
         }
     }

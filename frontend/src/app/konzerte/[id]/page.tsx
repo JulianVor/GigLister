@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApiError, getEvent, getLocation } from "@/lib/api";
-import { getSession } from "@/lib/session";
+import { getSession, getToken } from "@/lib/session";
 import { canEditEvent } from "@/lib/permissions";
 import { dayAndMonth, fullDateLabel, formatTime, weekdayShort } from "@/lib/format";
 import { eventLineupLabel } from "@/lib/event-display";
@@ -14,15 +14,16 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const eventId = Number(id);
 
-  const [event, session] = await Promise.all([
+  const [event, session, token] = await Promise.all([
     getEvent(eventId).catch((err) => {
       if (err instanceof ApiError && err.status === 404) notFound();
       throw err;
     }),
     getSession(),
+    getToken(),
   ]);
 
-  const location = await getLocation(event.location.id).catch(() => null);
+  const location = await getLocation(event.location.id, token).catch(() => null);
   const otherAtLocation = location
     ? location.upcomingEvents.filter((e) => e.id !== event.id).slice(0, 4)
     : [];
@@ -47,7 +48,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       <h1 className="mt-4 font-display text-4xl leading-tight">{eventLineupLabel(event)}</h1>
 
       <p className="mt-2 font-meta text-lg">
-        {event.location.linkable ? (
+        {event.location.linkable || session ? (
           <Link href={`/orte/${event.location.id}`} className="hover:text-accent">
             {event.location.name}
           </Link>
@@ -89,12 +90,18 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
       <h2 className="mt-10 font-meta text-sm uppercase tracking-wide text-muted">Line-up</h2>
       <div className="mt-2">
-        <LineUp bands={event.bands} />
+        <LineUp bands={event.bands} loggedIn={!!session} />
       </div>
 
       <h2 className="mt-10 font-meta text-sm uppercase tracking-wide text-muted">Ort</h2>
       <div className="mt-2">
-        <p className="font-display text-xl">{event.location.name}</p>
+        {event.location.linkable || session ? (
+          <Link href={`/orte/${event.location.id}`} className="font-display text-xl hover:text-accent">
+            {event.location.name}
+          </Link>
+        ) : (
+          <p className="font-display text-xl">{event.location.name}</p>
+        )}
         {location?.address && <p className="font-meta text-sm text-muted">{location.address}</p>}
         <p className="font-meta text-sm text-muted">{event.location.city}</p>
         <StatusBadge status={event.location.status} />

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApiError, getBand } from "@/lib/api";
-import { getSession } from "@/lib/session";
+import { getSession, getToken } from "@/lib/session";
 import { canManageEntity } from "@/lib/permissions";
 import { EventCard } from "@/components/EventCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -12,9 +12,9 @@ import { ClaimButton } from "@/components/ClaimButton";
 export default async function BandDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const bandId = Number(id);
-  const session = await getSession();
+  const [session, token] = await Promise.all([getSession(), getToken()]);
 
-  const band = await getBand(bandId).catch((err) => {
+  const band = await getBand(bandId, token).catch((err) => {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;
   });

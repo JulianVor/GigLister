@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { BandSummary } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 
-export function LineUp({ bands }: { bands: BandSummary[] }) {
+export function LineUp({ bands, loggedIn }: { bands: BandSummary[]; loggedIn: boolean }) {
   return (
     <div className="divide-y divide-line border-y border-line">
       {bands.map((band) => {
@@ -22,7 +22,10 @@ export function LineUp({ bands }: { bands: BandSummary[] }) {
           </div>
         );
 
-        return band.linkable ? (
+        // PUBLISHED bands are linkable for everyone; a STUB/DRAFT band has no
+        // real public profile yet, but a logged-in user can still reach it -
+        // otherwise nobody could ever discover and claim it.
+        return band.linkable || loggedIn ? (
           <Link key={band.id} href={`/bands/${band.id}`} className="block hover:text-accent">
             {content}
           </Link>

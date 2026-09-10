@@ -15,7 +15,6 @@ import com.giglister.dto.band.BandCreateRequest;
 import com.giglister.dto.band.BandResponse;
 import com.giglister.dto.band.BandUpdateRequest;
 import com.giglister.exception.NotFoundException;
-import com.giglister.security.AppUserPrincipal;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.BandService;
 import com.giglister.service.ClaimService;
@@ -62,14 +61,17 @@ public class BandController {
         return bandService.toResponse(band);
     }
 
+    /**
+     * PUBLISHED bands are visible to everyone. A STUB/DRAFT band has no real
+     * public profile yet, so it's hidden from anonymous visitors - but any
+     * logged-in user can still reach it, otherwise nobody could ever discover
+     * and claim a band they just saw referenced in an event's line-up.
+     */
     private void assertVisible(Band band) {
         if (band.getStatus() == EntityStatus.PUBLISHED) {
             return;
         }
-        AppUserPrincipal user = CurrentUser.getOrNull();
-        boolean allowed = user != null && (user.isPlatformAdmin()
-                || permissionService.has(user.getId(), false, EntityType.BAND, band.getId(), PermissionLevel.EDIT));
-        if (!allowed) {
+        if (CurrentUser.getOrNull() == null) {
             throw new NotFoundException("Band " + band.getId() + " not found");
         }
     }

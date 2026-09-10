@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApiError, getLocation } from "@/lib/api";
-import { getSession } from "@/lib/session";
+import { getSession, getToken } from "@/lib/session";
 import { canManageEntity } from "@/lib/permissions";
 import { EventCard } from "@/components/EventCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -11,9 +11,9 @@ import { ClaimButton } from "@/components/ClaimButton";
 export default async function LocationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const locationId = Number(id);
-  const session = await getSession();
+  const [session, token] = await Promise.all([getSession(), getToken()]);
 
-  const location = await getLocation(locationId, undefined).catch(async (err) => {
+  const location = await getLocation(locationId, token).catch(async (err) => {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;
   });
