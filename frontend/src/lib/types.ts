@@ -174,6 +174,29 @@ export interface AdminDashboardResponse {
   possibleDuplicates: number;
 }
 
+export interface AdminBandListItem {
+  id: number;
+  name: string;
+  city: string | null;
+  status: EntityStatus;
+}
+
+export interface AdminLocationListItem {
+  id: number;
+  name: string;
+  city: string | null;
+  status: EntityStatus;
+}
+
+export interface AdminEventListItem {
+  id: number;
+  date: string;
+  title: string | null;
+  locationName: string;
+  bandNames: string[];
+  status: EventStatus;
+}
+
 export interface CalendarDayCount {
   date: string;
   count: number;

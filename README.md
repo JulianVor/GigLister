@@ -75,7 +75,7 @@ requires a Bearer JWT; `/admin/**` additionally requires `platformAdmin`.
 | Locations | same shape as Bands (no `follow`) |
 | Discovery | `GET /discover`, `GET /search?q=&type=` |
 | Me | `GET/PUT /me` — saved events, followed bands, managed entities |
-| Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge`, `GET /admin/users`, `POST /admin/users/{id}/promote\|demote` |
+| Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge`, `GET /admin/users`, `POST /admin/users/{id}/promote\|demote`, `GET /admin/bands\|locations\|events` (every status, not just PUBLISHED — filterable by `status`/`q`) |
 
 **Creating an event** (`POST /events`) accepts either an existing
 `location`/`band` id, or just a `name`+`city` to create a `STUB` inline —

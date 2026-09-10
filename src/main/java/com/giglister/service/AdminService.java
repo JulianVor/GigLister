@@ -1,21 +1,30 @@
 package com.giglister.service;
 
 import com.giglister.domain.Band;
+import com.giglister.domain.Event;
 import com.giglister.domain.Location;
 import com.giglister.domain.User;
 import com.giglister.domain.enums.ClaimStatus;
 import com.giglister.domain.enums.EntityStatus;
 import com.giglister.domain.enums.EntityType;
+import com.giglister.domain.enums.EventStatus;
+import com.giglister.dto.admin.AdminBandListItem;
 import com.giglister.dto.admin.AdminDashboardResponse;
+import com.giglister.dto.admin.AdminEventListItem;
+import com.giglister.dto.admin.AdminLocationListItem;
 import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.DuplicatePair;
 import com.giglister.exception.BadRequestException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandRepository;
 import com.giglister.repository.ClaimRepository;
+import com.giglister.repository.EventRepository;
 import com.giglister.repository.LocationRepository;
 import com.giglister.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +39,7 @@ public class AdminService {
     private final ClaimRepository claimRepository;
     private final BandRepository bandRepository;
     private final LocationRepository locationRepository;
+    private final EventRepository eventRepository;
     private final UserRepository userRepository;
 
     public AdminDashboardResponse dashboard() {
@@ -98,5 +108,73 @@ public class AdminService {
         user.setPlatformAdmin(platformAdmin);
         userRepository.save(user);
         return new AdminUserResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.isPlatformAdmin());
+    }
+
+    /**
+     * Full overview of every Band, regardless of status - the "STUB/DRAFT items
+     * that still need completing" list the public /bands endpoint deliberately
+     * hides (it only ever returns PUBLISHED).
+     */
+    public Page<AdminBandListItem> listAdminBands(EntityStatus status, String query, Pageable pageable) {
+        List<Band> matches = bandRepository.findAll().stream()
+                .filter(b -> status == null || b.getStatus() == status)
+                .filter(b -> matchesQuery(b.getName(), query))
+                .sorted(Comparator.comparing(Band::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        return paginate(matches, pageable)
+                .map(b -> new AdminBandListItem(b.getId(), b.getName(), b.getCity(), b.getStatus()));
+    }
+
+    public Page<AdminLocationListItem> listAdminLocations(EntityStatus status, String query, Pageable pageable) {
+        List<Location> matches = locationRepository.findAll().stream()
+                .filter(l -> status == null || l.getStatus() == status)
+                .filter(l -> matchesQuery(l.getName(), query))
+                .sorted(Comparator.comparing(Location::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        return paginate(matches, pageable)
+                .map(l -> new AdminLocationListItem(l.getId(), l.getName(), l.getCity(), l.getStatus()));
+    }
+
+    public Page<AdminEventListItem> listAdminEvents(EventStatus status, String query, Pageable pageable) {
+        List<Event> matches = eventRepository.findAll().stream()
+                .filter(e -> status == null || e.getStatus() == status)
+                .filter(e -> matchesQuery(e.getTitle(), query) || matchesEventBandQuery(e, query))
+                .sorted(Comparator.comparing(Event::getDate).reversed())
+                .toList();
+        return paginate(matches, pageable).map(this::toAdminEventListItem);
+    }
+
+    private AdminEventListItem toAdminEventListItem(Event event) {
+        String locationName = locationRepository.findById(event.getLocationId())
+                .map(Location::getName)
+                .orElse("(gelöscht)");
+        List<String> bandNames = event.getBandIds().stream()
+                .map(id -> bandRepository.findById(id).map(Band::getName).orElse("(gelöscht)"))
+                .toList();
+        return new AdminEventListItem(event.getId(), event.getDate(), event.getTitle(), locationName, bandNames, event.getStatus());
+    }
+
+    private boolean matchesQuery(String value, String query) {
+        if (query == null || query.isBlank()) {
+            return true;
+        }
+        return value != null && TextNormalizer.normalize(value).contains(TextNormalizer.normalize(query));
+    }
+
+    private boolean matchesEventBandQuery(Event event, String query) {
+        if (query == null || query.isBlank()) {
+            return false;
+        }
+        return event.getBandIds().stream()
+                .anyMatch(id -> bandRepository.findById(id).map(Band::getName).filter(name -> matchesQuery(name, query)).isPresent());
+    }
+
+    private <T> Page<T> paginate(List<T> items, Pageable pageable) {
+        int start = (int) pageable.getOffset();
+        if (start >= items.size()) {
+            return new PageImpl<>(List.of(), pageable, items.size());
+        }
+        int end = Math.min(start + pageable.getPageSize(), items.size());
+        return new PageImpl<>(items.subList(start, end), pageable, items.size());
     }
 }

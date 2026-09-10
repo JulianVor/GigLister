@@ -1,6 +1,9 @@
 import "server-only";
 import type {
+  AdminBandListItem,
   AdminDashboardResponse,
+  AdminEventListItem,
+  AdminLocationListItem,
   AdminUserResponse,
   AuthResponse,
   BandResponse,
@@ -314,4 +317,25 @@ export function promoteUser(id: number, token: string) {
 
 export function demoteUser(id: number, token: string) {
   return apiFetch<AdminUserResponse>(`/api/admin/users/${id}/demote`, { method: "POST", token });
+}
+
+export function getAdminBands(
+  params: { status?: EntityStatus; q?: string; page?: number; size?: number },
+  token: string
+) {
+  return apiFetch<Page<AdminBandListItem>>(`/api/admin/bands${toQuery(params)}`, { token });
+}
+
+export function getAdminLocations(
+  params: { status?: EntityStatus; q?: string; page?: number; size?: number },
+  token: string
+) {
+  return apiFetch<Page<AdminLocationListItem>>(`/api/admin/locations${toQuery(params)}`, { token });
+}
+
+export function getAdminEvents(
+  params: { status?: EventStatus; q?: string; page?: number; size?: number },
+  token: string
+) {
+  return apiFetch<Page<AdminEventListItem>>(`/api/admin/events${toQuery(params)}`, { token });
 }

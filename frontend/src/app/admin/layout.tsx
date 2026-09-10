@@ -14,6 +14,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link href="/admin" className="hover:text-accent">
           Übersicht
         </Link>
+        <Link href="/admin/events" className="hover:text-accent">
+          Konzerte
+        </Link>
+        <Link href="/admin/bands" className="hover:text-accent">
+          Bands
+        </Link>
+        <Link href="/admin/locations" className="hover:text-accent">
+          Orte
+        </Link>
         <Link href="/admin/claims" className="hover:text-accent">
           Claims
         </Link>

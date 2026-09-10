@@ -1,6 +1,9 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:giglister-test;DB_CLOSE_DELAY=-1
+    # No DB_CLOSE_DELAY override: the in-memory DB is destroyed once the last
+    # connection closes, so @DirtiesContext on a test class actually resets data
+    # for the next class instead of leaking rows across the whole test run.
+    url: jdbc:h2:mem:giglister-test
     driver-class-name: org.h2.Driver
     username: sa
     password: ""

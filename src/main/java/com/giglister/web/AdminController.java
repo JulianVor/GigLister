@@ -2,7 +2,12 @@ package com.giglister.web;
 
 import com.giglister.domain.Claim;
 import com.giglister.domain.EntityMerge;
+import com.giglister.domain.enums.EntityStatus;
+import com.giglister.domain.enums.EventStatus;
+import com.giglister.dto.admin.AdminBandListItem;
 import com.giglister.dto.admin.AdminDashboardResponse;
+import com.giglister.dto.admin.AdminEventListItem;
+import com.giglister.dto.admin.AdminLocationListItem;
 import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.ClaimResponse;
 import com.giglister.dto.admin.DuplicatePair;
@@ -13,6 +18,8 @@ import com.giglister.service.ClaimService;
 import com.giglister.service.MergeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -75,5 +82,35 @@ public class AdminController {
     @PostMapping("/users/{id}/demote")
     public AdminUserResponse demote(@PathVariable Long id) {
         return adminService.setPlatformAdmin(id, false, CurrentUser.requireId());
+    }
+
+    @GetMapping("/bands")
+    public Page<AdminBandListItem> bands(
+            @RequestParam(required = false) EntityStatus status,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return adminService.listAdminBands(status, q, PageRequest.of(page, size));
+    }
+
+    @GetMapping("/locations")
+    public Page<AdminLocationListItem> locations(
+            @RequestParam(required = false) EntityStatus status,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return adminService.listAdminLocations(status, q, PageRequest.of(page, size));
+    }
+
+    @GetMapping("/events")
+    public Page<AdminEventListItem> events(
+            @RequestParam(required = false) EventStatus status,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return adminService.listAdminEvents(status, q, PageRequest.of(page, size));
     }
 }
