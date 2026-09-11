@@ -63,16 +63,29 @@ export function EventCard({ event }: { event: EventSummary }) {
  * Percentage heights don't work here since the ovals sit in nested flex rows/columns
  * with no definite height of their own to be a percentage of. */
 const OVAL_HEIGHT: Record<1 | 2 | 3 | 4, string> = {
-  1: "h-28 sm:h-40",
-  2: "h-24 sm:h-32",
-  3: "h-20 sm:h-28",
-  4: "h-16 sm:h-20",
+  1: "h-36 sm:h-52",
+  2: "h-32 sm:h-44",
+  3: "h-28 sm:h-36",
+  4: "h-20 sm:h-28",
 };
 
+/** The oval shape and its soft edge both come from the same radial mask - fading
+ * everything outside the ellipse to transparent, rather than a hard `border-radius`
+ * clip, so each photo blends into the location image behind it instead of sitting on
+ * top of it as a sharply-cut sticker. */
 function BandOval({ url, heightClass }: { url: string; heightClass: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={url} alt="" className={`rounded-full object-cover ${heightClass}`} style={{ aspectRatio: "3 / 2" }} />
+    <img
+      src={url}
+      alt=""
+      className={`object-cover ${heightClass}`}
+      style={{
+        aspectRatio: "3 / 2",
+        maskImage: "radial-gradient(ellipse at center, black 0%, black 55%, transparent 92%)",
+        WebkitMaskImage: "radial-gradient(ellipse at center, black 0%, black 55%, transparent 92%)",
+      }}
+    />
   );
 }
 
