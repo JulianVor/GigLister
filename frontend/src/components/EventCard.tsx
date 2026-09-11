@@ -124,6 +124,26 @@ function layoutSegments(bands: BandPhoto[]): Segment[] {
   return bands.map((band, i) => ({ ...band, left: i / n, right: (i + 1) / n, top: 0, bottom: 1 }));
 }
 
+/** The card itself is a very wide, short box (h-44/sm:h-60 next to a full container
+ * width) - sizing a band photo to exactly that box via plain `object-cover` crops away
+ * most of a normal (portrait-ish) promo photo's height to fill that width, zooming in
+ * tight on whatever happens to be in the vertical middle (usually faces, cropped in
+ * close). Rendering the photo at roughly double the card's height instead, centered,
+ * and letting the parent (a clip-path, or the card's own overflow-hidden) trim the
+ * excess gives object-cover a far less extreme box to crop against, so the result
+ * looks like a normal photo crop instead of an extreme close-up. */
+function overscanCoverStyle() {
+  return {
+    position: "absolute" as const,
+    left: "50%",
+    top: "50%",
+    width: "100%",
+    height: "220%",
+    transform: "translate(-50%, -50%)",
+    objectFit: "cover" as const,
+  };
+}
+
 /** Full-bleed diagonal-cut lineup, each photo cropped to its own strip and labeled with
  * the band's name - no location image shown once there's more than one band, since the
  * strips already fill the whole card between them. */
@@ -135,7 +155,7 @@ function DiagonalPhotoCollage({ bands }: { bands: BandPhoto[] }) {
       {segments.map((seg, i) => (
         <div key={i} className="absolute inset-0" style={{ clipPath: segmentClipPath(seg) }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={seg.url} alt="" className="h-full w-full object-cover" />
+          <img src={seg.url} alt="" style={overscanCoverStyle()} />
         </div>
       ))}
       {segments.map((seg, i) => (
@@ -173,15 +193,15 @@ function SingleBandCollage({ band, locationImage }: { band: BandPhoto; locationI
       <img
         src={band.url}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover"
-        style={
-          locationImage
+        style={{
+          ...overscanCoverStyle(),
+          ...(locationImage
             ? {
                 maskImage: "linear-gradient(to right, black 0%, black 58%, transparent 78%)",
                 WebkitMaskImage: "linear-gradient(to right, black 0%, black 58%, transparent 78%)",
               }
-            : undefined
-        }
+            : {}),
+        }}
       />
       <div
         className="pointer-events-none absolute bottom-0 left-0 flex items-end pb-2 pl-2 sm:pb-3 sm:pl-3"
