@@ -4,3 +4,7 @@ target/
 *.iml
 .vscode/
 .DS_Store
+
+# docker compose reads this automatically - keep .env.example as the template
+.env
+!.env.example

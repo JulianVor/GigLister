@@ -20,19 +20,21 @@ docker compose up --build
 ```
 
 Builds and starts Postgres, the backend and the frontend together:
-frontend on `:3000`, API on `:8080`, Postgres on `:5432`. The frontend image
-is built with `NEXT_PUBLIC_API_URL=http://localhost:8080` by default (the
-*browser* calls that URL directly, not through the Docker network) — override
-it with `GIGLISTER_PUBLIC_API_URL` if the app won't be reached via
-`localhost` (e.g. a remote host or a different port mapping). Data persists
-in the `giglister-db-data` volume across restarts; `docker compose down -v`
+frontend on `:3000`, API on `:8080`, Postgres on `:5432`. Data persists in
+the `giglister-db-data` volume across restarts; `docker compose down -v`
 wipes it.
 
-`GIGLISTER_ADMIN_EMAIL` and `GIGLISTER_JWT_SECRET` (see below) can be set in
-the shell before `docker compose up`, or in a `.env` file next to
-`docker-compose.yml`, and are picked up automatically. Mail isn't configured
-by default in Compose either — see the registration section below for what
-that means and how to turn on real SMTP.
+**Configuring ports (or anything else):** copy `.env.example` to `.env`
+(same folder as `docker-compose.yml`) and edit it — `docker compose up`
+picks it up automatically, no other wiring needed. That's also where
+`GIGLISTER_ADMIN_EMAIL`, `GIGLISTER_JWT_SECRET` and the mail settings below
+live for a Compose setup. If you change `GIGLISTER_BACKEND_PORT` or
+`GIGLISTER_FRONTEND_PORT`, update `GIGLISTER_PUBLIC_API_URL` /
+`GIGLISTER_FRONTEND_URL` in the same `.env` to match, then rebuild
+(`docker compose up --build`) — `.env.example` explains why those are
+separate from the port numbers themselves (one is baked into the frontend's
+browser bundle at build time, so it can't just read the port off the
+container).
 
 ### Backend only, for local development
 
