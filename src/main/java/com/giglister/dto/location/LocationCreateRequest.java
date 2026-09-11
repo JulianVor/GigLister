@@ -9,6 +9,8 @@ public record LocationCreateRequest(
         String postalCode,
         String country,
         String website,
+        String logoUrl,
+        String titleImageUrl,
         Double latitude,
         Double longitude
 ) {

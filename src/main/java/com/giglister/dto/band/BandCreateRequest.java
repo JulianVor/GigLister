@@ -10,6 +10,8 @@ public record BandCreateRequest(
         String country,
         String shortDescription,
         String website,
+        String logoUrl,
+        String titleImageUrl,
         List<String> genres
 ) {
 }

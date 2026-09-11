@@ -61,6 +61,8 @@ public class BandService {
                 .country(request.country())
                 .shortDescription(request.shortDescription())
                 .website(request.website())
+                .logoUrl(request.logoUrl())
+                .titleImageUrl(request.titleImageUrl())
                 .genres(request.genres() != null ? new ArrayList<>(request.genres()) : new ArrayList<>())
                 .status(EntityStatus.DRAFT)
                 .createdBy(createdBy)

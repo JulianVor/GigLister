@@ -85,6 +85,8 @@ public class LocationService {
                 .postalCode(request.postalCode())
                 .country(request.country())
                 .website(request.website())
+                .logoUrl(request.logoUrl())
+                .titleImageUrl(request.titleImageUrl())
                 .latitude(request.latitude())
                 .longitude(request.longitude())
                 .status(EntityStatus.DRAFT)
