@@ -8,8 +8,8 @@ export default async function AdminDashboardPage() {
 
   const tiles = [
     { label: "Offene Claims", value: dashboard.openClaims, href: "/admin/claims" },
-    { label: "Band-Entwürfe", value: dashboard.bandDrafts, href: "/admin/bands?status=DRAFT" },
-    { label: "Location-Entwürfe", value: dashboard.locationDrafts, href: "/admin/locations?status=DRAFT" },
+    { label: "Bands unvollständig", value: dashboard.bandsNeedingAttention, href: "/admin/bands" },
+    { label: "Orte unvollständig", value: dashboard.locationsNeedingAttention, href: "/admin/locations" },
     { label: "Mögliche Duplikate", value: dashboard.possibleDuplicates, href: "/admin/duplicates" },
   ];
 

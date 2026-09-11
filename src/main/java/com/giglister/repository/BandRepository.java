@@ -24,5 +24,5 @@ public interface BandRepository extends JpaRepository<Band, Long> {
 
     List<Band> findByStatusIn(List<EntityStatus> statuses);
 
-    long countByStatus(EntityStatus status);
+    long countByStatusIn(List<EntityStatus> statuses);
 }

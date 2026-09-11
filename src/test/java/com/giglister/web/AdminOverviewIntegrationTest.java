@@ -63,6 +63,14 @@ class AdminOverviewIntegrationTest {
                         .content(objectMapper.writeValueAsString(eventRequest)))
                 .andExpect(status().isCreated());
 
+        // The dashboard's "needs attention" counts must include STUBs, not just
+        // DRAFTs - a stub created inline while adding an event needs just as much
+        // admin follow-up as an explicit draft.
+        mockMvc.perform(get("/api/admin/dashboard").header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bandsNeedingAttention").value(2))
+                .andExpect(jsonPath("$.locationsNeedingAttention").value(1));
+
         // Unfiltered admin band list contains both the DRAFT and the STUB band -
         // something the public /api/bands (PUBLISHED-only) would never show.
         // Sorted by name ascending: "Draftband" before "Stub Band".

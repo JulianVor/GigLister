@@ -24,5 +24,5 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
 
     List<Location> findByStatusIn(List<EntityStatus> statuses);
 
-    long countByStatus(EntityStatus status);
+    long countByStatusIn(List<EntityStatus> statuses);
 }

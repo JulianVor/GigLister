@@ -183,8 +183,8 @@ export interface DuplicatePair {
 
 export interface AdminDashboardResponse {
   openClaims: number;
-  bandDrafts: number;
-  locationDrafts: number;
+  bandsNeedingAttention: number;
+  locationsNeedingAttention: number;
   possibleDuplicates: number;
 }
 

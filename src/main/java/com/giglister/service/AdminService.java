@@ -42,12 +42,16 @@ public class AdminService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
 
+    private static final List<EntityStatus> NEEDS_ATTENTION = List.of(EntityStatus.STUB, EntityStatus.DRAFT);
+
     public AdminDashboardResponse dashboard() {
         long openClaims = claimRepository.findByStatus(ClaimStatus.PENDING).size();
-        long bandDrafts = bandRepository.countByStatus(EntityStatus.DRAFT);
-        long locationDrafts = locationRepository.countByStatus(EntityStatus.DRAFT);
+        // STUB, not just DRAFT - a stub (e.g. created inline while adding an event)
+        // needs just as much admin attention as a draft, often more.
+        long bandsNeedingAttention = bandRepository.countByStatusIn(NEEDS_ATTENTION);
+        long locationsNeedingAttention = locationRepository.countByStatusIn(NEEDS_ATTENTION);
         long possibleDuplicates = possibleDuplicates().size();
-        return new AdminDashboardResponse(openClaims, bandDrafts, locationDrafts, possibleDuplicates);
+        return new AdminDashboardResponse(openClaims, bandsNeedingAttention, locationsNeedingAttention, possibleDuplicates);
     }
 
     /** Cheap O(n^2) pairwise scan over non-archived bands/locations - fine for V1's data volume. */
