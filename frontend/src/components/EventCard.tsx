@@ -112,8 +112,8 @@ function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; lo
             style={{
               height: `${sizePercent}%`,
               aspectRatio: "1 / 1",
-              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 38%, transparent 85%)`,
-              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 38%, transparent 85%)`,
+              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 68%, transparent 82%)`,
+              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 68%, transparent 82%)`,
             }}
           />
         );
