@@ -78,7 +78,12 @@ const OVAL_HEIGHT: Record<1 | 2 | 3 | 4, string> = {
  * transparency at the CORNERS, which is short of full transparency yet at the flat top/
  * bottom/left/right edges, leaving a faint but visible hard line right at the image's
  * actual boundary. Explicit 50% 50% radii fade out exactly at every edge, corners
- * included, so there's no boundary left for a hard edge to show up on. */
+ * included, so there's no boundary left for a hard edge to show up on.
+ *
+ * Pushing the solid ("black") stop out close to the edge keeps the fade itself small
+ * and, as a side effect, reads as far less oval: the solid area now fills almost the
+ * whole box along the flat sides (top/bottom/left/right), so only the corners visibly
+ * round off instead of the whole tile reading as a blob. */
 function BandOval({ url, heightClass }: { url: string; heightClass: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -88,8 +93,8 @@ function BandOval({ url, heightClass }: { url: string; heightClass: string }) {
       className={`object-cover ${heightClass}`}
       style={{
         aspectRatio: "3 / 2",
-        maskImage: "radial-gradient(ellipse 50% 50% at center, black 0%, black 40%, transparent 100%)",
-        WebkitMaskImage: "radial-gradient(ellipse 50% 50% at center, black 0%, black 40%, transparent 100%)",
+        maskImage: "radial-gradient(ellipse 50% 50% at center, black 0%, black 78%, transparent 98%)",
+        WebkitMaskImage: "radial-gradient(ellipse 50% 50% at center, black 0%, black 78%, transparent 98%)",
       }}
     />
   );
