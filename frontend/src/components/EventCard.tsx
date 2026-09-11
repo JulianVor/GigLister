@@ -3,33 +3,46 @@ import type { EventSummary } from "@/lib/types";
 import { dayAndMonth, dayNumber, formatTime, monthShort, weekdayShort } from "@/lib/format";
 import { eventLineupLabel } from "@/lib/event-display";
 
-/** Falls back to a live CSS collage of whatever band/location title images exist when the
- * event has none of its own - no image generation or storage needed, and it works with
- * however many (or few) of those images happen to be set. Capped at 4 tiles. */
-function collageImages(event: EventSummary): string[] {
-  const candidates = [...event.bands.map((b) => b.titleImageUrl), event.location.titleImageUrl];
-  return candidates.filter((url): url is string => !!url).slice(0, 4);
-}
+/** Corner anchor for up to 4 band images - order matches how bands fill in as the lineup
+ * grows: the first two take the bottom corners, the next two the top ones. */
+const CORNERS = [
+  { position: "bottom-0 left-0", origin: "0% 100%" },
+  { position: "bottom-0 right-0", origin: "100% 100%" },
+  { position: "top-0 left-0", origin: "0% 0%" },
+  { position: "top-0 right-0", origin: "100% 0%" },
+] as const;
 
 /** An image-forward post-style card (photo up top, a floating date pill, details below) -
  * self-spaced (`mb-4`) so every list of these just stacks without callers adding gaps. */
 export function EventCard({ event }: { event: EventSummary }) {
   const time = formatTime(event.startTime);
   const heroImage = event.titleImageUrl;
-  const collage = heroImage ? [] : collageImages(event);
+  const bandImages = event.bands
+    .map((b) => b.titleImageUrl)
+    .filter((url): url is string => !!url)
+    .slice(0, 4);
+  const locationImage = event.location.titleImageUrl;
+  const collageSourceCount = bandImages.length + (locationImage ? 1 : 0);
 
   return (
     <Link href={`/konzerte/${event.id}`} className="group mb-4 block border border-line hover:border-fg">
       <div className="relative h-44 w-full overflow-hidden border-b border-line bg-surface sm:h-60">
-        {heroImage || collage.length === 1 ? (
+        {heroImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={heroImage ?? collage[0]}
+            src={heroImage}
             alt=""
             className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
           />
-        ) : collage.length >= 2 ? (
-          <ImageCollage images={collage} />
+        ) : collageSourceCount === 1 ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={locationImage ?? bandImages[0]}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+          />
+        ) : collageSourceCount >= 2 ? (
+          <CornerCollage bandImages={bandImages} locationImage={locationImage} />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1">
             <div className="font-display text-6xl leading-none sm:text-7xl">{dayNumber(event.date)}</div>
@@ -54,24 +67,48 @@ export function EventCard({ event }: { event: EventSummary }) {
   );
 }
 
-/** 2 images side by side; 3 is one big tile + two stacked; 4 is an even grid. Hairline gaps
- * (via a `bg-line` parent showing through a 1px gap) keep it in the site's bordered style. */
-function ImageCollage({ images }: { images: string[] }) {
+/** Bands sit anchored in the corners, faded toward the center with a transparent radial
+ * mask (not a hard crop) so they blend into the location image underneath rather than
+ * tiling as separate boxes. The location image is a full-bleed base layer, so there's
+ * never an empty gap regardless of how much (or little) of it the bands' fade leaves
+ * showing; without a location image, the first band image itself is blurred into a
+ * backdrop instead so the same "no gaps" guarantee holds with band photos alone. Each
+ * added band shrinks the corner tiles a bit so more of them can fit without collapsing
+ * into a single blob. */
+function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; locationImage: string | null }) {
+  const sizePercent = Math.max(58, 84 - (bandImages.length - 1) * 8);
+
   return (
-    <div
-      className={`grid h-full w-full gap-px bg-line ${
-        images.length === 3 ? "grid-cols-2 grid-rows-2" : images.length === 4 ? "grid-cols-2 grid-rows-2" : "grid-cols-2"
-      }`}
-    >
-      {images.map((url, i) => (
+    <div className="relative h-full w-full">
+      {locationImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={locationImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          key={url + i}
-          src={url}
+          src={bandImages[0]}
           alt=""
-          className={`h-full w-full object-cover ${images.length === 3 && i === 0 ? "row-span-2" : ""}`}
+          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-md"
         />
-      ))}
+      )}
+      {bandImages.map((url, i) => {
+        const corner = CORNERS[i];
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={url + i}
+            src={url}
+            alt=""
+            className={`absolute object-cover ${corner.position}`}
+            style={{
+              height: `${sizePercent}%`,
+              aspectRatio: "1 / 1",
+              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 40%, transparent 80%)`,
+              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 40%, transparent 80%)`,
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
