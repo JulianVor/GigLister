@@ -9,6 +9,7 @@ import com.giglister.dto.event.EventCreateRequest;
 import com.giglister.dto.location.LocationCreateRequest;
 import com.giglister.dto.submission.SubmissionCreateRequest;
 import com.giglister.dto.submission.SubmissionResponse;
+import com.giglister.dto.submission.SubmissionUpdateRequest;
 import com.giglister.exception.BadRequestException;
 import com.giglister.exception.ConflictException;
 import com.giglister.exception.NotFoundException;
@@ -58,6 +59,18 @@ public class SubmissionService {
         return status == null
                 ? submissionRepository.findAllByOrderBySubmittedAtDesc()
                 : submissionRepository.findByStatusOrderBySubmittedAtDesc(status);
+    }
+
+    /** Lets an admin correct the proposed data before approving - e.g. a wrong address or a typo'd name. */
+    @Transactional
+    public Submission update(Long id, SubmissionUpdateRequest request) {
+        Submission submission = getOrThrow(id);
+        if (submission.getStatus() != SubmissionStatus.PENDING) {
+            throw new ConflictException("Submission already decided");
+        }
+        submission.setPayload(request.payload().toString());
+        submission.setImageUrl(blankToNull(request.imageUrl()));
+        return submissionRepository.save(submission);
     }
 
     public Submission getOrThrow(Long id) {

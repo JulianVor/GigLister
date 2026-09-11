@@ -186,6 +186,75 @@ class SubmissionIntegrationTest {
     }
 
     @Test
+    void anAdminCanCorrectASubmissionBeforeApprovingIt() throws Exception {
+        String adminToken = registerAsAdmin("admin7@giglister.test", "adminpass123", "Admin7");
+
+        // The skill got the city wrong and forgot a real payload for the SSRF-flagged image - the admin
+        // fixes both before approving, rather than having to reject and wait for a resubmission.
+        Map<String, Object> submission = Map.of(
+                "type", "BAND",
+                "payload", Map.of("name", "Typo Band", "city", "Hamurg"),
+                "imageUrl", "http://127.0.0.1/blocked.png"
+        );
+        var submitResult = mockMvc.perform(post("/api/submissions")
+                        .header("Authorization", "Bearer " + SKILL_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submission)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long id = objectMapper.readTree(submitResult.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(put("/api/admin/submissions/" + id)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "payload", Map.of("name", "Fixed Band", "city", "Hamburg")))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.payload.city").value("Hamburg"))
+                .andExpect(jsonPath("$.imageUrl").doesNotExist());
+
+        var approveResult = mockMvc.perform(post("/api/admin/submissions/" + id + "/approve")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"))
+                .andReturn();
+        long bandId = objectMapper.readTree(approveResult.getResponse().getContentAsString()).get("resultEntityId").asLong();
+
+        mockMvc.perform(get("/api/bands/" + bandId).header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Fixed Band"))
+                .andExpect(jsonPath("$.city").value("Hamburg"));
+    }
+
+    @Test
+    void editingAnAlreadyDecidedSubmissionFails() throws Exception {
+        String adminToken = registerAsAdmin("admin8@giglister.test", "adminpass123", "Admin8");
+
+        Map<String, Object> submission = Map.of(
+                "type", "BAND",
+                "payload", Map.of("name", "Decided Band", "city", "Hamburg")
+        );
+        var submitResult = mockMvc.perform(post("/api/submissions")
+                        .header("Authorization", "Bearer " + SKILL_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(submission)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long id = objectMapper.readTree(submitResult.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(post("/api/admin/submissions/" + id + "/approve")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/admin/submissions/" + id)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "payload", Map.of("name", "Too Late", "city", "Hamburg")))))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void approvingAnEventSubmissionCreatesTheInlineLocationAndBand() throws Exception {
         String adminToken = registerAsAdmin("admin5@giglister.test", "adminpass123", "Admin5");
 

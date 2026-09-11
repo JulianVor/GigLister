@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { approveSubmissionAction, rejectSubmissionAction } from "@/actions/admin";
+import { approveSubmissionAction, rejectSubmissionAction, updateSubmissionAction } from "@/actions/admin";
 import { SUBMISSION_TYPE_LABELS } from "@/lib/status-labels";
 import type { SubmissionResponse } from "@/lib/types";
 
@@ -25,6 +25,7 @@ function SubmissionItem({ submission }: { submission: SubmissionResponse }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [reason, setReason] = useState("");
 
   function approve() {
@@ -58,7 +59,7 @@ function SubmissionItem({ submission }: { submission: SubmissionResponse }) {
     <li className="py-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-4">
-          {submission.imageUrl && (
+          {submission.imageUrl && !editing && (
             // External URL, previewed directly from the browser - never fetched by our
             // server until an admin approves this submission.
             // eslint-disable-next-line @next/next/no-img-element
@@ -73,7 +74,29 @@ function SubmissionItem({ submission }: { submission: SubmissionResponse }) {
                 {new Date(submission.submittedAt).toLocaleString("de-DE")}
               </span>
             </div>
-            <PayloadPreview payload={submission.payload} />
+
+            {editing ? (
+              <PayloadEditor
+                submission={submission}
+                pending={pending}
+                onCancel={() => setEditing(false)}
+                onSave={(payload, imageUrl) => {
+                  setError(null);
+                  startTransition(async () => {
+                    const result = await updateSubmissionAction(submission.id, payload, imageUrl);
+                    if (!result.ok) {
+                      setError(result.error);
+                      return;
+                    }
+                    setEditing(false);
+                    router.refresh();
+                  });
+                }}
+              />
+            ) : (
+              <PayloadPreview payload={submission.payload} />
+            )}
+
             {submission.status === "REJECTED" && submission.rejectionReason && (
               <p className="mt-2 font-meta text-sm text-muted">Grund: „{submission.rejectionReason}“</p>
             )}
@@ -83,7 +106,7 @@ function SubmissionItem({ submission }: { submission: SubmissionResponse }) {
           </div>
         </div>
 
-        {!isDecided && !rejecting && (
+        {!isDecided && !rejecting && !editing && (
           <div className="flex flex-none gap-2">
             <button
               type="button"
@@ -92,6 +115,14 @@ function SubmissionItem({ submission }: { submission: SubmissionResponse }) {
               className="border border-accent px-3 py-1.5 font-meta text-sm text-accent hover:bg-accent hover:text-accent-fg disabled:opacity-60"
             >
               Freigeben
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setEditing(true)}
+              className="border border-line px-3 py-1.5 font-meta text-sm hover:border-fg disabled:opacity-60"
+            >
+              Bearbeiten
             </button>
             <button
               type="button"
@@ -157,5 +188,103 @@ function PayloadPreview({ payload }: { payload: Record<string, unknown> }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+/** Editable counterpart to PayloadPreview - a plain text input per primitive field, a JSON
+ * textarea for nested objects/arrays (only EVENT's location/bands need that). Lets an admin
+ * fix a wrong address or a typo before approving, instead of rejecting and waiting on a
+ * resubmission. */
+function PayloadEditor({
+  submission,
+  pending,
+  onSave,
+  onCancel,
+}: {
+  submission: SubmissionResponse;
+  pending: boolean;
+  onSave: (payload: Record<string, unknown>, imageUrl?: string) => void;
+  onCancel: () => void;
+}) {
+  const [fields, setFields] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const [key, value] of Object.entries(submission.payload)) {
+      initial[key] = typeof value === "object" && value !== null ? JSON.stringify(value, null, 2) : String(value ?? "");
+    }
+    return initial;
+  });
+  const [imageUrl, setImageUrl] = useState(submission.imageUrl ?? "");
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  function save() {
+    setParseError(null);
+    const payload: Record<string, unknown> = {};
+    for (const [key, original] of Object.entries(submission.payload)) {
+      const raw = fields[key] ?? "";
+      if (typeof original === "object" && original !== null) {
+        if (!raw.trim()) continue;
+        try {
+          payload[key] = JSON.parse(raw);
+        } catch {
+          setParseError(`„${key}“ ist kein gültiges JSON.`);
+          return;
+        }
+      } else if (raw !== "") {
+        payload[key] = raw;
+      }
+    }
+    onSave(payload, imageUrl || undefined);
+  }
+
+  return (
+    <div className="mt-2 max-w-lg space-y-2">
+      {Object.entries(submission.payload).map(([key, value]) => {
+        const isNested = typeof value === "object" && value !== null;
+        return (
+          <label key={key} className="block">
+            <span className="font-meta text-xs uppercase tracking-wide text-muted">{key}</span>
+            {isNested ? (
+              <textarea
+                value={fields[key] ?? ""}
+                onChange={(e) => setFields({ ...fields, [key]: e.target.value })}
+                rows={4}
+                className="input mt-0.5 font-mono text-xs"
+              />
+            ) : (
+              <input
+                value={fields[key] ?? ""}
+                onChange={(e) => setFields({ ...fields, [key]: e.target.value })}
+                className="input mt-0.5"
+              />
+            )}
+          </label>
+        );
+      })}
+      <label className="block">
+        <span className="font-meta text-xs uppercase tracking-wide text-muted">Bild-URL</span>
+        <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="input mt-0.5" />
+      </label>
+
+      {parseError && <p className="font-meta text-sm text-accent">{parseError}</p>}
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={save}
+          className="border border-accent px-3 py-1.5 font-meta text-sm text-accent hover:bg-accent hover:text-accent-fg disabled:opacity-60"
+        >
+          Speichern
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onCancel}
+          className="font-meta text-sm text-muted hover:text-fg"
+        >
+          Abbrechen
+        </button>
+      </div>
+    </div>
   );
 }

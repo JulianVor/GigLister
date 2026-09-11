@@ -135,7 +135,7 @@ access to nothing else (see below).
 | Me | `GET/PUT /me` — saved events, followed bands, managed entities |
 | Uploads | `POST /uploads` (multipart `file`, JPEG/PNG/WebP/GIF up to 5MB) → `{ url }`, served back out at `GET /uploads/{file}` (unauthenticated) |
 | Submissions | `POST /submissions` (GPT-skill token only) — see below |
-| Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge`, `GET /admin/users`, `POST /admin/users/{id}/promote\|demote`, `GET /admin/bands\|locations\|events` (every status, not just PUBLISHED — filterable by `status`/`q`), `GET /admin/submissions`, `GET /admin/submissions/{id}`, `POST /admin/submissions/{id}/approve\|reject` |
+| Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge`, `GET /admin/users`, `POST /admin/users/{id}/promote\|demote`, `GET /admin/bands\|locations\|events` (every status, not just PUBLISHED — filterable by `status`/`q`), `GET /admin/submissions`, `GET /admin/submissions/{id}`, `PUT /admin/submissions/{id}`, `POST /admin/submissions/{id}/approve\|reject` |
 
 **Creating an event** (`POST /events`) accepts either an existing
 `location`/`band` id, or just a `name`+`city` to create a `STUB` inline —
@@ -156,7 +156,10 @@ approves it (see the domain model above). The request body is `{ type,
 payload, imageUrl? }`, where `payload` matches the same shape as
 `BandCreateRequest`/`LocationCreateRequest`/`EventCreateRequest` depending
 on `type` (so the same duplicate-check endpoints and the address/postalCode
-requirement above apply once approved). `imageUrl` is an external link —
+requirement above apply once approved). An admin can correct the payload
+(`PUT /admin/submissions/{id}`, surfaced as "Bearbeiten" in the review UI)
+before approving — a wrong address or a typo doesn't need a whole
+reject-and-resubmit round trip. `imageUrl` is an external link —
 nothing is downloaded until approval, and only then with SSRF hardening
 (no loopback/private/link-local addresses, no redirects followed, same
 5MB/JPEG-PNG-WebP-GIF limits as a direct upload). Set

@@ -406,6 +406,14 @@ export function getAdminSubmissions(status: SubmissionStatus | undefined, token:
   return apiFetch<SubmissionResponse[]>(`/api/admin/submissions${toQuery({ status })}`, { token });
 }
 
+export function updateSubmission(
+  id: number,
+  data: { payload: Record<string, unknown>; imageUrl?: string },
+  token: string
+) {
+  return apiFetch<SubmissionResponse>(`/api/admin/submissions/${id}`, { method: "PUT", body: data, token });
+}
+
 export function approveSubmission(id: number, token: string) {
   return apiFetch<SubmissionResponse>(`/api/admin/submissions/${id}/approve`, { method: "POST", token });
 }

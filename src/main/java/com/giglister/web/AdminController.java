@@ -15,6 +15,7 @@ import com.giglister.dto.admin.DuplicatePair;
 import com.giglister.dto.admin.MergeRequest;
 import com.giglister.dto.submission.RejectSubmissionRequest;
 import com.giglister.dto.submission.SubmissionResponse;
+import com.giglister.dto.submission.SubmissionUpdateRequest;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.AdminService;
 import com.giglister.service.ClaimService;
@@ -127,6 +128,11 @@ public class AdminController {
     @GetMapping("/submissions/{id}")
     public SubmissionResponse submission(@PathVariable Long id) {
         return submissionService.toResponse(submissionService.getOrThrow(id));
+    }
+
+    @PutMapping("/submissions/{id}")
+    public SubmissionResponse updateSubmission(@PathVariable Long id, @Valid @RequestBody SubmissionUpdateRequest request) {
+        return submissionService.toResponse(submissionService.update(id, request));
     }
 
     @PostMapping("/submissions/{id}/approve")
