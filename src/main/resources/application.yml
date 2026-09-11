@@ -52,3 +52,8 @@ giglister:
     # uploaded image's URL, once baked into logoUrl/titleImageUrl, resolves
     # for anyone viewing the page, not just from inside the Docker network.
     base-url: ${GIGLISTER_PUBLIC_API_URL:http://localhost:8080}
+  gpt-skill:
+    # Shared secret for the external GPT-skill integration (POST /api/submissions
+    # only - see SecurityConfig/GptSkillAuthFilter). Empty by default: unset means
+    # the integration is disabled, nobody can authenticate as it.
+    token: ${GIGLISTER_GPT_SKILL_TOKEN:}

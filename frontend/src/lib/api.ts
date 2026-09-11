@@ -28,6 +28,8 @@ import type {
   PermissionResponse,
   RegisterResponse,
   SearchResults,
+  SubmissionResponse,
+  SubmissionStatus,
   UsernameAvailabilityResponse,
 } from "./types";
 
@@ -396,4 +398,22 @@ export function getAdminEvents(
   token: string
 ) {
   return apiFetch<Page<AdminEventListItem>>(`/api/admin/events${toQuery(params)}`, { token });
+}
+
+// --- GPT-skill submission review queue ---
+
+export function getAdminSubmissions(status: SubmissionStatus | undefined, token: string) {
+  return apiFetch<SubmissionResponse[]>(`/api/admin/submissions${toQuery({ status })}`, { token });
+}
+
+export function approveSubmission(id: number, token: string) {
+  return apiFetch<SubmissionResponse>(`/api/admin/submissions/${id}/approve`, { method: "POST", token });
+}
+
+export function rejectSubmission(id: number, reason: string | undefined, token: string) {
+  return apiFetch<SubmissionResponse>(`/api/admin/submissions/${id}/reject`, {
+    method: "POST",
+    body: { reason },
+    token,
+  });
 }

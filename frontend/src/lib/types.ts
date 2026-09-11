@@ -186,6 +186,7 @@ export interface AdminDashboardResponse {
   bandsNeedingAttention: number;
   locationsNeedingAttention: number;
   possibleDuplicates: number;
+  pendingSubmissions: number;
 }
 
 export interface AdminBandListItem {
@@ -252,4 +253,22 @@ export interface ApiErrorBody {
   status: number;
   error: string;
   message: string;
+}
+
+export type SubmissionType = "BAND" | "LOCATION" | "EVENT";
+export type SubmissionStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+/** From the GPT-skill review queue - payload is arbitrary JSON matching the create-request
+ * shape for `type` (BandCreateRequest/LocationCreateRequest/EventCreateRequest). */
+export interface SubmissionResponse {
+  id: number;
+  type: SubmissionType;
+  payload: Record<string, unknown>;
+  imageUrl: string | null;
+  status: SubmissionStatus;
+  submittedAt: string;
+  reviewedBy: number | null;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+  resultEntityId: number | null;
 }

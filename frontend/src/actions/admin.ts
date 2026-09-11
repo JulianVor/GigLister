@@ -82,3 +82,33 @@ export async function demoteUserAction(userId: number): Promise<ActionResult> {
     throw err;
   }
 }
+
+export async function approveSubmissionAction(id: number): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.approveSubmission(id, token);
+    revalidatePath("/admin/submissions");
+    revalidatePath("/admin");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+export async function rejectSubmissionAction(id: number, reason?: string): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.rejectSubmission(id, reason, token);
+    revalidatePath("/admin/submissions");
+    revalidatePath("/admin");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}

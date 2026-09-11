@@ -23,3 +23,5 @@ giglister:
     dir: target/test-uploads
   public:
     base-url: http://localhost:8080
+  gpt-skill:
+    token: test-only-gpt-skill-token

@@ -53,9 +53,23 @@ public class UploadService {
         if (file.getSize() > MAX_FILE_SIZE_BYTES) {
             throw new BadRequestException("Die Datei ist zu groß (maximal 5 MB)");
         }
-        String extension = ALLOWED_CONTENT_TYPES.get(file.getContentType());
+        byte[] data;
+        try {
+            data = file.getBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not read uploaded file", e);
+        }
+        return storeBytes(data, file.getContentType());
+    }
+
+    /** Shared by the direct multipart upload above and ImageFetchService's URL-download path. */
+    public String storeBytes(byte[] data, String contentType) {
+        String extension = ALLOWED_CONTENT_TYPES.get(contentType);
         if (extension == null) {
             throw new BadRequestException("Nur JPEG-, PNG-, WebP- oder GIF-Bilder sind erlaubt");
+        }
+        if (data.length > MAX_FILE_SIZE_BYTES) {
+            throw new BadRequestException("Die Datei ist zu groß (maximal 5 MB)");
         }
 
         // A random filename, ignoring whatever name the client sent - sidesteps
@@ -63,7 +77,7 @@ public class UploadService {
         String filename = UUID.randomUUID() + extension;
         Path target = uploadDir.resolve(filename);
         try {
-            file.transferTo(target);
+            Files.write(target, data);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not store uploaded file", e);
         }

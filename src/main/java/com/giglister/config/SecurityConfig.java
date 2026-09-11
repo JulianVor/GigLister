@@ -1,5 +1,6 @@
 package com.giglister.config;
 
+import com.giglister.security.GptSkillAuthFilter;
 import com.giglister.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +27,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final GptSkillAuthFilter gptSkillAuthFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -51,9 +53,13 @@ public class SecurityConfig {
                                 "/api/events/**", "/api/locations/**", "/api/bands/**",
                                 "/api/search/**", "/api/discover/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // The GPT-skill integration: can only ever propose a submission, never
+                        // create a Band/Location/Event directly (see GptSkillAuthFilter).
+                        .requestMatchers(HttpMethod.POST, "/api/submissions").hasRole("GPT_SKILL")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(gptSkillAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

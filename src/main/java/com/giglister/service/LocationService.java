@@ -95,6 +95,14 @@ public class LocationService {
         return location;
     }
 
+    /** Only used when approving a Submission - the image is fetched and stored after create() already ran. */
+    @Transactional
+    public Location setTitleImage(Long id, String titleImageUrl) {
+        Location location = getOrThrow(id);
+        location.setTitleImageUrl(titleImageUrl);
+        return locationRepository.save(location);
+    }
+
     @Transactional
     public Location update(Long id, LocationUpdateRequest request, Long userId, boolean platformAdmin) {
         permissionService.require(userId, platformAdmin, EntityType.LOCATION, id, PermissionLevel.EDIT);

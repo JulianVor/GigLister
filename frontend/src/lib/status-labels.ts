@@ -1,4 +1,4 @@
-import type { EntityStatus, EventStatus } from "./types";
+import type { EntityStatus, EventStatus, SubmissionStatus, SubmissionType } from "./types";
 
 /** User-facing German labels — chosen to say what the status actually means,
  * not just repeat the technical enum name (e.g. "Unvollständig" instead of "Stub"). */
@@ -20,4 +20,16 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   DRAFT: "Entwurf",
   PUBLISHED: "Veröffentlicht",
   CANCELLED: "Abgesagt",
+};
+
+export const SUBMISSION_STATUS_LABELS: Record<SubmissionStatus, string> = {
+  PENDING: "Offen",
+  APPROVED: "Angenommen",
+  REJECTED: "Abgelehnt",
+};
+
+export const SUBMISSION_TYPE_LABELS: Record<SubmissionType, string> = {
+  BAND: "Band",
+  LOCATION: "Ort",
+  EVENT: "Konzert",
 };

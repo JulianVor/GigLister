@@ -7,6 +7,7 @@ export default async function AdminDashboardPage() {
   const dashboard = await getAdminDashboard(token);
 
   const tiles = [
+    { label: "Offene Vorschläge", value: dashboard.pendingSubmissions, href: "/admin/submissions" },
     { label: "Offene Claims", value: dashboard.openClaims, href: "/admin/claims" },
     { label: "Bands unvollständig", value: dashboard.bandsNeedingAttention, href: "/admin/bands" },
     { label: "Orte unvollständig", value: dashboard.locationsNeedingAttention, href: "/admin/locations" },
@@ -16,7 +17,7 @@ export default async function AdminDashboardPage() {
   return (
     <div>
       <h1 className="font-display text-3xl">Plattformverwaltung</h1>
-      <div className="mt-6 grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-5">
         {tiles.map((tile) => (
           <Link key={tile.label} href={tile.href} className="bg-surface p-4 hover:bg-bg">
             <div className="font-display text-3xl">{tile.value}</div>

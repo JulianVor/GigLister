@@ -113,12 +113,17 @@ frontend origin that link points at (defaults to `http://localhost:3000`).
 - **EntityMerge** — audit trail for admin-driven duplicate merges; the source
   entity is archived (not deleted) and its old name kept as an alias.
 - **SavedEvent** / **BandFollow** — "Merken" and "Band folgen".
+- **Submission** — a proposal from the external GPT-skill integration to
+  create a Band/Location/Event; nothing exists until an admin approves it.
 
 ## API overview
 
 All endpoints are under `/api`. Public (no auth): `GET` on
 `/events`, `/locations`, `/bands`, `/search`, `/discover`. Everything else
 requires a Bearer JWT; `/admin/**` additionally requires `platformAdmin`.
+`POST /submissions` is the one exception — it authenticates via a separate
+shared secret (`GIGLISTER_GPT_SKILL_TOKEN`), not a user JWT, and grants
+access to nothing else (see below).
 
 | Area | Endpoints |
 |---|---|
@@ -129,7 +134,8 @@ requires a Bearer JWT; `/admin/**` additionally requires `platformAdmin`.
 | Discovery | `GET /discover`, `GET /search?q=&type=` |
 | Me | `GET/PUT /me` — saved events, followed bands, managed entities |
 | Uploads | `POST /uploads` (multipart `file`, JPEG/PNG/WebP/GIF up to 5MB) → `{ url }`, served back out at `GET /uploads/{file}` (unauthenticated) |
-| Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge`, `GET /admin/users`, `POST /admin/users/{id}/promote\|demote`, `GET /admin/bands\|locations\|events` (every status, not just PUBLISHED — filterable by `status`/`q`) |
+| Submissions | `POST /submissions` (GPT-skill token only) — see below |
+| Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge`, `GET /admin/users`, `POST /admin/users/{id}/promote\|demote`, `GET /admin/bands\|locations\|events` (every status, not just PUBLISHED — filterable by `status`/`q`), `GET /admin/submissions`, `GET /admin/submissions/{id}`, `POST /admin/submissions/{id}/approve\|reject` |
 
 **Creating an event** (`POST /events`) accepts either an existing
 `location`/`band` id, or just a `name`+`city` to create a `STUB` inline —
@@ -141,6 +147,21 @@ before a user creates a brand new entity. A brand new location additionally
 requires `address` and `postalCode` (a street address is what makes a venue
 actually findable) — only bypassed by picking an existing location by id,
 which already has (or doesn't have) its own.
+
+**GPT-skill integration** (`POST /submissions`, admin review at
+`/admin/submissions`): an external ChatGPT Action can propose a Band/
+Location/Event, but can never create one directly — everything it submits
+lands as `PENDING` and only becomes real data once a platform admin
+approves it (see the domain model above). The request body is `{ type,
+payload, imageUrl? }`, where `payload` matches the same shape as
+`BandCreateRequest`/`LocationCreateRequest`/`EventCreateRequest` depending
+on `type` (so the same duplicate-check endpoints and the address/postalCode
+requirement above apply once approved). `imageUrl` is an external link —
+nothing is downloaded until approval, and only then with SSRF hardening
+(no loopback/private/link-local addresses, no redirects followed, same
+5MB/JPEG-PNG-WebP-GIF limits as a direct upload). Set
+`GIGLISTER_GPT_SKILL_TOKEN` to enable it; empty (the default) disables the
+integration entirely.
 
 ## What's implemented vs. deferred
 
@@ -155,9 +176,11 @@ linked from the respective `/admin/*` overview pages) alongside the
 existing inline stub-during-event-creation flow — claim workflow,
 multiple managers per entity, stub-on-the-fly creation, duplicate detection
 + admin merge, follow/save, search, discover sections, admin dashboard,
-registration with email verification, self-service password reset, and
+registration with email verification, self-service password reset,
 image upload (`POST /api/uploads`, backing the logo/title image fields on
-Band/Location/Event — always a real uploaded file, never a hand-typed URL).
+Band/Location/Event — always a real uploaded file, never a hand-typed URL),
+and a review-queue GPT-skill integration (external submissions never go
+live without an admin approving them at `/admin/submissions`).
 
 Deliberately deferred (matches §45 "was V1 nicht enthält" plus normal
 backend-first sequencing): no reverse geocoding (a typed city stays a plain name match; only

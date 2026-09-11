@@ -48,6 +48,9 @@ services:
       # frontend's NEXT_PUBLIC_API_URL above, so an uploaded image's URL
       # resolves for anyone viewing the page, not just inside the Docker network.
       GIGLISTER_PUBLIC_API_URL: ${GIGLISTER_PUBLIC_API_URL:-http://localhost:8080}
+      # Empty by default - the GPT-skill integration (POST /api/submissions) is
+      # disabled until you set this. See .env.example.
+      GIGLISTER_GPT_SKILL_TOKEN: ${GIGLISTER_GPT_SKILL_TOKEN:-}
     volumes:
       - giglister-uploads-data:/data/uploads
     ports:

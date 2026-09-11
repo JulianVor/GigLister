@@ -4,6 +4,7 @@ public record AdminDashboardResponse(
         long openClaims,
         long bandsNeedingAttention,
         long locationsNeedingAttention,
-        long possibleDuplicates
+        long possibleDuplicates,
+        long pendingSubmissions
 ) {
 }

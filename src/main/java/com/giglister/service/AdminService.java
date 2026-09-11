@@ -8,6 +8,7 @@ import com.giglister.domain.enums.ClaimStatus;
 import com.giglister.domain.enums.EntityStatus;
 import com.giglister.domain.enums.EntityType;
 import com.giglister.domain.enums.EventStatus;
+import com.giglister.domain.enums.SubmissionStatus;
 import com.giglister.dto.admin.AdminBandListItem;
 import com.giglister.dto.admin.AdminDashboardResponse;
 import com.giglister.dto.admin.AdminEventListItem;
@@ -20,6 +21,7 @@ import com.giglister.repository.BandRepository;
 import com.giglister.repository.ClaimRepository;
 import com.giglister.repository.EventRepository;
 import com.giglister.repository.LocationRepository;
+import com.giglister.repository.SubmissionRepository;
 import com.giglister.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -41,6 +43,7 @@ public class AdminService {
     private final LocationRepository locationRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final SubmissionRepository submissionRepository;
 
     private static final List<EntityStatus> NEEDS_ATTENTION = List.of(EntityStatus.STUB, EntityStatus.DRAFT);
 
@@ -51,7 +54,9 @@ public class AdminService {
         long bandsNeedingAttention = bandRepository.countByStatusIn(NEEDS_ATTENTION);
         long locationsNeedingAttention = locationRepository.countByStatusIn(NEEDS_ATTENTION);
         long possibleDuplicates = possibleDuplicates().size();
-        return new AdminDashboardResponse(openClaims, bandsNeedingAttention, locationsNeedingAttention, possibleDuplicates);
+        long pendingSubmissions = submissionRepository.findByStatusOrderBySubmittedAtDesc(SubmissionStatus.PENDING).size();
+        return new AdminDashboardResponse(openClaims, bandsNeedingAttention, locationsNeedingAttention,
+                possibleDuplicates, pendingSubmissions);
     }
 
     /** Cheap O(n^2) pairwise scan over non-archived bands/locations - fine for V1's data volume. */

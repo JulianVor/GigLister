@@ -4,6 +4,7 @@ import com.giglister.domain.Claim;
 import com.giglister.domain.EntityMerge;
 import com.giglister.domain.enums.EntityStatus;
 import com.giglister.domain.enums.EventStatus;
+import com.giglister.domain.enums.SubmissionStatus;
 import com.giglister.dto.admin.AdminBandListItem;
 import com.giglister.dto.admin.AdminDashboardResponse;
 import com.giglister.dto.admin.AdminEventListItem;
@@ -12,10 +13,13 @@ import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.ClaimResponse;
 import com.giglister.dto.admin.DuplicatePair;
 import com.giglister.dto.admin.MergeRequest;
+import com.giglister.dto.submission.RejectSubmissionRequest;
+import com.giglister.dto.submission.SubmissionResponse;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.AdminService;
 import com.giglister.service.ClaimService;
 import com.giglister.service.MergeService;
+import com.giglister.service.SubmissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -36,6 +40,7 @@ public class AdminController {
     private final AdminService adminService;
     private final ClaimService claimService;
     private final MergeService mergeService;
+    private final SubmissionService submissionService;
 
     @GetMapping("/dashboard")
     public AdminDashboardResponse dashboard() {
@@ -112,5 +117,26 @@ public class AdminController {
             @RequestParam(defaultValue = "50") int size
     ) {
         return adminService.listAdminEvents(status, q, PageRequest.of(page, size));
+    }
+
+    @GetMapping("/submissions")
+    public List<SubmissionResponse> submissions(@RequestParam(required = false) SubmissionStatus status) {
+        return submissionService.list(status).stream().map(submissionService::toResponse).toList();
+    }
+
+    @GetMapping("/submissions/{id}")
+    public SubmissionResponse submission(@PathVariable Long id) {
+        return submissionService.toResponse(submissionService.getOrThrow(id));
+    }
+
+    @PostMapping("/submissions/{id}/approve")
+    public SubmissionResponse approveSubmission(@PathVariable Long id) {
+        return submissionService.toResponse(submissionService.approve(id, CurrentUser.requireId()));
+    }
+
+    @PostMapping("/submissions/{id}/reject")
+    public SubmissionResponse rejectSubmission(@PathVariable Long id, @RequestBody(required = false) RejectSubmissionRequest body) {
+        String reason = body != null ? body.reason() : null;
+        return submissionService.toResponse(submissionService.reject(id, CurrentUser.requireId(), reason));
     }
 }

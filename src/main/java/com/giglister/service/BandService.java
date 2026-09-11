@@ -71,6 +71,14 @@ public class BandService {
         return band;
     }
 
+    /** Only used when approving a Submission - the image is fetched and stored after create() already ran. */
+    @Transactional
+    public Band setTitleImage(Long id, String titleImageUrl) {
+        Band band = getOrThrow(id);
+        band.setTitleImageUrl(titleImageUrl);
+        return bandRepository.save(band);
+    }
+
     @Transactional
     public Band update(Long id, BandUpdateRequest request, Long userId, boolean platformAdmin) {
         permissionService.require(userId, platformAdmin, EntityType.BAND, id, PermissionLevel.EDIT);
