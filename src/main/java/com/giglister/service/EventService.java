@@ -54,9 +54,12 @@ public class EventService {
         if (ref.name() == null || ref.name().isBlank() || ref.city() == null || ref.city().isBlank()) {
             throw new BadRequestException("New locations require at least a name and a city");
         }
+        if (ref.address() == null || ref.address().isBlank() || ref.postalCode() == null || ref.postalCode().isBlank()) {
+            throw new BadRequestException("New locations require a street address and a postal code");
+        }
         return locationService.findExactMatch(ref.name(), ref.city())
                 .map(Location::getId)
-                .orElseGet(() -> locationService.createStub(ref.name(), ref.city(), ref.address()).getId());
+                .orElseGet(() -> locationService.createStub(ref.name(), ref.city(), ref.address(), ref.postalCode()).getId());
     }
 
     private Long resolveBand(EntityRef ref) {

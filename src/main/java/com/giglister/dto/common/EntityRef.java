@@ -9,7 +9,8 @@ public record EntityRef(
         Long id,
         String name,
         String city,
-        String address
+        String address,
+        String postalCode
 ) {
     public boolean isExisting() {
         return id != null;

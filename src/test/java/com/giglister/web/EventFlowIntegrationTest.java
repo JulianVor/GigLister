@@ -42,7 +42,7 @@ class EventFlowIntegrationTest {
         Map<String, Object> eventRequest = Map.of(
                 "date", LocalDate.now().plusDays(7).toString(),
                 "startTime", "20:00:00",
-                "location", Map.of("name", "Hafenklang", "city", "Hamburg"),
+                "location", Map.of("name", "Hafenklang", "city", "Hamburg", "address", "Große Elbstraße 132", "postalCode", "22767"),
                 "bands", java.util.List.of(Map.of("name", "HOME", "city", "Hamburg"))
         );
 
@@ -57,6 +57,15 @@ class EventFlowIntegrationTest {
                 .andReturn();
 
         String eventId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+        long locationId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("location").get("id").asLong();
+
+        // The stub location's address/postal code aren't part of the event response's
+        // (deliberately minimal) LocationSummary, so confirm they actually landed on
+        // the location itself.
+        mockMvc.perform(get("/api/locations/" + locationId).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.address").value("Große Elbstraße 132"))
+                .andExpect(jsonPath("$.postalCode").value("22767"));
 
         mockMvc.perform(get("/api/events").param("city", "Hamburg"))
                 .andExpect(status().isOk())
@@ -77,6 +86,56 @@ class EventFlowIntegrationTest {
         mockMvc.perform(get("/api/events"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[?(@.id == " + eventId + ")]").exists());
+    }
+
+    @Test
+    void creatingAnEventWithANewLocationRequiresAStreetAddressAndPostalCode() throws Exception {
+        String token = register("bjoern@example.com", "password123", "Bjoern");
+
+        Map<String, Object> withoutAddress = Map.of(
+                "date", LocalDate.now().plusDays(7).toString(),
+                "location", Map.of("name", "Nameless Venue", "city", "Hamburg"),
+                "bands", java.util.List.of(Map.of("name", "HOME", "city", "Hamburg"))
+        );
+        mockMvc.perform(post("/api/events")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(withoutAddress)))
+                .andExpect(status().isBadRequest());
+
+        Map<String, Object> withoutPostalCode = Map.of(
+                "date", LocalDate.now().plusDays(7).toString(),
+                "location", Map.of("name", "Nameless Venue", "city", "Hamburg", "address", "Große Elbstraße 132"),
+                "bands", java.util.List.of(Map.of("name", "HOME", "city", "Hamburg"))
+        );
+        mockMvc.perform(post("/api/events")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(withoutPostalCode)))
+                .andExpect(status().isBadRequest());
+
+        // Picking an *existing* location by id needs no address in the request itself -
+        // the location already has one (or doesn't, if an admin cleans it up later).
+        var locationResult = mockMvc.perform(post("/api/locations")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "name", "Existing Venue", "city", "Hamburg",
+                                "address", "Reeperbahn 1", "postalCode", "20359"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long existingLocationId = objectMapper.readTree(locationResult.getResponse().getContentAsString()).get("id").asLong();
+
+        Map<String, Object> withExistingLocation = Map.of(
+                "date", LocalDate.now().plusDays(7).toString(),
+                "location", Map.of("id", existingLocationId),
+                "bands", java.util.List.of(Map.of("name", "HOME", "city", "Hamburg"))
+        );
+        mockMvc.perform(post("/api/events")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(withExistingLocation)))
+                .andExpect(status().isCreated());
     }
 
     /** Registers and immediately confirms the email (looking the token up directly,

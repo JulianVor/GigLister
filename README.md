@@ -137,7 +137,10 @@ this is the "Neue Band/Location während eines Events" flow from section
 31/32 of the concept. Duplicate-aware: an exact name+city match reuses the
 existing stub instead of creating a new one; `GET /bands/duplicates?name=&city=`
 and `GET /locations/duplicates?...` power the "Meintest du?" suggestion UI
-before a user creates a brand new entity.
+before a user creates a brand new entity. A brand new location additionally
+requires `address` and `postalCode` (a street address is what makes a venue
+actually findable) — only bypassed by picking an existing location by id,
+which already has (or doesn't have) its own.
 
 ## What's implemented vs. deferred
 

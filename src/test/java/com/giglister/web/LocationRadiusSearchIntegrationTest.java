@@ -49,7 +49,7 @@ class LocationRadiusSearchIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "date", "2027-01-01",
-                                "location", Map.of("name", "No Coords Venue", "city", "Nowhere"),
+                                "location", Map.of("name", "No Coords Venue", "city", "Nowhere", "address", "Teststraße 1", "postalCode", "00000"),
                                 "bands", java.util.List.of(Map.of("name", "Some Band"))))))
                 .andExpect(status().isCreated());
 

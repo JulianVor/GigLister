@@ -235,6 +235,7 @@ export interface EntityRef {
   name?: string;
   city?: string;
   address?: string;
+  postalCode?: string;
 }
 
 export interface EntityMerge {

@@ -76,7 +76,7 @@ class MyBandsAndEventsIntegrationTest {
                 .toList();
         Map<String, Object> eventRequest = Map.of(
                 "date", date.toString(),
-                "location", Map.of("name", "Venue", "city", "Berlin"),
+                "location", Map.of("name", "Venue", "city", "Berlin", "address", "Teststraße 1", "postalCode", "10115"),
                 "bands", bands
         );
         mockMvc.perform(post("/api/events")

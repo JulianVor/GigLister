@@ -43,7 +43,7 @@ class StubVisibilityIntegrationTest {
 
         Map<String, Object> eventRequest = Map.of(
                 "date", LocalDate.now().plusDays(5).toString(),
-                "location", Map.of("name", "New Venue", "city", "Leipzig"),
+                "location", Map.of("name", "New Venue", "city", "Leipzig", "address", "Teststraße 1", "postalCode", "04109"),
                 "bands", java.util.List.of(Map.of("name", "New Band", "city", "Leipzig"))
         );
         var createResult = mockMvc.perform(post("/api/events")

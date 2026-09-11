@@ -20,6 +20,7 @@ export interface EntityPickerValue {
   name: string;
   city: string;
   address?: string;
+  postalCode?: string;
 }
 
 /**
@@ -94,22 +95,34 @@ export function EntityPicker({
       )}
 
       {!value.id && (
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            value={value.city}
-            onChange={(e) => onChange({ ...value, city: e.target.value })}
-            placeholder="Stadt"
-            required={cityRequired}
-            className="border border-line bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
-          />
+        <div className="space-y-2">
           {showAddress && (
             <input
               value={value.address ?? ""}
               onChange={(e) => onChange({ ...value, address: e.target.value })}
-              placeholder="Adresse (optional)"
-              className="border border-line bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
+              placeholder="Straße und Hausnummer"
+              required
+              className="w-full border border-line bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
             />
           )}
+          <div className="grid grid-cols-[6rem_1fr] gap-2">
+            {showAddress && (
+              <input
+                value={value.postalCode ?? ""}
+                onChange={(e) => onChange({ ...value, postalCode: e.target.value })}
+                placeholder="PLZ"
+                required
+                className="border border-line bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
+              />
+            )}
+            <input
+              value={value.city}
+              onChange={(e) => onChange({ ...value, city: e.target.value })}
+              placeholder="Stadt"
+              required={cityRequired}
+              className={`border border-line bg-bg px-3 py-2 text-sm outline-none focus:border-accent ${showAddress ? "" : "col-span-2"}`}
+            />
+          </div>
         </div>
       )}
 
@@ -130,5 +143,7 @@ export function EntityPicker({
 }
 
 export function toEntityRef(v: EntityPickerValue) {
-  return v.id ? { id: v.id } : { name: v.name, city: v.city || undefined, address: v.address || undefined };
+  return v.id
+    ? { id: v.id }
+    : { name: v.name, city: v.city || undefined, address: v.address || undefined, postalCode: v.postalCode || undefined };
 }

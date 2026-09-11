@@ -69,8 +69,10 @@ public class LocationService {
     }
 
     @Transactional
-    public Location createStub(String name, String city, String address) {
-        Location location = Location.builder().name(name).city(city).address(address).status(EntityStatus.STUB).build();
+    public Location createStub(String name, String city, String address, String postalCode) {
+        Location location = Location.builder()
+                .name(name).city(city).address(address).postalCode(postalCode)
+                .status(EntityStatus.STUB).build();
         return locationRepository.save(location);
     }
 
