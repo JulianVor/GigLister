@@ -132,20 +132,45 @@ function segmentClipPath(seg: Segment, box: SegmentBox): string {
   return `polygon(${points.map(([x, y]) => `${x * 100}% ${y * 100}%`).join(", ")})`;
 }
 
-/** 2 or 4 bands split the card into equal same-height diagonal strips. 3 gives the lead
- * band a wider strip (matching how it's usually billed) with the other two stacked in
- * the remainder, rather than three equally-narrow slivers. */
+/** Every band count splits the card into equal-width, full-height diagonal strips side
+ * by side - 2, 3, or 4, all the same layout, just narrower per strip as more bands join. */
 function layoutSegments(bands: BandPhoto[]): Segment[] {
-  if (bands.length === 3) {
-    const mainWidth = 0.58;
-    return [
-      { ...bands[0], left: 0, right: mainWidth, top: 0, bottom: 1 },
-      { ...bands[1], left: mainWidth, right: 1, top: 0, bottom: 0.5 },
-      { ...bands[2], left: mainWidth, right: 1, top: 0.5, bottom: 1 },
-    ];
-  }
   const n = bands.length;
   return bands.map((band, i) => ({ ...band, left: i / n, right: (i + 1) / n, top: 0, bottom: 1 }));
+}
+
+/** Half-thickness of the white seam line drawn over each internal boundary, as a fraction
+ * of the card's width - kept small so it reads as a thin divider, not a border. */
+const SEAM_HALF_WIDTH = 0.0015;
+
+/** The diagonal seam between two segments is otherwise just wherever their clip-paths
+ * happen to meet - no pixels of its own. This draws a thin white sliver centered exactly
+ * on that shared line (same cutX as the segments themselves, so it tracks it perfectly at
+ * every height) as its own layer on top, in a box just wide enough to hold it. */
+function SeamLine({ boundary, top, bottom }: { boundary: number; top: number; bottom: number }) {
+  const boxLeft = Math.max(0, boundary - SEAM_HALF_WIDTH);
+  const boxRight = Math.min(1, boundary + CUT_SKEW + SEAM_HALF_WIDTH);
+  const w = boxRight - boxLeft;
+  const h = bottom - top;
+  const toLocal = (gx: number, gy: number): [number, number] => [(gx - boxLeft) / w, (gy - top) / h];
+  const points: [number, number][] = [
+    toLocal(cutX(boundary, top) - SEAM_HALF_WIDTH, top),
+    toLocal(cutX(boundary, top) + SEAM_HALF_WIDTH, top),
+    toLocal(cutX(boundary, bottom) + SEAM_HALF_WIDTH, bottom),
+    toLocal(cutX(boundary, bottom) - SEAM_HALF_WIDTH, bottom),
+  ];
+  return (
+    <div
+      className="pointer-events-none absolute bg-white"
+      style={{
+        left: `${boxLeft * 100}%`,
+        width: `${w * 100}%`,
+        top: `${top * 100}%`,
+        height: `${h * 100}%`,
+        clipPath: `polygon(${points.map(([x, y]) => `${x * 100}% ${y * 100}%`).join(", ")})`,
+      }}
+    />
+  );
 }
 
 /** Full-bleed diagonal-cut lineup, each photo cropped to its own strip and labeled with
@@ -175,6 +200,9 @@ function DiagonalPhotoCollage({ bands }: { bands: BandPhoto[] }) {
           </div>
         );
       })}
+      {segments.slice(0, -1).map((seg, i) => (
+        <SeamLine key={`seam-${i}`} boundary={seg.right} top={seg.top} bottom={seg.bottom} />
+      ))}
       {segments.map((seg, i) => (
         <div
           key={`label-${i}`}
