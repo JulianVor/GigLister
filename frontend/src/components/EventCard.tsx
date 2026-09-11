@@ -3,15 +3,6 @@ import type { EventSummary } from "@/lib/types";
 import { dayAndMonth, dayNumber, formatTime, monthShort, weekdayShort } from "@/lib/format";
 import { eventLineupLabel } from "@/lib/event-display";
 
-/** Corner anchor for up to 4 band images - order matches how bands fill in as the lineup
- * grows: the first two take the bottom corners, the next two the top ones. */
-const CORNERS = [
-  { position: "bottom-0 left-0", origin: "0% 100%" },
-  { position: "bottom-0 right-0", origin: "100% 100%" },
-  { position: "top-0 left-0", origin: "0% 0%" },
-  { position: "top-0 right-0", origin: "100% 0%" },
-] as const;
-
 /** An image-forward post-style card (photo up top, a floating date pill, details below) -
  * self-spaced (`mb-4`) so every list of these just stacks without callers adding gaps. */
 export function EventCard({ event }: { event: EventSummary }) {
@@ -42,7 +33,7 @@ export function EventCard({ event }: { event: EventSummary }) {
             className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
           />
         ) : collageSourceCount >= 2 ? (
-          <CornerCollage bandImages={bandImages} locationImage={locationImage} />
+          <BandCollage bandImages={bandImages} locationImage={locationImage} />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1">
             <div className="font-display text-6xl leading-none sm:text-7xl">{dayNumber(event.date)}</div>
@@ -67,28 +58,34 @@ export function EventCard({ event }: { event: EventSummary }) {
   );
 }
 
-/** Bands sit anchored in the corners, faded toward the center with a transparent radial
- * mask (not a hard crop) so they blend into the location image underneath rather than
- * tiling as separate boxes. Corner tiles are sized off the card's *height* (not width) -
- * sizing off width instead made them so much taller than the card that only a thin,
- * heavily-zoomed sliver near the bottom edge was ever visible (a boot, a jacket button)
- * instead of a recognizable band photo. Keeping them close to the card's own height
- * shows a natural crop while still giving bands more presence than the location, which
- * is dimmed a touch so it reads as ambience behind them rather than competing for
- * attention. The location is still a full-bleed base layer underneath everything, so
- * there's never an empty gap regardless of how much of it the bands cover; without a
- * location image, the first band image itself is blurred into a backdrop instead so the
- * same "no gaps" guarantee holds with band photos alone. Each added band shrinks the
- * corner tiles a bit so more of them can fit without collapsing into a single blob.
- *
- * The mask's solid zone has to comfortably cover the tile's own center, not just its
- * corner: object-cover keeps each photo's main subject centered in its square tile
- * regardless of the source image's shape, and that center sits at exactly 50% of the
- * gradient's radius (the corner-to-center distance is half the corner-to-corner
- * diagonal the default "farthest-corner" sizing uses). Fading anywhere before ~80%
- * would start eating into the subject itself, not just the tile's outer edge. */
-function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; locationImage: string | null }) {
-  const sizePercent = Math.max(60, 95 - (bandImages.length - 1) * 10);
+/** Each oval's fixed height, tuned so a row (or a stacked pair, for 4 bands) fits inside
+ * the card's own h-44/sm:h-60 with room to spare - shrinks as more bands need to fit.
+ * Percentage heights don't work here since the ovals sit in nested flex rows/columns
+ * with no definite height of their own to be a percentage of. */
+const OVAL_HEIGHT: Record<1 | 2 | 3 | 4, string> = {
+  1: "h-28 sm:h-40",
+  2: "h-24 sm:h-32",
+  3: "h-20 sm:h-28",
+  4: "h-16 sm:h-20",
+};
+
+function BandOval({ url, heightClass }: { url: string; heightClass: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt="" className={`rounded-full object-cover ${heightClass}`} style={{ aspectRatio: "3 / 2" }} />
+  );
+}
+
+/** Band photos as a clean grid of ovals over the (dimmed) location image - 1-3 bands sit
+ * in a single centered row, 4 split into two columns of a stacked pair each, so it never
+ * collapses into one crowded row. The location fills whatever the ovals don't cover, so
+ * there's never an empty gap; without a location image, the first band photo itself is
+ * blurred into a backdrop instead so the same guarantee holds with band photos alone. */
+function BandCollage({ bandImages, locationImage }: { bandImages: string[]; locationImage: string | null }) {
+  // For 4 bands, each column stacks a pair; otherwise every band is its own single-item
+  // column, which lines them all up side by side in one row instead of stacking them.
+  const columns = bandImages.length === 4 ? [bandImages.slice(0, 2), bandImages.slice(2, 4)] : bandImages.map((url) => [url]);
+  const heightClass = OVAL_HEIGHT[bandImages.length as 1 | 2 | 3 | 4] ?? OVAL_HEIGHT[4];
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -107,24 +104,15 @@ function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; lo
           className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-md"
         />
       )}
-      {bandImages.map((url, i) => {
-        const corner = CORNERS[i];
-        return (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={url + i}
-            src={url}
-            alt=""
-            className={`absolute object-cover ${corner.position}`}
-            style={{
-              height: `${sizePercent}%`,
-              aspectRatio: "1 / 1",
-              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 82%, transparent 96%)`,
-              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 82%, transparent 96%)`,
-            }}
-          />
-        );
-      })}
+      <div className="absolute inset-0 flex items-center justify-center gap-3 sm:gap-4">
+        {columns.map((col, ci) => (
+          <div key={ci} className="flex flex-col items-center gap-1.5 sm:gap-2">
+            {col.map((url, i) => (
+              <BandOval key={url + i} url={url} heightClass={heightClass} />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
