@@ -63,7 +63,7 @@ public class Event {
     private String titleImageUrl;
 
     /** Whether the event's own listings/collage show each band's logo or its title
-     * (promo) photo - see BandImageDisplay. Defaults to LOGO.
+     * (promo) photo - see BandImageDisplay. Defaults to PHOTO.
      *
      * Deliberately nullable at the DB level (no `nullable = false`) even though it's
      * conceptually required: with `ddl-auto: update` and no migration tool, Hibernate
@@ -71,13 +71,13 @@ public class Event {
      * already have rows - a NOT NULL column there fails immediately (existing rows
      * have nothing to backfill it with). Nullable avoids that; getBandImageDisplay()
      * below is the single place that treats a null (only possible on a pre-existing
-     * row that hasn't been saved since) as LOGO, so nothing else needs to care. */
+     * row that hasn't been saved since) as PHOTO, so nothing else needs to care. */
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private BandImageDisplay bandImageDisplay = BandImageDisplay.LOGO;
+    private BandImageDisplay bandImageDisplay = BandImageDisplay.PHOTO;
 
     public BandImageDisplay getBandImageDisplay() {
-        return bandImageDisplay != null ? bandImageDisplay : BandImageDisplay.LOGO;
+        return bandImageDisplay != null ? bandImageDisplay : BandImageDisplay.PHOTO;
     }
 
     @Enumerated(EnumType.STRING)

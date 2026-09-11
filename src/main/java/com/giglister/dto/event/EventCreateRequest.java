@@ -19,7 +19,7 @@ public record EventCreateRequest(
         String description,
         String ticketUrl,
         String titleImageUrl,
-        /** Defaults to LOGO when omitted - see Event.bandImageDisplay. */
+        /** Defaults to PHOTO when omitted - see Event.bandImageDisplay. */
         BandImageDisplay bandImageDisplay
 ) {
 }

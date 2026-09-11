@@ -8,7 +8,7 @@ import { ImageUploadField } from "@/components/ImageUploadField";
 import { BAND_IMAGE_DISPLAY_LABELS } from "@/lib/status-labels";
 import type { BandImageDisplay, EventResponse } from "@/lib/types";
 
-const BAND_IMAGE_DISPLAY_OPTIONS: BandImageDisplay[] = ["LOGO", "PHOTO"];
+const BAND_IMAGE_DISPLAY_OPTIONS: BandImageDisplay[] = ["PHOTO", "LOGO"];
 
 function emptyBand(): EntityPickerValue {
   return { name: "", city: "" };
@@ -32,7 +32,7 @@ export function EventForm({ eventId, initial }: { eventId?: number; initial?: Ev
   );
   const [ticketUrl, setTicketUrl] = useState(initial?.ticketUrl ?? "");
   const [titleImageUrl, setTitleImageUrl] = useState(initial?.titleImageUrl ?? "");
-  const [bandImageDisplay, setBandImageDisplay] = useState<BandImageDisplay>(initial?.bandImageDisplay ?? "LOGO");
+  const [bandImageDisplay, setBandImageDisplay] = useState<BandImageDisplay>(initial?.bandImageDisplay ?? "PHOTO");
   const [description, setDescription] = useState(initial?.description ?? "");
 
   function handleSubmit(e: React.FormEvent) {

@@ -92,7 +92,7 @@ public class EventService {
                 .description(request.description())
                 .ticketUrl(request.ticketUrl())
                 .titleImageUrl(request.titleImageUrl())
-                .bandImageDisplay(request.bandImageDisplay() != null ? request.bandImageDisplay() : BandImageDisplay.LOGO)
+                .bandImageDisplay(request.bandImageDisplay() != null ? request.bandImageDisplay() : BandImageDisplay.PHOTO)
                 .status(EventStatus.PUBLISHED)
                 .createdBy(createdBy)
                 .build();
@@ -117,7 +117,7 @@ public class EventService {
         event.setDescription(request.description());
         event.setTicketUrl(request.ticketUrl());
         event.setTitleImageUrl(request.titleImageUrl());
-        event.setBandImageDisplay(request.bandImageDisplay() != null ? request.bandImageDisplay() : BandImageDisplay.LOGO);
+        event.setBandImageDisplay(request.bandImageDisplay() != null ? request.bandImageDisplay() : BandImageDisplay.PHOTO);
         return eventRepository.save(event);
     }
 
