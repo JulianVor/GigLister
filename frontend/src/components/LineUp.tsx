@@ -10,10 +10,13 @@ export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; log
         const content = (
           <div className="flex items-center gap-4 py-3">
             {band.logoUrl ? (
+              // A logo isn't meant to be cropped - object-cover in a bordered box was
+              // cutting into the artwork and boxing it in a border that fights with the
+              // logo's own shape. object-contain shows it whole, no box around it.
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={band.logoUrl} alt="" className="h-10 w-10 flex-none border border-line object-cover" />
+              <img src={band.logoUrl} alt="" className="h-12 w-12 flex-none object-contain" />
             ) : (
-              <div className="h-10 w-10 flex-none border border-line" />
+              <div className="h-12 w-12 flex-none border border-line" />
             )}
             <div>
               <div className="font-display text-base">{band.name}</div>
