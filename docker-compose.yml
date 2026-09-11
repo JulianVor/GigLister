@@ -34,7 +34,7 @@ services:
       # from the same source.
       MP_SMTP_BIND_ADDR: 0.0.0.0:${GIGLISTER_MAIL_PORT:-587}
     ports:
-      - "${GIGLISTER_MAILPIT_PORT:-8025}:8025"
+      - "127.0.0.1:${GIGLISTER_MAILPIT_PORT:-8025}:8025"
 
   backend:
     build:
