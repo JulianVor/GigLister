@@ -4,20 +4,98 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { approveSubmissionAction, rejectSubmissionAction, updateSubmissionAction } from "@/actions/admin";
 import { SUBMISSION_TYPE_LABELS } from "@/lib/status-labels";
-import type { SubmissionResponse } from "@/lib/types";
+import type { EntityRef, SubmissionResponse } from "@/lib/types";
 
 export function SubmissionsList({ submissions }: { submissions: SubmissionResponse[] }) {
   if (submissions.length === 0) {
     return <p className="font-meta text-sm text-muted">Keine Vorschläge in dieser Ansicht.</p>;
   }
 
+  const groups = groupSubmissions(submissions);
+
   return (
     <ul className="divide-y divide-line border-y border-line">
-      {submissions.map((submission) => (
-        <SubmissionItem key={submission.id} submission={submission} />
-      ))}
+      {groups.map(({ primary, related }) =>
+        related.length > 0 ? (
+          <li key={primary.id} className="border-l-2 border-accent/40 bg-accent/5 pl-3">
+            <SubmissionItem submission={primary} />
+            <div className="ml-4 border-l border-line pb-4 pl-3">
+              <p className="pt-1 font-meta text-xs uppercase tracking-wide text-muted">
+                Zugehörig — in diesem Konzertvorschlag referenziert, aber noch nicht angelegt
+              </p>
+              <ul className="divide-y divide-line">
+                {related.map((r) => (
+                  <SubmissionItem key={r.id} submission={r} />
+                ))}
+              </ul>
+            </div>
+          </li>
+        ) : (
+          <SubmissionItem key={primary.id} submission={primary} />
+        )
+      )}
     </ul>
   );
+}
+
+/** An EVENT submission's `location`/`bands` reference a Band/Location either by id
+ * (already exists) or by name/city (doesn't exist yet, will be created as a stub on
+ * approval - see EventService). When a matching pending BAND/LOCATION submission with
+ * the same name exists, it's very likely the *real* record for that same band/location -
+ * bundle it under the event instead of leaving it as an unrelated list entry, since
+ * approving the event first would otherwise create a duplicate stub. There's no explicit
+ * link between these submissions (the GPT-skill sends them as independent calls), so
+ * matching is by name (+ city when both sides give one) rather than an id. */
+function groupSubmissions(submissions: SubmissionResponse[]): { primary: SubmissionResponse; related: SubmissionResponse[] }[] {
+  const pool = submissions.filter((s) => s.type === "BAND" || s.type === "LOCATION");
+  const consumed = new Set<number>();
+  const childrenByEventId = new Map<number, SubmissionResponse[]>();
+
+  function normalize(s?: string): string {
+    return (s ?? "").trim().toLowerCase();
+  }
+
+  function findMatch(type: "BAND" | "LOCATION", ref: EntityRef | undefined): SubmissionResponse | undefined {
+    if (!ref || ref.id != null || !ref.name) return undefined;
+    return pool.find((s) => {
+      if (s.type !== type || consumed.has(s.id)) return false;
+      const payloadName = typeof s.payload.name === "string" ? s.payload.name : "";
+      if (normalize(payloadName) !== normalize(ref.name)) return false;
+      const payloadCity = typeof s.payload.city === "string" ? s.payload.city : "";
+      if (ref.city && payloadCity && normalize(payloadCity) !== normalize(ref.city)) return false;
+      return true;
+    });
+  }
+
+  for (const submission of submissions) {
+    if (submission.type !== "EVENT") continue;
+    const payload = submission.payload as { location?: EntityRef; bands?: EntityRef[] };
+    const related: SubmissionResponse[] = [];
+
+    const locationMatch = findMatch("LOCATION", payload.location);
+    if (locationMatch) {
+      related.push(locationMatch);
+      consumed.add(locationMatch.id);
+    }
+    for (const bandRef of payload.bands ?? []) {
+      const bandMatch = findMatch("BAND", bandRef);
+      if (bandMatch) {
+        related.push(bandMatch);
+        consumed.add(bandMatch.id);
+      }
+    }
+
+    if (related.length > 0) {
+      childrenByEventId.set(submission.id, related);
+    }
+  }
+
+  const groups: { primary: SubmissionResponse; related: SubmissionResponse[] }[] = [];
+  for (const submission of submissions) {
+    if (consumed.has(submission.id)) continue;
+    groups.push({ primary: submission, related: childrenByEventId.get(submission.id) ?? [] });
+  }
+  return groups;
 }
 
 function SubmissionItem({ submission }: { submission: SubmissionResponse }) {
