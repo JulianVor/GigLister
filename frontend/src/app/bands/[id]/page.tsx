@@ -37,7 +37,7 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
         <div className="flex-1">
           <h1 className="font-display text-4xl">{band.name}</h1>
           <p className="mt-1 font-meta text-lg text-muted">
-            {[band.city, band.region, band.country].filter(Boolean).join(" · ")}
+            {[band.city, band.country].filter(Boolean).join(" · ")}
           </p>
         </div>
         {/* Unvollständig/Entwurf is only meaningful to an admin or this band's own manager. */}

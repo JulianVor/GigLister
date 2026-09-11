@@ -58,7 +58,6 @@ public class BandService {
         Band band = Band.builder()
                 .name(request.name())
                 .city(request.city())
-                .region(request.region())
                 .country(request.country())
                 .shortDescription(request.shortDescription())
                 .website(request.website())
@@ -85,7 +84,6 @@ public class BandService {
         Band band = getOrThrow(id);
         band.setName(request.name());
         band.setCity(request.city());
-        band.setRegion(request.region());
         band.setCountry(request.country());
         band.setShortDescription(request.shortDescription());
         band.setWebsite(request.website());
@@ -111,7 +109,7 @@ public class BandService {
 
     public BandResponse toResponse(Band band) {
         return new BandResponse(
-                band.getId(), band.getName(), band.getCity(), band.getRegion(), band.getCountry(),
+                band.getId(), band.getName(), band.getCity(), band.getCountry(),
                 band.getShortDescription(), band.getWebsite(), band.getLogoUrl(), band.getTitleImageUrl(),
                 band.getGenres(), band.getStatus(), permissionService.isUnclaimed(EntityType.BAND, band.getId()),
                 upcomingEvents(band.getId())

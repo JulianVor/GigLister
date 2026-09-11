@@ -30,8 +30,6 @@ public class Band {
 
     private String city;
 
-    private String region;
-
     private String country;
 
     @Column(length = 2000)

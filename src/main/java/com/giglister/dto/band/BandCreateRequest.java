@@ -7,7 +7,6 @@ import java.util.List;
 public record BandCreateRequest(
         @NotBlank String name,
         String city,
-        String region,
         String country,
         String shortDescription,
         String website,

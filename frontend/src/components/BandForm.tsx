@@ -18,7 +18,6 @@ export function BandForm({ band }: { band?: BandResponse }) {
 
   const [name, setName] = useState(band?.name ?? "");
   const [city, setCity] = useState(band?.city ?? "");
-  const [region, setRegion] = useState(band?.region ?? "");
   const [country, setCountry] = useState(band?.country ?? "");
   const [shortDescription, setShortDescription] = useState(band?.shortDescription ?? "");
   const [website, setWebsite] = useState(band?.website ?? "");
@@ -36,7 +35,6 @@ export function BandForm({ band }: { band?: BandResponse }) {
     const input = {
       name,
       city: city || undefined,
-      region: region || undefined,
       country: country || undefined,
       shortDescription: shortDescription || undefined,
       website: website || undefined,
@@ -81,12 +79,9 @@ export function BandForm({ band }: { band?: BandResponse }) {
       <Field label="Name">
         <input value={name} onChange={(e) => setName(e.target.value)} required className="input" />
       </Field>
-      <Field label="Ort">
-        <input value={city} onChange={(e) => setCity(e.target.value)} className="input" />
-      </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Region">
-          <input value={region} onChange={(e) => setRegion(e.target.value)} className="input" />
+        <Field label="Ort">
+          <input value={city} onChange={(e) => setCity(e.target.value)} className="input" />
         </Field>
         <Field label="Land">
           <input value={country} onChange={(e) => setCountry(e.target.value)} className="input" />

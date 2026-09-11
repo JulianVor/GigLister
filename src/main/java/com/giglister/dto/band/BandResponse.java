@@ -9,7 +9,6 @@ public record BandResponse(
         Long id,
         String name,
         String city,
-        String region,
         String country,
         String shortDescription,
         String website,

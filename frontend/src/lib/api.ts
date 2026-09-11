@@ -208,7 +208,6 @@ export function getBandDuplicates(name: string, city?: string) {
 export interface BandInput {
   name: string;
   city?: string;
-  region?: string;
   country?: string;
   shortDescription?: string;
   website?: string;

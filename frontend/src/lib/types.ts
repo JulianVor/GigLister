@@ -87,7 +87,6 @@ export interface BandResponse {
   id: number;
   name: string;
   city: string | null;
-  region: string | null;
   country: string | null;
   shortDescription: string | null;
   website: string | null;
