@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,6 +26,7 @@ import java.util.List;
  * POST /api/submissions (see SecurityConfig): it can propose content, never
  * create anything directly.
  */
+@Slf4j
 @Component
 public class GptSkillAuthFilter extends OncePerRequestFilter {
 
@@ -39,13 +41,30 @@ public class GptSkillAuthFilter extends OncePerRequestFilter {
                                      @NonNull HttpServletResponse response,
                                      @NonNull FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
-        if (configuredToken != null && !configuredToken.isBlank()
+        boolean matched = configuredToken != null && !configuredToken.isBlank()
                 && header != null && header.startsWith("Bearer ")
                 && SecurityContextHolder.getContext().getAuthentication() == null
-                && constantTimeEquals(header.substring(7), configuredToken)) {
+                && constantTimeEquals(header.substring(7), configuredToken);
+        if (matched) {
             var authToken = new UsernamePasswordAuthenticationToken(
                     "gpt-skill", null, List.of(new SimpleGrantedAuthority("ROLE_GPT_SKILL")));
             SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
+        // TEMPORARY diagnostic logging - remove once the 403-via-Caddy issue is
+        // resolved. Never logs the actual token/secret, only lengths/prefixes.
+        if (request.getRequestURI().startsWith("/api/submissions")) {
+            String received = header != null && header.startsWith("Bearer ") ? header.substring(7) : null;
+            log.info("[GPT-SKILL DEBUG] method={} uri={} hasAuthHeader={} startsWithBearer={} "
+                            + "configuredTokenLen={} configuredTokenPrefix={} receivedTokenLen={} "
+                            + "receivedTokenPrefix={} alreadyAuthenticated={} matched={}",
+                    request.getMethod(), request.getRequestURI(),
+                    header != null, header != null && header.startsWith("Bearer "),
+                    configuredToken == null ? -1 : configuredToken.length(),
+                    configuredToken == null || configuredToken.isBlank() ? "" : configuredToken.substring(0, Math.min(6, configuredToken.length())),
+                    received == null ? -1 : received.length(),
+                    received == null || received.isBlank() ? "" : received.substring(0, Math.min(6, received.length())),
+                    SecurityContextHolder.getContext().getAuthentication() != null,
+                    matched);
         }
         filterChain.doFilter(request, response);
     }
