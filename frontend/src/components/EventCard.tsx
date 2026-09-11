@@ -247,8 +247,18 @@ function SingleBandCollage({ band, locationImage }: { band: BandPhoto; locationI
   return (
     <div className="relative h-full w-full overflow-hidden bg-surface">
       {locationImage && (
+        // Left of BAND_FADE_START the band photo is fully opaque, so the location photo
+        // is never visible there - rendering it at the full card width anyway just makes
+        // object-cover crop it harder to fill space nothing shows, same problem the band
+        // photo itself had. Sizing its box to just the region it can ever appear in fixes
+        // it the same way.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={locationImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={locationImage}
+          alt=""
+          className="absolute inset-y-0 right-0 h-full object-cover"
+          style={{ width: `${(1 - BAND_FADE_START) * 100}%` }}
+        />
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
