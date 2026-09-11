@@ -191,13 +191,12 @@ live without an admin approving them at `/admin/submissions`). Event
 listings are image-forward, social-post-style cards; an event with no
 title image of its own falls back to a live CSS collage built from
 whatever band/location title images are actually set — one band or
-location image alone is shown plain, and two or more blend into a corner
-layout: each band image (up to 4) sits anchored in a corner with a
-transparent radial-gradient mask fading it toward the center rather than
-a hard crop, over the location's title image as a full-bleed base layer
-(or, if the location itself has no image, a blurred band image instead)
-so there's never an empty gap — before falling back further to a plain
-date placeholder when no images exist at all.
+location image alone is shown plain, and two or more lay the band
+images (up to 4) out as a row of ovals — or, for 4, two columns of a
+stacked pair — over the location's title image as a full-bleed base
+layer (or, if the location itself has no image, a blurred band image
+instead) so there's never an empty gap — before falling back further
+to a plain date placeholder when no images exist at all.
 
 Deliberately deferred (matches §45 "was V1 nicht enthält" plus normal
 backend-first sequencing): no reverse geocoding (a typed city stays a plain name match; only
