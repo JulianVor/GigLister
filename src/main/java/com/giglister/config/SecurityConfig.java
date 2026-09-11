@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/events/**", "/api/locations/**", "/api/bands/**",
-                                "/api/search/**", "/api/discover/**").permitAll()
+                                "/api/search/**", "/api/discover/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

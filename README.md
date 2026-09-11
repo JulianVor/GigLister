@@ -21,8 +21,8 @@ docker compose up --build
 
 Builds and starts Postgres, the backend and the frontend together:
 frontend on `:3000`, API on `:8080`, Postgres on `:5432`. Data persists in
-the `giglister-db-data` volume across restarts; `docker compose down -v`
-wipes it.
+the `giglister-db-data` volume across restarts (uploaded images in
+`giglister-uploads-data`); `docker compose down -v` wipes both.
 
 **Configuring ports (or anything else):** copy `.env.example` to `.env`
 (same folder as `docker-compose.yml`) and edit it — `docker compose up`
@@ -62,6 +62,13 @@ user/password `giglister`); override with `GIGLISTER_DB_HOST`,
 in production, for instance). Run the frontend separately with `npm run dev`
 inside `frontend/` (see `frontend/README.md` or just `npm install && npm run
 dev`) — it defaults to talking to `http://localhost:8080`.
+
+Uploaded images (Band/Location logo and title image, Event image) are
+written to `giglister.upload.dir` (`GIGLISTER_UPLOAD_DIR`, defaults to
+`./uploads` for local dev — gitignored) and served back out under
+`/uploads/**`. `GIGLISTER_PUBLIC_API_URL` (same var the frontend build
+uses, see `.env.example`) is what gets baked into the stored image URL, so
+it has to be the address a browser can actually reach the API at.
 
 The very first account ever registered on a fresh deployment automatically
 becomes `PLATFORM_ADMIN` — otherwise a brand new install would have no way
@@ -121,6 +128,7 @@ requires a Bearer JWT; `/admin/**` additionally requires `platformAdmin`.
 | Locations | same shape as Bands (no `follow`) |
 | Discovery | `GET /discover`, `GET /search?q=&type=` |
 | Me | `GET/PUT /me` — saved events, followed bands, managed entities |
+| Uploads | `POST /uploads` (multipart `file`, JPEG/PNG/WebP/GIF up to 5MB) → `{ url }`, served back out at `GET /uploads/{file}` (unauthenticated) |
 | Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge`, `GET /admin/users`, `POST /admin/users/{id}/promote\|demote`, `GET /admin/bands\|locations\|events` (every status, not just PUBLISHED — filterable by `status`/`q`) |
 
 **Creating an event** (`POST /events`) accepts either an existing
@@ -144,11 +152,12 @@ linked from the respective `/admin/*` overview pages) alongside the
 existing inline stub-during-event-creation flow — claim workflow,
 multiple managers per entity, stub-on-the-fly creation, duplicate detection
 + admin merge, follow/save, search, discover sections, admin dashboard,
-registration with email verification, and self-service password reset.
+registration with email verification, self-service password reset, and
+image upload (`POST /api/uploads`, backing the logo/title image fields on
+Band/Location/Event — always a real uploaded file, never a hand-typed URL).
 
 Deliberately deferred (matches §45 "was V1 nicht enthält" plus normal
-backend-first sequencing): no image upload (media fields are plain URLs),
-no reverse geocoding (a typed city stays a plain name match; only
+backend-first sequencing): no reverse geocoding (a typed city stays a plain name match; only
 "Standort verwenden" gives a real coordinate radius), no genre filter on
 the concert/discover lists (bands carry genres, but nothing filters by them
 yet), no distance shown per event, and merged entities don't yet redirect

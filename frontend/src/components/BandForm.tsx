@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createBandAction, updateBandAction, updateBandStatusAction } from "@/actions/bands";
+import { ImageUploadField } from "@/components/ImageUploadField";
 import { ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { BandResponse, EntityStatus } from "@/lib/types";
 
@@ -100,11 +101,11 @@ export function BandForm({ band }: { band?: BandResponse }) {
       <Field label="Website">
         <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} className="input" />
       </Field>
-      <Field label="Logo-URL">
-        <input type="url" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="input" />
+      <Field label="Logo">
+        <ImageUploadField value={logoUrl} onChange={setLogoUrl} aspect="square" />
       </Field>
-      <Field label="Titelbild-URL">
-        <input type="url" value={titleImageUrl} onChange={(e) => setTitleImageUrl(e.target.value)} className="input" />
+      <Field label="Titelbild">
+        <ImageUploadField value={titleImageUrl} onChange={setTitleImageUrl} aspect="video" />
       </Field>
       <Field label="Status">
         <select value={status} onChange={(e) => setStatus(e.target.value as EntityStatus)} className="input">

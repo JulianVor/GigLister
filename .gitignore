@@ -5,6 +5,9 @@ target/
 .vscode/
 .DS_Store
 
+# local dev default for giglister.upload.dir - Docker Compose uses a named volume instead
+/uploads/
+
 # docker compose reads this automatically - keep .env.example as the template
 .env
 !.env.example

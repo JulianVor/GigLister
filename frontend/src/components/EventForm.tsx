@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createEventAction, updateEventAction } from "@/actions/events";
 import { EntityPicker, toEntityRef, type EntityPickerValue } from "@/components/EntityPicker";
+import { ImageUploadField } from "@/components/ImageUploadField";
 import type { EventResponse } from "@/lib/types";
 
 function emptyBand(): EntityPickerValue {
@@ -152,16 +153,10 @@ export function EventForm({ eventId, initial }: { eventId?: number; initial?: Ev
       </div>
 
       <div>
-        <label className="font-meta text-sm text-muted" htmlFor="titleImageUrl">
-          Bild-URL (optional)
-        </label>
-        <input
-          id="titleImageUrl"
-          type="url"
-          value={titleImageUrl}
-          onChange={(e) => setTitleImageUrl(e.target.value)}
-          className="mt-1 w-full border border-line bg-bg px-3 py-2 outline-none focus:border-accent"
-        />
+        <span className="font-meta text-sm text-muted">Bild (optional)</span>
+        <div className="mt-1">
+          <ImageUploadField value={titleImageUrl} onChange={setTitleImageUrl} aspect="video" />
+        </div>
       </div>
 
       <div>

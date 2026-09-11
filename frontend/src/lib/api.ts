@@ -87,6 +87,32 @@ async function apiFetch<T>(
   return data as T;
 }
 
+// --- Uploads ---
+
+/**
+ * Images are always uploaded, never entered as an external URL - this posts
+ * the file as multipart/form-data (unlike apiFetch, which always sends JSON)
+ * and hands back a URL that's already absolute and browser-reachable, so it
+ * can be stored as-is into a logoUrl/titleImageUrl field.
+ */
+export async function uploadImage(file: File, token: string): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE_URL}/api/uploads`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : undefined;
+  if (!res.ok) {
+    const message = data?.message ?? `Upload failed with ${res.status}`;
+    throw new ApiError(res.status, message);
+  }
+  return data as { url: string };
+}
+
 // --- Auth ---
 
 export function register(data: { email: string; password: string; username: string }) {
