@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApiError, getEvent, getLocation } from "@/lib/api";
 import { getSession, getToken } from "@/lib/session";
-import { canEditEvent } from "@/lib/permissions";
+import { canEditEvent, canManageEntity } from "@/lib/permissions";
 import { dayAndMonth, fullDateLabel, formatTime, weekdayShort } from "@/lib/format";
 import { eventLineupLabel } from "@/lib/event-display";
 import { LineUp } from "@/components/LineUp";
@@ -90,7 +90,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
       <h2 className="mt-10 font-meta text-sm uppercase tracking-wide text-muted">Line-up</h2>
       <div className="mt-2">
-        <LineUp bands={event.bands} loggedIn={!!session} />
+        <LineUp bands={event.bands} loggedIn={!!session} session={session} />
       </div>
 
       <h2 className="mt-10 font-meta text-sm uppercase tracking-wide text-muted">Ort</h2>
@@ -104,7 +104,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         )}
         {location?.address && <p className="font-meta text-sm text-muted">{location.address}</p>}
         <p className="font-meta text-sm text-muted">{event.location.city}</p>
-        <StatusBadge status={event.location.status} />
+        {/* Unvollständig/Entwurf is only meaningful to an admin or this location's own manager. */}
+        {canManageEntity(session, "LOCATION", event.location.id) && <StatusBadge status={event.location.status} />}
       </div>
 
       {otherAtLocation.length > 0 && (

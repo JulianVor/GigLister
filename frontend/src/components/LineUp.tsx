@@ -1,8 +1,9 @@
 import Link from "next/link";
-import type { BandSummary } from "@/lib/types";
+import type { BandSummary, MeResponse } from "@/lib/types";
+import { canManageEntity } from "@/lib/permissions";
 import { StatusBadge } from "./StatusBadge";
 
-export function LineUp({ bands, loggedIn }: { bands: BandSummary[]; loggedIn: boolean }) {
+export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; loggedIn: boolean; session: MeResponse | null }) {
   return (
     <div className="divide-y divide-line border-y border-line">
       {bands.map((band) => {
@@ -18,7 +19,9 @@ export function LineUp({ bands, loggedIn }: { bands: BandSummary[]; loggedIn: bo
               <div className="font-display text-base">{band.name}</div>
               {band.city && <div className="font-meta text-sm text-muted">{band.city}</div>}
             </div>
-            <StatusBadge status={band.status} />
+            {/* Unvollständig/Entwurf is only meaningful to an admin or this band's own manager - a
+                random visitor doesn't need to see internal workflow state. */}
+            {canManageEntity(session, "BAND", band.id) && <StatusBadge status={band.status} />}
           </div>
         );
 

@@ -40,7 +40,8 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
             {[band.city, band.region, band.country].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <StatusBadge status={band.status} />
+        {/* Unvollständig/Entwurf is only meaningful to an admin or this band's own manager. */}
+        {canEdit && <StatusBadge status={band.status} />}
       </div>
 
       {band.genres.length > 0 && (

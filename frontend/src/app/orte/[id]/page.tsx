@@ -38,7 +38,8 @@ export default async function LocationDetailPage({ params }: { params: Promise<{
             {location.address ? ` · ${location.address}` : ""}
           </p>
         </div>
-        <StatusBadge status={location.status} />
+        {/* Unvollständig/Entwurf is only meaningful to an admin or this location's own manager. */}
+        {canEdit && <StatusBadge status={location.status} />}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-4 font-meta text-sm">
