@@ -69,20 +69,27 @@ export function EventCard({ event }: { event: EventSummary }) {
 
 /** Bands sit anchored in the corners, faded toward the center with a transparent radial
  * mask (not a hard crop) so they blend into the location image underneath rather than
- * tiling as separate boxes. The location image is a full-bleed base layer, so there's
- * never an empty gap regardless of how much (or little) of it the bands' fade leaves
- * showing; without a location image, the first band image itself is blurred into a
- * backdrop instead so the same "no gaps" guarantee holds with band photos alone. Each
- * added band shrinks the corner tiles a bit so more of them can fit without collapsing
- * into a single blob. */
+ * tiling as separate boxes. Band photos are the point, so their corner tiles are sized
+ * off the card's *width* (not height) - on a landscape card that makes them large enough
+ * to dominate, overlapping in the middle for two or more bands, while the location image
+ * is dimmed a touch so it reads as ambience behind them rather than competing for
+ * attention. The location is still a full-bleed base layer underneath everything, so
+ * there's never an empty gap regardless of how much of it the bands cover; without a
+ * location image, the first band image itself is blurred into a backdrop instead so the
+ * same "no gaps" guarantee holds with band photos alone. Each added band shrinks the
+ * corner tiles a bit so more of them can fit without collapsing into a single blob. */
 function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; locationImage: string | null }) {
-  const sizePercent = Math.max(58, 84 - (bandImages.length - 1) * 8);
+  const sizePercent = Math.max(40, 68 - (bandImages.length - 1) * 9);
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full overflow-hidden">
       {locationImage ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={locationImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={locationImage}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover brightness-75 saturate-75"
+        />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -101,10 +108,10 @@ function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; lo
             alt=""
             className={`absolute object-cover ${corner.position}`}
             style={{
-              height: `${sizePercent}%`,
+              width: `${sizePercent}%`,
               aspectRatio: "1 / 1",
-              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 40%, transparent 80%)`,
-              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 40%, transparent 80%)`,
+              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 48%, transparent 88%)`,
+              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 48%, transparent 88%)`,
             }}
           />
         );
