@@ -107,7 +107,13 @@ configure, just open `http://localhost:8025`); running the backend directly
 with `mvn spring-boot:run`, `GIGLISTER_MAIL_HOST` defaults to unset instead,
 so the verification/reset link is written to the server log rather than
 sent anywhere. `GIGLISTER_FRONTEND_URL` controls which frontend origin that
-link points at (defaults to `http://localhost:3000`).
+link points at (defaults to `http://localhost:3000`) - the frontend itself
+also reads this same variable to build the redirect after the link is
+clicked, rather than trusting Next.js's own guess at its host in a Docker
+deployment (which, in `output: "standalone"` mode, is the container's
+internal hostname/port, not whatever public domain actually fronts it).
+Set it to the real public URL once this is deployed anywhere other than
+localhost.
 
 ## Domain model
 
