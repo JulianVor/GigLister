@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { EventSummary } from "@/lib/types";
+import type { BandImageDisplay, EventSummary } from "@/lib/types";
 import { dayAndMonth, dayNumber, formatTime, monthShort, weekdayShort } from "@/lib/format";
 import { eventLineupLabel } from "@/lib/event-display";
 
@@ -14,6 +14,10 @@ export function EventCard({ event }: { event: EventSummary }) {
     .slice(0, 4);
   const locationImage = event.location.titleImageUrl;
   const collageSourceCount = bandImages.length + (locationImage ? 1 : 0);
+  // A lone image only gets the plain full-bleed treatment when it's genuinely photo-like
+  // (the location, or a single band PHOTO) - a lone LOGO still goes through BandCollage
+  // below, which shows it as one clean, uncropped tile instead of stretched edge to edge.
+  const showSingleImagePlain = collageSourceCount === 1 && (locationImage !== null || event.bandImageDisplay === "PHOTO");
 
   return (
     <Link href={`/konzerte/${event.id}`} className="group mb-4 block border border-line hover:border-fg">
@@ -25,15 +29,15 @@ export function EventCard({ event }: { event: EventSummary }) {
             alt=""
             className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
           />
-        ) : collageSourceCount === 1 ? (
+        ) : showSingleImagePlain ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={locationImage ?? bandImages[0]}
             alt=""
             className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
           />
-        ) : collageSourceCount >= 2 ? (
-          <BandCollage bandImages={bandImages} locationImage={locationImage} />
+        ) : collageSourceCount >= 1 ? (
+          <BandCollage bandImages={bandImages} locationImage={locationImage} mode={event.bandImageDisplay} />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1">
             <div className="font-display text-6xl leading-none sm:text-7xl">{dayNumber(event.date)}</div>
@@ -58,11 +62,12 @@ export function EventCard({ event }: { event: EventSummary }) {
   );
 }
 
-/** Each oval's fixed height, tuned so a row (or a stacked pair, for 4 bands) fits inside
+/** Each tile's fixed height, tuned so a row (or a stacked pair, for 4 bands) fits inside
  * the card's own h-44/sm:h-60 with room to spare - shrinks as more bands need to fit.
- * Percentage heights don't work here since the ovals sit in nested flex rows/columns
- * with no definite height of their own to be a percentage of. */
-const OVAL_HEIGHT: Record<1 | 2 | 3 | 4, string> = {
+ * Percentage heights don't work here since the tiles sit in nested flex rows/columns
+ * with no definite height of their own to be a percentage of. Same heights for both
+ * PHOTO and LOGO tiles, so a lineup keeps the same overall footprint either way. */
+const TILE_HEIGHT: Record<1 | 2 | 3 | 4, string> = {
   1: "h-36 sm:h-52",
   2: "h-32 sm:h-44",
   3: "h-28 sm:h-36",
@@ -84,7 +89,7 @@ const OVAL_HEIGHT: Record<1 | 2 | 3 | 4, string> = {
  * and, as a side effect, reads as far less oval: the solid area now fills almost the
  * whole box along the flat sides (top/bottom/left/right), so only the corners visibly
  * round off instead of the whole tile reading as a blob. */
-function BandOval({ url, heightClass }: { url: string; heightClass: string }) {
+function BandPhotoOval({ url, heightClass }: { url: string; heightClass: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -100,16 +105,42 @@ function BandOval({ url, heightClass }: { url: string; heightClass: string }) {
   );
 }
 
-/** Band photos as a clean grid of ovals over the (dimmed) location image - 1-3 bands sit
+/** Unlike a band photo, a logo isn't meant to be cropped or faded at all - clipping any
+ * part of it (round or otherwise) can cut off letters or the mark itself, and a soft
+ * edge just looks like a rendering glitch on a flat graphic. Plain square tile, full
+ * logo shown via `object-contain` (never cropped), with its own opaque background since
+ * most logos are transparent PNGs that would otherwise let the dimmed location image
+ * show through their negative space. */
+function BandLogoTile({ url, heightClass }: { url: string; heightClass: string }) {
+  return (
+    <div className={`flex items-center justify-center border border-line bg-bg p-1.5 ${heightClass}`} style={{ aspectRatio: "1 / 1" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="" className="h-full w-full object-contain" />
+    </div>
+  );
+}
+
+/** Band images as a clean grid of tiles over the (dimmed) location image - 1-3 bands sit
  * in a single centered row, 4 split into two columns of a stacked pair each, so it never
- * collapses into one crowded row. The location fills whatever the ovals don't cover, so
- * there's never an empty gap; without a location image, the first band photo itself is
- * blurred into a backdrop instead so the same guarantee holds with band photos alone. */
-function BandCollage({ bandImages, locationImage }: { bandImages: string[]; locationImage: string | null }) {
+ * collapses into one crowded row. The location fills whatever the tiles don't cover, so
+ * there's never an empty gap; without a location image, PHOTO mode blurs the first band
+ * photo into a backdrop instead so the same guarantee holds with band photos alone -
+ * LOGO mode uses a plain surface fill instead, since blurring a small flat graphic into
+ * a full-bleed backdrop looks like a rendering error, not a design choice. */
+function BandCollage({
+  bandImages,
+  locationImage,
+  mode,
+}: {
+  bandImages: string[];
+  locationImage: string | null;
+  mode: BandImageDisplay;
+}) {
   // For 4 bands, each column stacks a pair; otherwise every band is its own single-item
   // column, which lines them all up side by side in one row instead of stacking them.
   const columns = bandImages.length === 4 ? [bandImages.slice(0, 2), bandImages.slice(2, 4)] : bandImages.map((url) => [url]);
-  const heightClass = OVAL_HEIGHT[bandImages.length as 1 | 2 | 3 | 4] ?? OVAL_HEIGHT[4];
+  const heightClass = TILE_HEIGHT[bandImages.length as 1 | 2 | 3 | 4] ?? TILE_HEIGHT[4];
+  const Tile = mode === "PHOTO" ? BandPhotoOval : BandLogoTile;
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -120,19 +151,21 @@ function BandCollage({ bandImages, locationImage }: { bandImages: string[]; loca
           alt=""
           className="absolute inset-0 h-full w-full object-cover brightness-75 saturate-75"
         />
-      ) : (
+      ) : mode === "PHOTO" ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={bandImages[0]}
           alt=""
           className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-md"
         />
+      ) : (
+        <div className="absolute inset-0 bg-surface" />
       )}
       <div className="absolute inset-0 flex items-center justify-center gap-3 sm:gap-4">
         {columns.map((col, ci) => (
           <div key={ci} className="flex flex-col items-center gap-1.5 sm:gap-2">
             {col.map((url, i) => (
-              <BandOval key={url + i} url={url} heightClass={heightClass} />
+              <Tile key={url + i} url={url} heightClass={heightClass} />
             ))}
           </div>
         ))}
