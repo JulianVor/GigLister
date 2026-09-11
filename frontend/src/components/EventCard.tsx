@@ -98,12 +98,36 @@ interface Segment extends BandPhoto {
   bottom: number;
 }
 
-function segmentClipPath(seg: Segment): string {
+interface SegmentBox {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+/** cutX only ever shifts a boundary to the right (by up to CUT_SKEW, at the top edge) -
+ * never left - so a segment's photo only needs a wider box than its own nominal strip
+ * on the right, and only where that edge is an internal cut (an outer 0/1 edge never
+ * moves). Sizing each segment's box to (close to) its own true footprint instead of the
+ * full card width is what lets object-cover show most of the photo instead of cropping
+ * away everything outside its narrow visible sliver. */
+function segmentBox(seg: Segment): SegmentBox {
+  const right = seg.right < 1 ? Math.min(1, seg.right + CUT_SKEW) : seg.right;
+  return { left: seg.left, right, top: seg.top, bottom: seg.bottom };
+}
+
+/** Clip points in the segment's own box-local 0-1 space (not the card's), so the box can
+ * be sized to just that segment's footprint while the diagonal cut still lands at the
+ * exact same card-global x as segmentBox's neighbor computes for the shared boundary. */
+function segmentClipPath(seg: Segment, box: SegmentBox): string {
+  const w = box.right - box.left;
+  const h = box.bottom - box.top;
+  const toLocal = (gx: number, gy: number): [number, number] => [(gx - box.left) / w, (gy - box.top) / h];
   const points: [number, number][] = [
-    [cutX(seg.left, seg.top), seg.top],
-    [cutX(seg.right, seg.top), seg.top],
-    [cutX(seg.right, seg.bottom), seg.bottom],
-    [cutX(seg.left, seg.bottom), seg.bottom],
+    toLocal(cutX(seg.left, seg.top), seg.top),
+    toLocal(cutX(seg.right, seg.top), seg.top),
+    toLocal(cutX(seg.right, seg.bottom), seg.bottom),
+    toLocal(cutX(seg.left, seg.bottom), seg.bottom),
   ];
   return `polygon(${points.map(([x, y]) => `${x * 100}% ${y * 100}%`).join(", ")})`;
 }
@@ -132,12 +156,25 @@ function DiagonalPhotoCollage({ bands }: { bands: BandPhoto[] }) {
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-surface">
-      {segments.map((seg, i) => (
-        <div key={i} className="absolute inset-0" style={{ clipPath: segmentClipPath(seg) }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={seg.url} alt="" className="h-full w-full object-cover" />
-        </div>
-      ))}
+      {segments.map((seg, i) => {
+        const box = segmentBox(seg);
+        return (
+          <div
+            key={i}
+            className="absolute"
+            style={{
+              left: `${box.left * 100}%`,
+              width: `${(box.right - box.left) * 100}%`,
+              top: `${box.top * 100}%`,
+              height: `${(box.bottom - box.top) * 100}%`,
+              clipPath: segmentClipPath(seg, box),
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={seg.url} alt="" className="h-full w-full object-cover" />
+          </div>
+        );
+      })}
       {segments.map((seg, i) => (
         <div
           key={`label-${i}`}
@@ -158,11 +195,27 @@ function DiagonalPhotoCollage({ bands }: { bands: BandPhoto[] }) {
   );
 }
 
+/** Where the band photo is fully opaque, and where it's fully faded away, as a fraction
+ * of the CARD width (not the photo's own box, which SingleBandCollage sizes to just
+ * BAND_FADE_END and re-expresses these same two points in its own local space). */
+const BAND_FADE_START = 0.58;
+const BAND_FADE_END = 0.78;
+
 /** The one-band case keeps the location visible - the band photo covers the left ~60%
  * and fades via a plain transparent gradient (no diagonal cut, this is the only place
  * with a soft edge) into the location photo on the right. Without a location image the
- * band photo just fills the whole card, same as it always would. */
+ * band photo just fills the whole card, same as it always would.
+ *
+ * The photo's own box only extends to BAND_FADE_END, not the full card width - past that
+ * point it's fully transparent anyway, so giving it more box width would only make
+ * object-cover crop the photo harder to fill space nothing shows. The mask percentages
+ * are re-expressed relative to that narrower box (BAND_FADE_START/BAND_FADE_END instead
+ * of BAND_FADE_START/BAND_FADE_END of the card) so the visible fade still lands at the
+ * same spot on the card. */
 function SingleBandCollage({ band, locationImage }: { band: BandPhoto; locationImage: string | null }) {
+  const boxWidth = locationImage ? BAND_FADE_END : 1;
+  const localFadeStart = (BAND_FADE_START / BAND_FADE_END) * 100;
+
   return (
     <div className="relative h-full w-full overflow-hidden bg-surface">
       {locationImage && (
@@ -173,15 +226,16 @@ function SingleBandCollage({ band, locationImage }: { band: BandPhoto; locationI
       <img
         src={band.url}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover"
-        style={
-          locationImage
+        className="absolute inset-y-0 left-0 h-full object-cover"
+        style={{
+          width: `${boxWidth * 100}%`,
+          ...(locationImage
             ? {
-                maskImage: "linear-gradient(to right, black 0%, black 58%, transparent 78%)",
-                WebkitMaskImage: "linear-gradient(to right, black 0%, black 58%, transparent 78%)",
+                maskImage: `linear-gradient(to right, black 0%, black ${localFadeStart}%, transparent 100%)`,
+                WebkitMaskImage: `linear-gradient(to right, black 0%, black ${localFadeStart}%, transparent 100%)`,
               }
-            : undefined
-        }
+            : {}),
+        }}
       />
       <div
         className="pointer-events-none absolute bottom-0 left-0 flex items-end pb-2 pl-2 sm:pb-3 sm:pl-3"
