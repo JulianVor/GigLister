@@ -3,6 +3,12 @@
 import { useRef, useState, useTransition } from "react";
 import { uploadImageAction } from "@/actions/uploads";
 
+// Mirrors UploadService.MAX_FILE_SIZE_BYTES on the backend. Checked here, before the
+// file is ever sent, because a file this large blows past the Server Action's own
+// body-size limit first - that crashes with a raw Next.js error page instead of the
+// backend's friendly "Datei ist zu groß" message, so it has to be caught client-side.
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+
 /** Images are always uploaded, never entered as an external URL by hand. */
 export function ImageUploadField({
   value,
@@ -21,6 +27,12 @@ export function ImageUploadField({
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError("Die Datei ist zu groß (maximal 5 MB)");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
