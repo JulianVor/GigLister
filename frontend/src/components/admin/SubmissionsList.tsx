@@ -178,17 +178,34 @@ function PayloadPreview({ payload }: { payload: Record<string, unknown> }) {
       {entries.map(([key, value]) => (
         <div key={key} className="flex gap-2 font-meta text-sm">
           <dt className="text-muted">{key}:</dt>
-          <dd>
-            {typeof value === "object" ? (
-              <pre className="whitespace-pre-wrap font-sans">{JSON.stringify(value, null, 2)}</pre>
-            ) : (
-              String(value)
-            )}
-          </dd>
+          <dd>{formatPayloadValue(key, value)}</dd>
         </div>
       ))}
     </dl>
   );
+}
+
+/** EVENT's `location`/`bands` are EntityRefs (either {id} for an existing
+ * Band/Location or {name, city, ...} for a new one) - shown as plain text
+ * instead of a raw JSON dump. Plain string arrays (e.g. `genres`) are
+ * comma-joined; anything else nested falls back to pretty-printed JSON. */
+function formatPayloadValue(key: string, value: unknown): React.ReactNode {
+  if (key === "location") return formatEntityRef(value);
+  if (key === "bands" && Array.isArray(value)) return value.map(formatEntityRef).join("; ");
+  if (Array.isArray(value) && value.every((v) => typeof v !== "object" || v === null)) {
+    return value.join(", ");
+  }
+  if (typeof value === "object" && value !== null) {
+    return <pre className="whitespace-pre-wrap font-sans">{JSON.stringify(value, null, 2)}</pre>;
+  }
+  return String(value);
+}
+
+function formatEntityRef(ref: unknown): string {
+  if (typeof ref !== "object" || ref === null) return String(ref);
+  const { id, name, city } = ref as { id?: number; name?: string; city?: string };
+  if (id != null) return `bestehend (ID ${id})`;
+  return ["neu:", name, city].filter(Boolean).join(" ");
 }
 
 /** Editable counterpart to PayloadPreview - a plain text input per primitive field, a JSON
