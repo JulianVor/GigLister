@@ -28,17 +28,21 @@ public class UploadService {
             "image/webp", ".webp",
             "image/gif", ".gif"
     );
-    private static final long MAX_FILE_SIZE_BYTES = 5L * 1024 * 1024;
 
     private final Path uploadDir;
     private final String publicBaseUrl;
+    private final int maxSizeMb;
+    private final long maxFileSizeBytes;
 
     public UploadService(
             @Value("${giglister.upload.dir}") String uploadDir,
-            @Value("${giglister.public.base-url}") String publicBaseUrl
+            @Value("${giglister.public.base-url}") String publicBaseUrl,
+            @Value("${giglister.upload.max-size-mb}") int maxSizeMb
     ) {
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
         this.publicBaseUrl = publicBaseUrl.replaceAll("/$", "");
+        this.maxSizeMb = maxSizeMb;
+        this.maxFileSizeBytes = maxSizeMb * 1024L * 1024L;
         try {
             Files.createDirectories(this.uploadDir);
         } catch (IOException e) {
@@ -46,12 +50,22 @@ public class UploadService {
         }
     }
 
+    /** The single configured limit (GIGLISTER_UPLOAD_MAX_SIZE_MB) - reused by ImageFetchService
+     * so its own size cap can never drift out of sync with this one. */
+    public long maxFileSizeBytes() {
+        return maxFileSizeBytes;
+    }
+
+    public int maxSizeMb() {
+        return maxSizeMb;
+    }
+
     public String store(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BadRequestException("Keine Datei hochgeladen");
         }
-        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new BadRequestException("Die Datei ist zu groß (maximal 5 MB)");
+        if (file.getSize() > maxFileSizeBytes) {
+            throw new BadRequestException("Die Datei ist zu groß (maximal " + maxSizeMb + " MB)");
         }
         byte[] data;
         try {
@@ -68,8 +82,8 @@ public class UploadService {
         if (extension == null) {
             throw new BadRequestException("Nur JPEG-, PNG-, WebP- oder GIF-Bilder sind erlaubt");
         }
-        if (data.length > MAX_FILE_SIZE_BYTES) {
-            throw new BadRequestException("Die Datei ist zu groß (maximal 5 MB)");
+        if (data.length > maxFileSizeBytes) {
+            throw new BadRequestException("Die Datei ist zu groß (maximal " + maxSizeMb + " MB)");
         }
 
         // A random filename, ignoring whatever name the client sent - sidesteps

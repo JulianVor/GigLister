@@ -3,11 +3,14 @@
 import { useRef, useState, useTransition } from "react";
 import { uploadImageAction } from "@/actions/uploads";
 
-// Mirrors UploadService.MAX_FILE_SIZE_BYTES on the backend. Checked here, before the
-// file is ever sent, because a file this large blows past the Server Action's own
-// body-size limit first - that crashes with a raw Next.js error page instead of the
-// backend's friendly "Datei ist zu groß" message, so it has to be caught client-side.
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+// Same GIGLISTER_UPLOAD_MAX_SIZE_MB the backend enforces (see .env.example) - baked into
+// the browser bundle at build time via NEXT_PUBLIC_UPLOAD_MAX_SIZE_MB (docker-compose.yml/
+// Dockerfile). Checked here, before the file is ever sent, because a file this large
+// blows past the Server Action's own body-size limit first - that crashes with a raw
+// Next.js error page instead of the backend's friendly "Datei ist zu groß" message, so
+// it has to be caught client-side.
+const MAX_FILE_SIZE_MB = Number(process.env.NEXT_PUBLIC_UPLOAD_MAX_SIZE_MB) || 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 /** Images are always uploaded, never entered as an external URL by hand. */
 export function ImageUploadField({
@@ -29,7 +32,7 @@ export function ImageUploadField({
     setError(null);
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setError("Die Datei ist zu groß (maximal 5 MB)");
+      setError(`Die Datei ist zu groß (maximal ${MAX_FILE_SIZE_MB} MB)`);
       if (inputRef.current) inputRef.current.value = "";
       return;
     }

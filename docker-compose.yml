@@ -48,6 +48,9 @@ services:
       # frontend's NEXT_PUBLIC_API_URL above, so an uploaded image's URL
       # resolves for anyone viewing the page, not just inside the Docker network.
       GIGLISTER_PUBLIC_API_URL: ${GIGLISTER_PUBLIC_API_URL:-http://localhost:8080}
+      # One value drives the backend's own limit, the frontend's client-side
+      # check and its Server Action body limit - see .env.example.
+      GIGLISTER_UPLOAD_MAX_SIZE_MB: ${GIGLISTER_UPLOAD_MAX_SIZE_MB:-5}
       # Empty by default - the GPT-skill integration (POST /api/submissions) is
       # disabled until you set this. See .env.example.
       GIGLISTER_GPT_SKILL_TOKEN: ${GIGLISTER_GPT_SKILL_TOKEN:-}
@@ -63,6 +66,15 @@ services:
         # Baked in at image build time - this is what the *browser* calls, so
         # it must be reachable from the host, not just the Docker network.
         NEXT_PUBLIC_API_URL: ${GIGLISTER_PUBLIC_API_URL:-http://localhost:8080}
+        # Also baked in at build time - ImageUploadField's client-side size
+        # check runs in the browser, so it needs the same value as the
+        # backend's GIGLISTER_UPLOAD_MAX_SIZE_MB above.
+        NEXT_PUBLIC_UPLOAD_MAX_SIZE_MB: ${GIGLISTER_UPLOAD_MAX_SIZE_MB:-5}
+        # next.config.ts reads this one itself (for the Server Action body
+        # limit) - `next build` freezes the resolved config into the
+        # standalone output, so this has to be a build arg too, not a
+        # runtime env var, even though it isn't browser code.
+        GIGLISTER_UPLOAD_MAX_SIZE_MB: ${GIGLISTER_UPLOAD_MAX_SIZE_MB:-5}
     restart: unless-stopped
     depends_on:
       - backend

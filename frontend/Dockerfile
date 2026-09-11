@@ -17,6 +17,19 @@ RUN mkdir -p public
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
+# Same GIGLISTER_UPLOAD_MAX_SIZE_MB the backend enforces (see .env.example) - the
+# client-side size check in ImageUploadField needs it baked in the same way, since it
+# runs in the browser.
+ARG NEXT_PUBLIC_UPLOAD_MAX_SIZE_MB=5
+ENV NEXT_PUBLIC_UPLOAD_MAX_SIZE_MB=$NEXT_PUBLIC_UPLOAD_MAX_SIZE_MB
+
+# next.config.ts's own read of this (for the Server Action body limit) isn't
+# browser code, so it doesn't need the NEXT_PUBLIC_ prefix - but `next build`
+# freezes the resolved config into the standalone output, so it still has to
+# be set here at build time, not just at container runtime.
+ARG GIGLISTER_UPLOAD_MAX_SIZE_MB=5
+ENV GIGLISTER_UPLOAD_MAX_SIZE_MB=$GIGLISTER_UPLOAD_MAX_SIZE_MB
+
 RUN npm run build
 
 FROM node:22-alpine AS runner

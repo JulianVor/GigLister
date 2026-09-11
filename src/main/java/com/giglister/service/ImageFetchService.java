@@ -30,7 +30,6 @@ import java.util.Set;
 public class ImageFetchService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
-    private static final long MAX_BYTES = 5L * 1024 * 1024;
     private static final int TIMEOUT_MS = 8000;
 
     private final UploadService uploadService;
@@ -108,8 +107,8 @@ public class ImageFetchService {
         int read;
         while ((read = in.read(buffer)) != -1) {
             total += read;
-            if (total > MAX_BYTES) {
-                throw new BadRequestException("Die Datei ist zu groß (maximal 5 MB)");
+            if (total > uploadService.maxFileSizeBytes()) {
+                throw new BadRequestException("Die Datei ist zu groß (maximal " + uploadService.maxSizeMb() + " MB)");
             }
             out.write(buffer, 0, read);
         }

@@ -1,5 +1,6 @@
 package com.giglister.exception;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -15,6 +16,12 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // Same GIGLISTER_UPLOAD_MAX_SIZE_MB property UploadService uses - this handler only
+    // fires when Spring's own multipart limit (spring.servlet.multipart.max-file-size,
+    // bound to the same property) rejects the request before it ever reaches UploadService.
+    @Value("${giglister.upload.max-size-mb}")
+    private int maxUploadSizeMb;
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<Object> handleNotFound(NotFoundException ex) {
@@ -38,7 +45,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Object> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
-        return body(HttpStatus.BAD_REQUEST, "Die Datei ist zu groß (maximal 5 MB)");
+        return body(HttpStatus.BAD_REQUEST, "Die Datei ist zu groß (maximal " + maxUploadSizeMb + " MB)");
     }
 
     @ExceptionHandler(BadCredentialsException.class)

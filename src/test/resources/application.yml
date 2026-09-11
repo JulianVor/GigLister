@@ -21,6 +21,7 @@ giglister:
     base-url: http://localhost:3000
   upload:
     dir: target/test-uploads
+    max-size-mb: 5
   public:
     base-url: http://localhost:8080
   gpt-skill:

@@ -68,7 +68,11 @@ written to `giglister.upload.dir` (`GIGLISTER_UPLOAD_DIR`, defaults to
 `./uploads` for local dev — gitignored) and served back out under
 `/uploads/**`. `GIGLISTER_PUBLIC_API_URL` (same var the frontend build
 uses, see `.env.example`) is what gets baked into the stored image URL, so
-it has to be the address a browser can actually reach the API at.
+it has to be the address a browser can actually reach the API at. The
+5MB-per-image default (`giglister.upload.max-size-mb` / `GIGLISTER_UPLOAD_MAX_SIZE_MB`)
+is one value shared by the backend's own limit, the GPT-skill image-URL
+fetch, and — for a Docker Compose setup — both the frontend's client-side
+check and its Server Action body limit; see `.env.example`.
 
 The very first account ever registered on a fresh deployment automatically
 becomes `PLATFORM_ADMIN` — otherwise a brand new install would have no way
@@ -133,7 +137,7 @@ access to nothing else (see below).
 | Locations | same shape as Bands (no `follow`) |
 | Discovery | `GET /discover`, `GET /search?q=&type=` |
 | Me | `GET/PUT /me` — saved events, followed bands, managed entities |
-| Uploads | `POST /uploads` (multipart `file`, JPEG/PNG/WebP/GIF up to 5MB) → `{ url }`, served back out at `GET /uploads/{file}` (unauthenticated) |
+| Uploads | `POST /uploads` (multipart `file`, JPEG/PNG/WebP/GIF up to `GIGLISTER_UPLOAD_MAX_SIZE_MB`, default 5MB) → `{ url }`, served back out at `GET /uploads/{file}` (unauthenticated) |
 | Submissions | `POST /submissions` (GPT-skill token only) — see below |
 | Admin | `GET /admin/dashboard`, `GET /admin/duplicates`, `GET /admin/claims`, `POST /admin/claims/{id}/approve\|reject`, `POST /admin/merge`, `GET /admin/users`, `POST /admin/users/{id}/promote\|demote`, `GET /admin/bands\|locations\|events` (every status, not just PUBLISHED — filterable by `status`/`q`), `GET /admin/submissions`, `GET /admin/submissions/{id}`, `PUT /admin/submissions/{id}`, `POST /admin/submissions/{id}/approve\|reject` |
 
@@ -162,7 +166,7 @@ before approving — a wrong address or a typo doesn't need a whole
 reject-and-resubmit round trip. `imageUrl` is an external link —
 nothing is downloaded until approval, and only then with SSRF hardening
 (no loopback/private/link-local addresses, no redirects followed, same
-5MB/JPEG-PNG-WebP-GIF limits as a direct upload). Set
+size/format limits as a direct upload). Set
 `GIGLISTER_GPT_SKILL_TOKEN` to enable it; empty (the default) disables the
 integration entirely.
 
