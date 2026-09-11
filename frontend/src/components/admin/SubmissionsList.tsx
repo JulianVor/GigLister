@@ -15,10 +15,21 @@ export function SubmissionsList({ submissions }: { submissions: SubmissionRespon
 
   return (
     <ul className="divide-y divide-line border-y border-line">
-      {groups.map(({ primary, related }) =>
-        related.length > 0 ? (
+      {groups.map(({ primary, related }) => {
+        if (related.length === 0) {
+          return <SubmissionItem key={primary.id} submission={primary} />;
+        }
+        const pendingRelated = related.filter((r) => r.status === "PENDING");
+        return (
           <li key={primary.id} className="border-l-2 border-accent/40 bg-accent/5 pl-3">
-            <SubmissionItem submission={primary} />
+            <SubmissionItem
+              submission={primary}
+              approveBlockedReason={
+                pendingRelated.length > 0
+                  ? "Erst die zugehörige Band/Location unten freigeben - sonst legt das Event einen leeren Platzhalter an, statt die vollständigen Daten zu nutzen."
+                  : undefined
+              }
+            />
             <div className="ml-4 border-l border-line pb-4 pl-3">
               <p className="pt-1 font-meta text-xs uppercase tracking-wide text-muted">
                 Zugehörig — in diesem Konzertvorschlag referenziert, aber noch nicht angelegt
@@ -30,10 +41,8 @@ export function SubmissionsList({ submissions }: { submissions: SubmissionRespon
               </ul>
             </div>
           </li>
-        ) : (
-          <SubmissionItem key={primary.id} submission={primary} />
-        )
-      )}
+        );
+      })}
     </ul>
   );
 }
@@ -98,7 +107,16 @@ function groupSubmissions(submissions: SubmissionResponse[]): { primary: Submiss
   return groups;
 }
 
-function SubmissionItem({ submission }: { submission: SubmissionResponse }) {
+function SubmissionItem({
+  submission,
+  approveBlockedReason,
+}: {
+  submission: SubmissionResponse;
+  /** Disables the Freigeben button with an explanation - used while a bundled
+   * Band/Location submission this Event references is still pending, since
+   * approving the event first creates a duplicate instead of reusing it. */
+  approveBlockedReason?: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -188,8 +206,9 @@ function SubmissionItem({ submission }: { submission: SubmissionResponse }) {
           <div className="flex flex-none gap-2">
             <button
               type="button"
-              disabled={pending}
+              disabled={pending || !!approveBlockedReason}
               onClick={approve}
+              title={approveBlockedReason}
               className="border border-accent px-3 py-1.5 font-meta text-sm text-accent hover:bg-accent hover:text-accent-fg disabled:opacity-60"
             >
               Freigeben
@@ -239,6 +258,10 @@ function SubmissionItem({ submission }: { submission: SubmissionResponse }) {
             Abbrechen
           </button>
         </div>
+      )}
+
+      {approveBlockedReason && !isDecided && !rejecting && !editing && (
+        <p className="mt-2 font-meta text-sm text-muted">{approveBlockedReason}</p>
       )}
 
       {error && <p className="mt-2 font-meta text-sm text-accent">{error}</p>}
