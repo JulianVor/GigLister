@@ -69,9 +69,11 @@ export function EventCard({ event }: { event: EventSummary }) {
 
 /** Bands sit anchored in the corners, faded toward the center with a transparent radial
  * mask (not a hard crop) so they blend into the location image underneath rather than
- * tiling as separate boxes. Band photos are the point, so their corner tiles are sized
- * off the card's *width* (not height) - on a landscape card that makes them large enough
- * to dominate, overlapping in the middle for two or more bands, while the location image
+ * tiling as separate boxes. Corner tiles are sized off the card's *height* (not width) -
+ * sizing off width instead made them so much taller than the card that only a thin,
+ * heavily-zoomed sliver near the bottom edge was ever visible (a boot, a jacket button)
+ * instead of a recognizable band photo. Keeping them close to the card's own height
+ * shows a natural crop while still giving bands more presence than the location, which
  * is dimmed a touch so it reads as ambience behind them rather than competing for
  * attention. The location is still a full-bleed base layer underneath everything, so
  * there's never an empty gap regardless of how much of it the bands cover; without a
@@ -79,7 +81,7 @@ export function EventCard({ event }: { event: EventSummary }) {
  * same "no gaps" guarantee holds with band photos alone. Each added band shrinks the
  * corner tiles a bit so more of them can fit without collapsing into a single blob. */
 function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; locationImage: string | null }) {
-  const sizePercent = Math.max(40, 68 - (bandImages.length - 1) * 9);
+  const sizePercent = Math.max(60, 95 - (bandImages.length - 1) * 10);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -108,10 +110,10 @@ function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; lo
             alt=""
             className={`absolute object-cover ${corner.position}`}
             style={{
-              width: `${sizePercent}%`,
+              height: `${sizePercent}%`,
               aspectRatio: "1 / 1",
-              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 48%, transparent 88%)`,
-              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 48%, transparent 88%)`,
+              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 38%, transparent 85%)`,
+              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 38%, transparent 85%)`,
             }}
           />
         );
