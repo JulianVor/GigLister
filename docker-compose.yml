@@ -108,6 +108,17 @@ services:
       # network directly to the backend service - this one is NOT the
       # published port above, it always targets the container's internal :8080.
       API_BASE_URL: http://backend:8080
+      # Docker sets HOSTNAME to the container's own ID unless told otherwise,
+      # and Next.js's standalone server (output: "standalone") uses whatever
+      # HOSTNAME it finds both as its bind address AND, less obviously, as
+      # the host it stitches into any server-built absolute URL - including
+      # NextResponse.redirect(new URL(path, request.url)) in
+      # email-bestaetigen/route.ts, which is why that redirect was landing
+      # on http://<container-id>:3000/... instead of the actual localhost
+      # origin the browser requested. 0.0.0.0 is Next.js's own documented
+      # fix for standalone-mode Docker deployments (and the correct bind
+      # address for a container regardless).
+      HOSTNAME: "0.0.0.0"
     ports:
       - "${GIGLISTER_FRONTEND_PORT:-3000}:3000"
 
