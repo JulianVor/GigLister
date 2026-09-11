@@ -29,7 +29,7 @@ public class SummaryMapper {
 
     public BandSummary bandSummary(Band band) {
         return new BandSummary(band.getId(), band.getName(), band.getCity(), band.getStatus(),
-                band.getLogoUrl(), band.getStatus() == EntityStatus.PUBLISHED);
+                band.getLogoUrl(), band.getTitleImageUrl(), band.getStatus() == EntityStatus.PUBLISHED);
     }
 
     public BandSummary bandSummary(Long bandId) {
@@ -40,7 +40,7 @@ public class SummaryMapper {
 
     public LocationSummary locationSummary(Location location) {
         return new LocationSummary(location.getId(), location.getName(), location.getCity(),
-                location.getStatus(), location.getStatus() == EntityStatus.PUBLISHED);
+                location.getStatus(), location.getTitleImageUrl(), location.getStatus() == EntityStatus.PUBLISHED);
     }
 
     public LocationSummary locationSummary(Long locationId) {

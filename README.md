@@ -183,7 +183,12 @@ registration with email verification, self-service password reset,
 image upload (`POST /api/uploads`, backing the logo/title image fields on
 Band/Location/Event — always a real uploaded file, never a hand-typed URL),
 and a review-queue GPT-skill integration (external submissions never go
-live without an admin approving them at `/admin/submissions`).
+live without an admin approving them at `/admin/submissions`). Event
+listings are image-forward, social-post-style cards; an event with no
+title image of its own falls back to a live CSS collage of its bands'
+and location's title images (2–4 tiles, whatever's actually set — no
+image generation or storage involved) before falling back further to a
+plain date placeholder.
 
 Deliberately deferred (matches §45 "was V1 nicht enthält" plus normal
 backend-first sequencing): no reverse geocoding (a typed city stays a plain name match; only

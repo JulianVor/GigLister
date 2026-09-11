@@ -8,6 +8,7 @@ public record BandSummary(
         String city,
         EntityStatus status,
         String logoUrl,
+        String titleImageUrl,
         boolean linkable
 ) {
 }

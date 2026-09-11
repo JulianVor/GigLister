@@ -20,6 +20,7 @@ export interface BandSummary {
   city: string | null;
   status: EntityStatus;
   logoUrl: string | null;
+  titleImageUrl: string | null;
   linkable: boolean;
 }
 
@@ -28,6 +29,7 @@ export interface LocationSummary {
   name: string;
   city: string;
   status: EntityStatus;
+  titleImageUrl: string | null;
   linkable: boolean;
 }
 

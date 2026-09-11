@@ -7,6 +7,7 @@ public record LocationSummary(
         String name,
         String city,
         EntityStatus status,
+        String titleImageUrl,
         boolean linkable
 ) {
 }
