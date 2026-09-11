@@ -50,6 +50,15 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
+                        // Spring Boot's own error controller, reached via an internal
+                        // forward whenever a request handler throws something
+                        // GlobalExceptionHandler doesn't catch - that forward doesn't
+                        // carry over the original request's authentication (our filters
+                        // don't re-run for it), so without this the real error response
+                        // gets masked by a second, misleading 403 from THIS request being
+                        // "unauthenticated" instead - see /api/submissions below, whose
+                        // real failure this was hiding.
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.GET,
