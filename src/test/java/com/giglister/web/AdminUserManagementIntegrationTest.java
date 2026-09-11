@@ -112,7 +112,7 @@ class AdminUserManagementIntegrationTest {
         var result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "email", "max@example.com", "password", "password123"))))
+                                "username", "Max", "password", "password123"))))
                 .andExpect(status().isOk())
                 .andReturn();
         return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();

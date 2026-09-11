@@ -77,7 +77,7 @@ class EmailVerificationIntegrationTest {
         // Not verified yet - login must be refused even with the correct password.
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("email", email, "password", "password123"))))
+                        .content(objectMapper.writeValueAsString(Map.of("username", "VerifyMe", "password", "password123"))))
                 .andExpect(status().isForbidden());
 
         String token = userRepository.findByEmailIgnoreCase(email).orElseThrow().getVerificationToken();
@@ -99,7 +99,7 @@ class EmailVerificationIntegrationTest {
         // From now on, ordinary login works too.
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("email", email, "password", "password123"))))
+                        .content(objectMapper.writeValueAsString(Map.of("username", "VerifyMe", "password", "password123"))))
                 .andExpect(status().isOk());
     }
 

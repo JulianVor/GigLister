@@ -138,7 +138,7 @@ export function resetPassword(token: string, newPassword: string) {
   return apiFetch<AuthResponse>("/api/auth/reset-password", { method: "POST", body: { token, newPassword } });
 }
 
-export function login(data: { email: string; password: string }) {
+export function login(data: { username: string; password: string }) {
   return apiFetch<AuthResponse>("/api/auth/login", { method: "POST", body: data });
 }
 

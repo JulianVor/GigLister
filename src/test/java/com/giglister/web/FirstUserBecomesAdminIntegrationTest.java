@@ -55,18 +55,18 @@ class FirstUserBecomesAdminIntegrationTest {
         // The first user can now reach admin-only endpoints; the second cannot.
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("email", "first@example.com", "password", "password123"))))
+                        .content(objectMapper.writeValueAsString(Map.of("username", "FirstUser", "password", "password123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.platformAdmin").value(true));
 
-        assertAdminAccess("first@example.com", true);
-        assertAdminAccess("second@example.com", false);
+        assertAdminAccess("FirstUser", true);
+        assertAdminAccess("SecondUser", false);
     }
 
-    private void assertAdminAccess(String email, boolean expectAdmin) throws Exception {
+    private void assertAdminAccess(String username, boolean expectAdmin) throws Exception {
         var result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("email", email, "password", "password123"))))
+                        .content(objectMapper.writeValueAsString(Map.of("username", username, "password", "password123"))))
                 .andExpect(status().isOk())
                 .andReturn();
         String token = objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();

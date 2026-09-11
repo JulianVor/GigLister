@@ -78,13 +78,13 @@ class PasswordResetIntegrationTest {
         // The old password no longer works ...
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("email", email, "password", "originalpass1"))))
+                        .content(objectMapper.writeValueAsString(Map.of("username", "Forgetful", "password", "originalpass1"))))
                 .andExpect(status().isUnauthorized());
 
         // ... but the new one does.
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("email", email, "password", "brandnewpass1"))))
+                        .content(objectMapper.writeValueAsString(Map.of("username", "Forgetful", "password", "brandnewpass1"))))
                 .andExpect(status().isOk());
 
         // The reset token must be single-use.
@@ -111,7 +111,7 @@ class PasswordResetIntegrationTest {
         // Proving inbox ownership via the reset link should unblock ordinary login too.
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("email", email, "password", "brandnewpass1"))))
+                        .content(objectMapper.writeValueAsString(Map.of("username", "NeverVerified", "password", "brandnewpass1"))))
                 .andExpect(status().isOk());
     }
 

@@ -28,19 +28,19 @@ async function setSessionCookie(token: string) {
 }
 
 export async function loginAction(_prevState: AuthFormState, formData: FormData): Promise<AuthFormState> {
-  const email = String(formData.get("email") ?? "").trim();
+  const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!email || !password) {
-    return { error: "Bitte E-Mail und Passwort angeben." };
+  if (!username || !password) {
+    return { error: "Bitte Nutzername und Passwort angeben." };
   }
 
   try {
-    const res = await apiLogin({ email, password });
+    const res = await apiLogin({ username, password });
     await setSessionCookie(res.token);
   } catch (err) {
     if (err instanceof ApiError) {
-      return { error: err.status === 401 ? "E-Mail oder Passwort ist falsch." : err.message };
+      return { error: err.status === 401 ? "Nutzername oder Passwort ist falsch." : err.message };
     }
     throw err;
   }
