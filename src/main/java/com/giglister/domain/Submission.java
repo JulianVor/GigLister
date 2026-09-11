@@ -34,9 +34,16 @@ public class Submission {
     @Column(nullable = false)
     private SubmissionType type;
 
-    /** Raw JSON matching BandCreateRequest/LocationCreateRequest/EventCreateRequest, depending on type. */
-    @Lob
-    @Column(nullable = false)
+    /** Raw JSON matching BandCreateRequest/LocationCreateRequest/EventCreateRequest, depending
+     * on type. Plain TEXT, deliberately not @Lob - Hibernate maps @Lob String to Postgres's
+     * OID-based Large Object type, which requires every read (not just writes) to happen
+     * inside an explicit transaction; AdminService.dashboard() and friends aren't
+     * @Transactional (they don't need to be, for everything else they read), so loading a
+     * Submission there failed with "Large Objects may not be used in auto-commit mode" the
+     * moment a real row existed to read back - never caught locally since nothing had
+     * exercised that path against a populated table before. TEXT has no such restriction and
+     * comfortably holds this (a few hundred bytes of JSON at most). */
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String payload;
 
     /** External URL to fetch and store only once approved - never downloaded before then. */
