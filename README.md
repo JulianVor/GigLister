@@ -138,7 +138,10 @@ frontend — discovery by date/city/radius (including a real device-location
 radius search via "Standort verwenden", §13), a month calendar (§16) that
 goes beyond the concept's plain day-count grid to also list every concert
 of the selected month underneath (grouped by day, full band names, radius-
-filtered the same as the grid), event/band/location CRUD, claim workflow,
+filtered the same as the grid), event/band/location CRUD — including
+standalone creation (`/konzerte/neu`, `/bands/neu`, `/orte/neu`, all
+linked from the respective `/admin/*` overview pages) alongside the
+existing inline stub-during-event-creation flow — claim workflow,
 multiple managers per entity, stub-on-the-fly creation, duplicate detection
 + admin merge, follow/save, search, discover sections, admin dashboard,
 registration with email verification, and self-service password reset.

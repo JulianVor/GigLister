@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { updateBandAction, updateBandStatusAction } from "@/actions/bands";
+import { createBandAction, updateBandAction, updateBandStatusAction } from "@/actions/bands";
 import { ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { BandResponse, EntityStatus } from "@/lib/types";
 
@@ -10,49 +10,67 @@ const STATUS_OPTIONS: { value: EntityStatus; label: string }[] = (
   Object.keys(ENTITY_STATUS_LABELS) as EntityStatus[]
 ).map((value) => ({ value, label: ENTITY_STATUS_LABELS[value] }));
 
-export function BandForm({ band }: { band: BandResponse }) {
+export function BandForm({ band }: { band?: BandResponse }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [name, setName] = useState(band.name);
-  const [city, setCity] = useState(band.city ?? "");
-  const [region, setRegion] = useState(band.region ?? "");
-  const [country, setCountry] = useState(band.country ?? "");
-  const [shortDescription, setShortDescription] = useState(band.shortDescription ?? "");
-  const [website, setWebsite] = useState(band.website ?? "");
-  const [logoUrl, setLogoUrl] = useState(band.logoUrl ?? "");
-  const [titleImageUrl, setTitleImageUrl] = useState(band.titleImageUrl ?? "");
-  const [genres, setGenres] = useState(band.genres.join(", "));
-  const [status, setStatus] = useState<EntityStatus>(band.status);
+  const [name, setName] = useState(band?.name ?? "");
+  const [city, setCity] = useState(band?.city ?? "");
+  const [region, setRegion] = useState(band?.region ?? "");
+  const [country, setCountry] = useState(band?.country ?? "");
+  const [shortDescription, setShortDescription] = useState(band?.shortDescription ?? "");
+  const [website, setWebsite] = useState(band?.website ?? "");
+  const [logoUrl, setLogoUrl] = useState(band?.logoUrl ?? "");
+  const [titleImageUrl, setTitleImageUrl] = useState(band?.titleImageUrl ?? "");
+  const [genres, setGenres] = useState(band?.genres.join(", ") ?? "");
+  // A new band is always created as DRAFT (see BandService.create) - the status
+  // field here only lets you publish it in the same step, right after creation.
+  const [status, setStatus] = useState<EntityStatus>(band?.status ?? "DRAFT");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
+    const input = {
+      name,
+      city: city || undefined,
+      region: region || undefined,
+      country: country || undefined,
+      shortDescription: shortDescription || undefined,
+      website: website || undefined,
+      logoUrl: logoUrl || undefined,
+      titleImageUrl: titleImageUrl || undefined,
+      genres: genres
+        .split(",")
+        .map((g) => g.trim())
+        .filter(Boolean),
+    };
+
     startTransition(async () => {
-      const result = await updateBandAction(band.id, {
-        name,
-        city: city || undefined,
-        region: region || undefined,
-        country: country || undefined,
-        shortDescription: shortDescription || undefined,
-        website: website || undefined,
-        logoUrl: logoUrl || undefined,
-        titleImageUrl: titleImageUrl || undefined,
-        genres: genres
-          .split(",")
-          .map((g) => g.trim())
-          .filter(Boolean),
-      });
+      if (band) {
+        const result = await updateBandAction(band.id, input);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        if (status !== band.status) {
+          await updateBandStatusAction(band.id, status);
+        }
+        router.push(`/bands/${band.id}`);
+        router.refresh();
+        return;
+      }
+
+      const result = await createBandAction(input);
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      if (status !== band.status) {
-        await updateBandStatusAction(band.id, status);
+      if (status !== "DRAFT") {
+        await updateBandStatusAction(result.data.id, status);
       }
-      router.push(`/bands/${band.id}`);
+      router.push(`/bands/${result.data.id}/bearbeiten`);
       router.refresh();
     });
   }
@@ -105,7 +123,7 @@ export function BandForm({ band }: { band: BandResponse }) {
         disabled={pending}
         className="bg-fg px-6 py-2.5 font-meta text-sm text-bg hover:bg-accent hover:text-accent-fg disabled:opacity-60"
       >
-        {pending ? "Wird gespeichert …" : "Speichern"}
+        {pending ? "Wird gespeichert …" : band ? "Speichern" : "Band anlegen"}
       </button>
     </form>
   );

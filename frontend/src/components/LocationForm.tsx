@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { updateLocationAction, updateLocationStatusAction } from "@/actions/locations";
+import { createLocationAction, updateLocationAction, updateLocationStatusAction } from "@/actions/locations";
 import { ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { EntityStatus, LocationResponse } from "@/lib/types";
 
@@ -10,46 +10,64 @@ const STATUS_OPTIONS: { value: EntityStatus; label: string }[] = (
   Object.keys(ENTITY_STATUS_LABELS) as EntityStatus[]
 ).map((value) => ({ value, label: ENTITY_STATUS_LABELS[value] }));
 
-export function LocationForm({ location }: { location: LocationResponse }) {
+export function LocationForm({ location }: { location?: LocationResponse }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [name, setName] = useState(location.name);
-  const [city, setCity] = useState(location.city);
-  const [address, setAddress] = useState(location.address ?? "");
-  const [postalCode, setPostalCode] = useState(location.postalCode ?? "");
-  const [country, setCountry] = useState(location.country ?? "");
-  const [website, setWebsite] = useState(location.website ?? "");
-  const [logoUrl, setLogoUrl] = useState(location.logoUrl ?? "");
-  const [titleImageUrl, setTitleImageUrl] = useState(location.titleImageUrl ?? "");
-  const [status, setStatus] = useState<EntityStatus>(location.status);
+  const [name, setName] = useState(location?.name ?? "");
+  const [city, setCity] = useState(location?.city ?? "");
+  const [address, setAddress] = useState(location?.address ?? "");
+  const [postalCode, setPostalCode] = useState(location?.postalCode ?? "");
+  const [country, setCountry] = useState(location?.country ?? "");
+  const [website, setWebsite] = useState(location?.website ?? "");
+  const [logoUrl, setLogoUrl] = useState(location?.logoUrl ?? "");
+  const [titleImageUrl, setTitleImageUrl] = useState(location?.titleImageUrl ?? "");
+  // A new location is always created as DRAFT (see LocationService.create) - the
+  // status field here only lets you publish it in the same step, right after creation.
+  const [status, setStatus] = useState<EntityStatus>(location?.status ?? "DRAFT");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
+    const input = {
+      name,
+      city,
+      address: address || undefined,
+      postalCode: postalCode || undefined,
+      country: country || undefined,
+      website: website || undefined,
+      logoUrl: logoUrl || undefined,
+      titleImageUrl: titleImageUrl || undefined,
+      latitude: location?.latitude ?? undefined,
+      longitude: location?.longitude ?? undefined,
+    };
+
     startTransition(async () => {
-      const result = await updateLocationAction(location.id, {
-        name,
-        city,
-        address: address || undefined,
-        postalCode: postalCode || undefined,
-        country: country || undefined,
-        website: website || undefined,
-        logoUrl: logoUrl || undefined,
-        titleImageUrl: titleImageUrl || undefined,
-        latitude: location.latitude ?? undefined,
-        longitude: location.longitude ?? undefined,
-      });
+      if (location) {
+        const result = await updateLocationAction(location.id, input);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        if (status !== location.status) {
+          await updateLocationStatusAction(location.id, status);
+        }
+        router.push(`/orte/${location.id}`);
+        router.refresh();
+        return;
+      }
+
+      const result = await createLocationAction(input);
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      if (status !== location.status) {
-        await updateLocationStatusAction(location.id, status);
+      if (status !== "DRAFT") {
+        await updateLocationStatusAction(result.data.id, status);
       }
-      router.push(`/orte/${location.id}`);
+      router.push(`/orte/${result.data.id}/bearbeiten`);
       router.refresh();
     });
   }
@@ -101,7 +119,7 @@ export function LocationForm({ location }: { location: LocationResponse }) {
         disabled={pending}
         className="bg-fg px-6 py-2.5 font-meta text-sm text-bg hover:bg-accent hover:text-accent-fg disabled:opacity-60"
       >
-        {pending ? "Wird gespeichert …" : "Speichern"}
+        {pending ? "Wird gespeichert …" : location ? "Speichern" : "Ort anlegen"}
       </button>
     </form>
   );

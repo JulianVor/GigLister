@@ -20,8 +20,18 @@ export default async function AdminEventsPage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Konzerte</h1>
-      <p className="mt-1 font-meta text-sm text-muted">Alle Konzerte, unabhängig vom Status.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl">Konzerte</h1>
+          <p className="mt-1 font-meta text-sm text-muted">Alle Konzerte, unabhängig vom Status.</p>
+        </div>
+        <Link
+          href="/konzerte/neu"
+          className="whitespace-nowrap bg-fg px-4 py-2 font-meta text-sm text-bg hover:bg-accent hover:text-accent-fg"
+        >
+          + Neues Konzert
+        </Link>
+      </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
         <StatusFilter basePath="/admin/events" statuses={STATUSES} active={status} query={q} labels={EVENT_STATUS_LABELS} />

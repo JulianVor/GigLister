@@ -19,10 +19,20 @@ export default async function AdminBandsPage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Bands</h1>
-      <p className="mt-1 font-meta text-sm text-muted">
-        Alle Bands, unabhängig vom Status — auch Stubs und Entwürfe, die noch Pflege brauchen.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl">Bands</h1>
+          <p className="mt-1 font-meta text-sm text-muted">
+            Alle Bands, unabhängig vom Status — auch Stubs und Entwürfe, die noch Pflege brauchen.
+          </p>
+        </div>
+        <Link
+          href="/bands/neu"
+          className="whitespace-nowrap bg-fg px-4 py-2 font-meta text-sm text-bg hover:bg-accent hover:text-accent-fg"
+        >
+          + Neue Band
+        </Link>
+      </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
         <StatusFilter basePath="/admin/bands" statuses={STATUSES} active={status} query={q} labels={ENTITY_STATUS_LABELS} />

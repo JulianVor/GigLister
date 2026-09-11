@@ -19,10 +19,20 @@ export default async function AdminLocationsPage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Orte</h1>
-      <p className="mt-1 font-meta text-sm text-muted">
-        Alle Locations, unabhängig vom Status — auch Stubs und Entwürfe, die noch Pflege brauchen.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl">Orte</h1>
+          <p className="mt-1 font-meta text-sm text-muted">
+            Alle Locations, unabhängig vom Status — auch Stubs und Entwürfe, die noch Pflege brauchen.
+          </p>
+        </div>
+        <Link
+          href="/orte/neu"
+          className="whitespace-nowrap bg-fg px-4 py-2 font-meta text-sm text-bg hover:bg-accent hover:text-accent-fg"
+        >
+          + Neuer Ort
+        </Link>
+      </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
         <StatusFilter basePath="/admin/locations" statuses={STATUSES} active={status} query={q} labels={ENTITY_STATUS_LABELS} />
