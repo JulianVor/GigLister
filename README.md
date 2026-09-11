@@ -63,11 +63,16 @@ in production, for instance). Run the frontend separately with `npm run dev`
 inside `frontend/` (see `frontend/README.md` or just `npm install && npm run
 dev`) — it defaults to talking to `http://localhost:8080`.
 
-On first `register`, set
-`GIGLISTER_ADMIN_EMAIL` to that email beforehand to bootstrap the first
-`PLATFORM_ADMIN` account (there's no separate admin account type — it's just a
-flag on a normal user, as in the concept). From there, that admin can promote
-or demote any other user via `POST /api/admin/users/{id}/promote|demote`
+The very first account ever registered on a fresh deployment automatically
+becomes `PLATFORM_ADMIN` — otherwise a brand new install would have no way
+to reach an admin at all. If you'd rather control exactly which account
+that is (e.g. it might not be the first person to sign up in practice), set
+`GIGLISTER_ADMIN_EMAIL` to that address beforehand; it always wins
+regardless of registration order, while the first-user fallback only
+applies once, before any account exists. There's no separate admin account
+type — it's just a flag on a normal user, as in the concept. From there,
+that admin can promote or demote any other user via
+`POST /api/admin/users/{id}/promote|demote`
 (surfaced in the frontend under `/admin/users`) — a user can never remove
 their own admin rights, so the platform can't end up without one.
 

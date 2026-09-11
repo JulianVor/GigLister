@@ -44,8 +44,15 @@ public class AuthService {
         if (userRepository.existsByUsernameIgnoreCase(request.username())) {
             throw new ConflictException("This username is already taken");
         }
-        boolean isBootstrapAdmin = !bootstrapAdminEmail.isBlank()
+        // Two ways to bootstrap the first PLATFORM_ADMIN: an explicit configured
+        // email (works regardless of registration order), or - since a fresh
+        // deployment otherwise has no way at all to reach an admin - simply
+        // being the very first account ever created. Once any user exists, this
+        // path never opens again.
+        boolean isFirstUser = userRepository.count() == 0;
+        boolean matchesBootstrapEmail = !bootstrapAdminEmail.isBlank()
                 && bootstrapAdminEmail.equalsIgnoreCase(request.email());
+        boolean isBootstrapAdmin = isFirstUser || matchesBootstrapEmail;
 
         String token = UUID.randomUUID().toString();
         User user = User.builder()
