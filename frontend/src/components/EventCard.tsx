@@ -79,7 +79,14 @@ export function EventCard({ event }: { event: EventSummary }) {
  * there's never an empty gap regardless of how much of it the bands cover; without a
  * location image, the first band image itself is blurred into a backdrop instead so the
  * same "no gaps" guarantee holds with band photos alone. Each added band shrinks the
- * corner tiles a bit so more of them can fit without collapsing into a single blob. */
+ * corner tiles a bit so more of them can fit without collapsing into a single blob.
+ *
+ * The mask's solid zone has to comfortably cover the tile's own center, not just its
+ * corner: object-cover keeps each photo's main subject centered in its square tile
+ * regardless of the source image's shape, and that center sits at exactly 50% of the
+ * gradient's radius (the corner-to-center distance is half the corner-to-corner
+ * diagonal the default "farthest-corner" sizing uses). Fading anywhere before ~80%
+ * would start eating into the subject itself, not just the tile's outer edge. */
 function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; locationImage: string | null }) {
   const sizePercent = Math.max(60, 95 - (bandImages.length - 1) * 10);
 
@@ -112,8 +119,8 @@ function CornerCollage({ bandImages, locationImage }: { bandImages: string[]; lo
             style={{
               height: `${sizePercent}%`,
               aspectRatio: "1 / 1",
-              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 68%, transparent 82%)`,
-              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 68%, transparent 82%)`,
+              maskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 82%, transparent 96%)`,
+              WebkitMaskImage: `radial-gradient(circle at ${corner.origin}, black 0%, black 82%, transparent 96%)`,
             }}
           />
         );
