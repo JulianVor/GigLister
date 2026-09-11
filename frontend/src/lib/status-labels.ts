@@ -1,4 +1,4 @@
-import type { EntityStatus, EventStatus, SubmissionStatus, SubmissionType } from "./types";
+import type { BandImageDisplay, EntityStatus, EventStatus, SubmissionStatus, SubmissionType } from "./types";
 
 /** User-facing German labels — chosen to say what the status actually means,
  * not just repeat the technical enum name (e.g. "Unvollständig" instead of "Stub"). */
@@ -32,4 +32,9 @@ export const SUBMISSION_TYPE_LABELS: Record<SubmissionType, string> = {
   BAND: "Band",
   LOCATION: "Ort",
   EVENT: "Konzert",
+};
+
+export const BAND_IMAGE_DISPLAY_LABELS: Record<BandImageDisplay, string> = {
+  LOGO: "Logo",
+  PHOTO: "Bandfoto",
 };

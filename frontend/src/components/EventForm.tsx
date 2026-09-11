@@ -5,7 +5,10 @@ import { useState, useTransition } from "react";
 import { createEventAction, updateEventAction } from "@/actions/events";
 import { EntityPicker, toEntityRef, type EntityPickerValue } from "@/components/EntityPicker";
 import { ImageUploadField } from "@/components/ImageUploadField";
-import type { EventResponse } from "@/lib/types";
+import { BAND_IMAGE_DISPLAY_LABELS } from "@/lib/status-labels";
+import type { BandImageDisplay, EventResponse } from "@/lib/types";
+
+const BAND_IMAGE_DISPLAY_OPTIONS: BandImageDisplay[] = ["LOGO", "PHOTO"];
 
 function emptyBand(): EntityPickerValue {
   return { name: "", city: "" };
@@ -29,6 +32,7 @@ export function EventForm({ eventId, initial }: { eventId?: number; initial?: Ev
   );
   const [ticketUrl, setTicketUrl] = useState(initial?.ticketUrl ?? "");
   const [titleImageUrl, setTitleImageUrl] = useState(initial?.titleImageUrl ?? "");
+  const [bandImageDisplay, setBandImageDisplay] = useState<BandImageDisplay>(initial?.bandImageDisplay ?? "LOGO");
   const [description, setDescription] = useState(initial?.description ?? "");
 
   function handleSubmit(e: React.FormEvent) {
@@ -52,6 +56,7 @@ export function EventForm({ eventId, initial }: { eventId?: number; initial?: Ev
       bands: bands.map(toEntityRef),
       ticketUrl: ticketUrl.trim() || undefined,
       titleImageUrl: titleImageUrl.trim() || undefined,
+      bandImageDisplay,
       description: description.trim() || undefined,
     };
 
@@ -156,6 +161,27 @@ export function EventForm({ eventId, initial }: { eventId?: number; initial?: Ev
         <span className="font-meta text-sm text-muted">Bild (optional)</span>
         <div className="mt-1">
           <ImageUploadField value={titleImageUrl} onChange={setTitleImageUrl} aspect="video" />
+        </div>
+      </div>
+
+      <div>
+        <span className="font-meta text-sm text-muted">
+          Bandbild in Listen {titleImageUrl.trim() && "(nur relevant, solange kein eigenes Bild gesetzt ist)"}
+        </span>
+        <div className="mt-1 flex gap-2">
+          {BAND_IMAGE_DISPLAY_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setBandImageDisplay(option)}
+              aria-pressed={bandImageDisplay === option}
+              className={`border px-3 py-1.5 font-meta text-sm ${
+                bandImageDisplay === option ? "border-accent bg-accent text-accent-fg" : "border-line hover:border-fg"
+              }`}
+            >
+              {BAND_IMAGE_DISPLAY_LABELS[option]}
+            </button>
+          ))}
         </div>
       </div>
 

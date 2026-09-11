@@ -1,5 +1,6 @@
 package com.giglister.dto.common;
 
+import com.giglister.domain.enums.BandImageDisplay;
 import com.giglister.domain.enums.EventStatus;
 
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ public record EventSummary(
         LocationSummary location,
         List<BandSummary> bands,
         String titleImageUrl,
+        BandImageDisplay bandImageDisplay,
         EventStatus status
 ) {
 }

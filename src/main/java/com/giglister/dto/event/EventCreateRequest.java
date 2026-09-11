@@ -1,5 +1,6 @@
 package com.giglister.dto.event;
 
+import com.giglister.domain.enums.BandImageDisplay;
 import com.giglister.dto.common.EntityRef;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -17,6 +18,8 @@ public record EventCreateRequest(
         @NotEmpty @Valid List<EntityRef> bands,
         String description,
         String ticketUrl,
-        String titleImageUrl
+        String titleImageUrl,
+        /** Defaults to LOGO when omitted - see Event.bandImageDisplay. */
+        BandImageDisplay bandImageDisplay
 ) {
 }

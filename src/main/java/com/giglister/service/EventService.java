@@ -3,6 +3,7 @@ package com.giglister.service;
 import com.giglister.domain.Band;
 import com.giglister.domain.Event;
 import com.giglister.domain.Location;
+import com.giglister.domain.enums.BandImageDisplay;
 import com.giglister.domain.enums.EntityType;
 import com.giglister.domain.enums.EventStatus;
 import com.giglister.domain.enums.PermissionLevel;
@@ -91,6 +92,7 @@ public class EventService {
                 .description(request.description())
                 .ticketUrl(request.ticketUrl())
                 .titleImageUrl(request.titleImageUrl())
+                .bandImageDisplay(request.bandImageDisplay() != null ? request.bandImageDisplay() : BandImageDisplay.LOGO)
                 .status(EventStatus.PUBLISHED)
                 .createdBy(createdBy)
                 .build();
@@ -115,6 +117,7 @@ public class EventService {
         event.setDescription(request.description());
         event.setTicketUrl(request.ticketUrl());
         event.setTitleImageUrl(request.titleImageUrl());
+        event.setBandImageDisplay(request.bandImageDisplay() != null ? request.bandImageDisplay() : BandImageDisplay.LOGO);
         return eventRepository.save(event);
     }
 
@@ -204,7 +207,8 @@ public class EventService {
         return new EventResponse(
                 event.getId(), event.getTitle(), event.getDate(), event.getStartTime(),
                 summaryMapper.locationSummary(event.getLocationId()), bands, event.getDescription(),
-                event.getTicketUrl(), event.getTitleImageUrl(), event.getStatus(), event.getCreatedBy()
+                event.getTicketUrl(), event.getTitleImageUrl(), event.getBandImageDisplay(),
+                event.getStatus(), event.getCreatedBy()
         );
     }
 

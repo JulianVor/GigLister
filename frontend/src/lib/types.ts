@@ -5,6 +5,7 @@ export type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED";
 export type EntityType = "BAND" | "LOCATION";
 export type PermissionLevel = "EDIT" | "MANAGE";
 export type ClaimStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type BandImageDisplay = "LOGO" | "PHOTO";
 
 export interface Page<T> {
   content: T[];
@@ -41,6 +42,7 @@ export interface EventSummary {
   location: LocationSummary;
   bands: BandSummary[];
   titleImageUrl: string | null;
+  bandImageDisplay: BandImageDisplay;
   status: EventStatus;
 }
 
@@ -54,6 +56,7 @@ export interface EventResponse {
   description: string | null;
   ticketUrl: string | null;
   titleImageUrl: string | null;
+  bandImageDisplay: BandImageDisplay;
   status: EventStatus;
   createdBy: number;
 }

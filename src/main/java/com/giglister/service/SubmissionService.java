@@ -139,7 +139,8 @@ public class SubmissionService {
         EventCreateRequest request = parsePayload(submission, EventCreateRequest.class);
         if (imageUrl != null) {
             request = new EventCreateRequest(request.title(), request.date(), request.startTime(),
-                    request.location(), request.bands(), request.description(), request.ticketUrl(), imageUrl);
+                    request.location(), request.bands(), request.description(), request.ticketUrl(), imageUrl,
+                    request.bandImageDisplay());
         }
         return eventService.create(request, adminUserId).getId();
     }

@@ -9,7 +9,7 @@ export function EventCard({ event }: { event: EventSummary }) {
   const time = formatTime(event.startTime);
   const heroImage = event.titleImageUrl;
   const bandImages = event.bands
-    .map((b) => b.titleImageUrl)
+    .map((b) => (event.bandImageDisplay === "PHOTO" ? b.titleImageUrl : b.logoUrl))
     .filter((url): url is string => !!url)
     .slice(0, 4);
   const locationImage = event.location.titleImageUrl;

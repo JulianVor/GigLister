@@ -6,6 +6,7 @@ import type {
   AdminLocationListItem,
   AdminUserResponse,
   AuthResponse,
+  BandImageDisplay,
   BandResponse,
   CalendarDayCount,
   ClaimResponse,
@@ -169,6 +170,7 @@ export interface EventInput {
   description?: string;
   ticketUrl?: string;
   titleImageUrl?: string;
+  bandImageDisplay?: BandImageDisplay;
 }
 
 export function createEvent(data: EventInput, token: string) {

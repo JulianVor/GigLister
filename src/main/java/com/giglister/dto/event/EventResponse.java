@@ -1,5 +1,6 @@
 package com.giglister.dto.event;
 
+import com.giglister.domain.enums.BandImageDisplay;
 import com.giglister.domain.enums.EventStatus;
 import com.giglister.dto.common.BandSummary;
 import com.giglister.dto.common.LocationSummary;
@@ -18,6 +19,7 @@ public record EventResponse(
         String description,
         String ticketUrl,
         String titleImageUrl,
+        BandImageDisplay bandImageDisplay,
         EventStatus status,
         Long createdBy
 ) {

@@ -1,5 +1,6 @@
 package com.giglister.domain;
 
+import com.giglister.domain.enums.BandImageDisplay;
 import com.giglister.domain.enums.EventStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -60,6 +61,13 @@ public class Event {
     private String ticketUrl;
 
     private String titleImageUrl;
+
+    /** Whether the event's own listings/collage show each band's logo or its title
+     * (promo) photo - see BandImageDisplay. Defaults to LOGO. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private BandImageDisplay bandImageDisplay = BandImageDisplay.LOGO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

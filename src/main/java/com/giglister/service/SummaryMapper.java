@@ -52,6 +52,7 @@ public class SummaryMapper {
     public EventSummary eventSummary(Event event) {
         List<BandSummary> bands = event.getBandIds().stream().map(this::bandSummary).toList();
         return new EventSummary(event.getId(), event.getTitle(), event.getDate(), event.getStartTime(),
-                locationSummary(event.getLocationId()), bands, event.getTitleImageUrl(), event.getStatus());
+                locationSummary(event.getLocationId()), bands, event.getTitleImageUrl(),
+                event.getBandImageDisplay(), event.getStatus());
     }
 }
