@@ -200,24 +200,23 @@ function SingleBandCollage({ band, locationImage }: { band: BandPhoto; locationI
  * Percentage heights don't work here since the tiles sit in nested flex rows/columns
  * with no definite height of their own to be a percentage of. */
 const LOGO_TILE_HEIGHT: Record<1 | 2 | 3 | 4, string> = {
-  1: "h-36 sm:h-52",
-  2: "h-32 sm:h-44",
-  3: "h-28 sm:h-36",
+  1: "h-40 sm:h-56",
+  2: "h-36 sm:h-48",
+  3: "h-28 sm:h-40",
   4: "h-20 sm:h-28",
 };
 
 /** A logo isn't meant to be cropped or faded at all - clipping any part of it (round,
  * diagonal, or otherwise) can cut off letters or the mark itself, and a soft edge just
  * looks like a rendering glitch on a flat graphic. So unlike the photo collages above,
- * logos always render as plain bordered squares, full logo shown via `object-contain`
- * (never cropped), with their own opaque background since most logos are transparent
- * PNGs that would otherwise let the location image behind them show through. */
+ * logos always render as plain, uncropped shapes via `object-contain` - no box, no
+ * background, no border: wherever the logo file itself has transparency, the location
+ * image behind it (or the surface fill, without one) shows straight through, so it
+ * reads as a logo floating over the photo rather than a solid card sitting on it. */
 function LogoTile({ url, heightClass }: { url: string; heightClass: string }) {
   return (
-    <div className={`flex items-center justify-center border border-line bg-bg p-1.5 ${heightClass}`} style={{ aspectRatio: "1 / 1" }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="" className="h-full w-full object-contain" />
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt="" className={`object-contain ${heightClass}`} style={{ aspectRatio: "1 / 1" }} />
   );
 }
 
