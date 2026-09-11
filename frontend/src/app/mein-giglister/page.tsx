@@ -54,13 +54,11 @@ export default async function MeinGigListerPage() {
         </div>
       </section>
 
-      <section className="mt-10">
-        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Bands</h2>
-        <div className="mt-2 divide-y divide-line border-y border-line">
-          {myBands.length === 0 ? (
-            <EmptyState>Du verwaltest noch keine Bands.</EmptyState>
-          ) : (
-            myBands.map((band) => {
+      {myBands.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Bands</h2>
+          <div className="mt-2 divide-y divide-line border-y border-line">
+            {myBands.map((band) => {
               const permission = session.managedEntities.find(
                 (e) => e.entityType === "BAND" && e.entityId === band.id
               )?.permission;
@@ -80,30 +78,28 @@ export default async function MeinGigListerPage() {
                   </span>
                 </Link>
               );
-            })
-          )}
-        </div>
-      </section>
+            })}
+          </div>
+        </section>
+      )}
 
-      <section className="mt-10">
-        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Veranstaltungen</h2>
-        <p className="mt-1 font-meta text-xs text-muted">Kommende Konzerte über alle deine Bands hinweg.</p>
-        <div className="mt-2">
-          {myEvents.length === 0 ? (
-            <EmptyState>Keine kommenden Konzerte deiner Bands.</EmptyState>
-          ) : (
-            myEvents.map((e) => <EventCard key={e.id} event={e} />)
-          )}
-        </div>
-      </section>
+      {myEvents.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Veranstaltungen</h2>
+          <p className="mt-1 font-meta text-xs text-muted">Kommende Konzerte über alle deine Bands hinweg.</p>
+          <div className="mt-2">
+            {myEvents.map((e) => (
+              <EventCard key={e.id} event={e} />
+            ))}
+          </div>
+        </section>
+      )}
 
-      <section className="mt-10">
-        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Orte</h2>
-        <div className="mt-2 divide-y divide-line border-y border-line">
-          {myLocations.length === 0 ? (
-            <EmptyState>Du verwaltest noch keine Orte.</EmptyState>
-          ) : (
-            myLocations.map((entity) => (
+      {myLocations.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Orte</h2>
+          <div className="mt-2 divide-y divide-line border-y border-line">
+            {myLocations.map((entity) => (
               <Link
                 key={entity.entityId}
                 href={`/orte/${entity.entityId}`}
@@ -112,10 +108,10 @@ export default async function MeinGigListerPage() {
                 <span className="font-display text-lg">{entity.name}</span>
                 <span className="font-meta text-sm text-muted">Location · {entity.permission}</span>
               </Link>
-            ))
-          )}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
