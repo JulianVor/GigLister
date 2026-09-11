@@ -69,10 +69,17 @@ public class MailService {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
         sender.setHost(host);
         sender.setPort(port);
-        sender.setUsername(username);
-        sender.setPassword(password);
-        sender.getJavaMailProperties().put("mail.smtp.auth", "true");
-        sender.getJavaMailProperties().put("mail.smtp.starttls.enable", "true");
+        // Only request AUTH/STARTTLS when there's actually a username to authenticate
+        // with - a real SMTP provider needs both, but a local catch-all like Mailpit
+        // (the docker-compose default) doesn't require auth at all, and asking for it
+        // anyway makes JavaMail fail the connection since the server never advertises
+        // an AUTH mechanism to satisfy the request.
+        if (username != null && !username.isBlank()) {
+            sender.setUsername(username);
+            sender.setPassword(password);
+            sender.getJavaMailProperties().put("mail.smtp.auth", "true");
+            sender.getJavaMailProperties().put("mail.smtp.starttls.enable", "true");
+        }
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);

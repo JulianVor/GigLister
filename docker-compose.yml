@@ -16,6 +16,17 @@ services:
       timeout: 5s
       retries: 10
 
+  # Catches every email the backend sends instead of delivering it anywhere -
+  # view them at http://localhost:8025 (GIGLISTER_MAILPIT_PORT). Only used
+  # while GIGLISTER_MAIL_HOST points at it (the default, see below); once you
+  # set GIGLISTER_MAIL_HOST to a real SMTP server this container just sits
+  # idle and unused.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "${GIGLISTER_MAILPIT_PORT:-8025}:8025"
+
   backend:
     build:
       context: .
@@ -23,6 +34,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     environment:
       GIGLISTER_DB_HOST: db
       GIGLISTER_DB_PORT: 5432
@@ -34,14 +47,15 @@ services:
       # Used to build the links inside verification/reset emails - keep this
       # in sync with GIGLISTER_FRONTEND_PORT below.
       GIGLISTER_FRONTEND_URL: ${GIGLISTER_FRONTEND_URL:-http://localhost:3000}
-      GIGLISTER_MAIL_HOST: ${GIGLISTER_MAIL_HOST:-}
-      GIGLISTER_MAIL_PORT: ${GIGLISTER_MAIL_PORT:-587}
+      # Defaults to the mailpit service below, so every verification/reset
+      # email sent in a Compose setup is catchable at :8025 (see
+      # GIGLISTER_MAILPIT_PORT) without any config - point these at a real
+      # SMTP server instead once you actually want mail delivered.
+      GIGLISTER_MAIL_HOST: ${GIGLISTER_MAIL_HOST:-mailpit}
+      GIGLISTER_MAIL_PORT: ${GIGLISTER_MAIL_PORT:-1025}
       GIGLISTER_MAIL_USER: ${GIGLISTER_MAIL_USER:-}
       GIGLISTER_MAIL_PASSWORD: ${GIGLISTER_MAIL_PASSWORD:-}
       GIGLISTER_MAIL_FROM: ${GIGLISTER_MAIL_FROM:-no-reply@giglister.local}
-      # No GIGLISTER_MAIL_HOST set: verification/reset links are written to
-      # `docker compose logs backend` instead of actually being emailed - set
-      # GIGLISTER_MAIL_HOST/PORT/USER/PASSWORD/FROM for a real SMTP server.
       GIGLISTER_UPLOAD_DIR: /data/uploads
       # Uploaded images are stored on disk and served back out under
       # /uploads/** - this must be the same browser-reachable URL as the

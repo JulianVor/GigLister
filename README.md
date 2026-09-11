@@ -20,8 +20,13 @@ docker compose up --build
 ```
 
 Builds and starts Postgres, the backend and the frontend together:
-frontend on `:3000`, API on `:8080`, Postgres on `:5432`. Data persists in
-the `giglister-db-data` volume across restarts (uploaded images in
+frontend on `:3000`, API on `:8080`, Postgres on `:5432`. Also starts
+[Mailpit](https://github.com/axllent/mailpit) on `:8025` as a catch-all SMTP
+server — every verification/password-reset email the backend sends lands
+there instead of a real inbox, viewable at `http://localhost:8025`; point
+`GIGLISTER_MAIL_HOST` at a real SMTP server instead once you want mail
+actually delivered (see `.env.example`). Data persists in the
+`giglister-db-data` volume across restarts (uploaded images in
 `giglister-uploads-data`); `docker compose down -v` wipes both.
 
 **Configuring ports (or anything else):** copy `.env.example` to `.env`
@@ -96,10 +101,13 @@ following it via `POST /api/auth/reset-password` sets a new password, logs
 the user in, and — since it proves the same inbox ownership as the
 verification link — verifies the email too. Mail is sent
 via `GIGLISTER_MAIL_HOST`/`GIGLISTER_MAIL_PORT`/`GIGLISTER_MAIL_USER`/
-`GIGLISTER_MAIL_PASSWORD`/`GIGLISTER_MAIL_FROM`; with `GIGLISTER_MAIL_HOST`
-unset (the local default), the verification/reset link is written to the server
-log instead of actually being sent. `GIGLISTER_FRONTEND_URL` controls which
-frontend origin that link points at (defaults to `http://localhost:3000`).
+`GIGLISTER_MAIL_PASSWORD`/`GIGLISTER_MAIL_FROM`. In a Compose setup this
+defaults to the bundled Mailpit container (see above — nothing to
+configure, just open `http://localhost:8025`); running the backend directly
+with `mvn spring-boot:run`, `GIGLISTER_MAIL_HOST` defaults to unset instead,
+so the verification/reset link is written to the server log rather than
+sent anywhere. `GIGLISTER_FRONTEND_URL` controls which frontend origin that
+link points at (defaults to `http://localhost:3000`).
 
 ## Domain model
 
