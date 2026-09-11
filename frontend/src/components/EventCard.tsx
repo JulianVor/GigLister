@@ -72,7 +72,13 @@ const OVAL_HEIGHT: Record<1 | 2 | 3 | 4, string> = {
 /** The oval shape and its soft edge both come from the same radial mask - fading
  * everything outside the ellipse to transparent, rather than a hard `border-radius`
  * clip, so each photo blends into the location image behind it instead of sitting on
- * top of it as a sharply-cut sticker. */
+ * top of it as a sharply-cut sticker. The ellipse's radii are given explicitly (50% 50%,
+ * i.e. exactly the image's own half-width/half-height) rather than left to the default
+ * "farthest-corner" sizing - on a non-square box, farthest-corner reaches full
+ * transparency at the CORNERS, which is short of full transparency yet at the flat top/
+ * bottom/left/right edges, leaving a faint but visible hard line right at the image's
+ * actual boundary. Explicit 50% 50% radii fade out exactly at every edge, corners
+ * included, so there's no boundary left for a hard edge to show up on. */
 function BandOval({ url, heightClass }: { url: string; heightClass: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -82,8 +88,8 @@ function BandOval({ url, heightClass }: { url: string; heightClass: string }) {
       className={`object-cover ${heightClass}`}
       style={{
         aspectRatio: "3 / 2",
-        maskImage: "radial-gradient(ellipse at center, black 0%, black 55%, transparent 92%)",
-        WebkitMaskImage: "radial-gradient(ellipse at center, black 0%, black 55%, transparent 92%)",
+        maskImage: "radial-gradient(ellipse 50% 50% at center, black 0%, black 40%, transparent 100%)",
+        WebkitMaskImage: "radial-gradient(ellipse 50% 50% at center, black 0%, black 40%, transparent 100%)",
       }}
     />
   );
