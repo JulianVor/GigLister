@@ -291,7 +291,7 @@ function DiagonalPhotoCollage({
         segments.map((seg, i) => (
           <div
             key={`label-${i}`}
-            className="pointer-events-none absolute flex flex-col items-start justify-end overflow-hidden pb-2 pl-2 sm:pb-3 sm:pl-3"
+            className="pointer-events-none absolute flex flex-col justify-end overflow-hidden pb-2 pl-2 sm:pb-3 sm:pl-3"
             style={{
               left: `${seg.left * 100}%`,
               width: `${(seg.right - seg.left) * 100}%`,
@@ -352,7 +352,7 @@ function ColorCollage({ locationName, bands }: { locationName: string; bands: Ba
       {segments.map((seg, i) => (
         <div
           key={`label-${i}`}
-          className="pointer-events-none absolute flex flex-col items-start justify-end overflow-hidden pb-2 pl-2 sm:pb-3 sm:pl-3"
+          className="pointer-events-none absolute flex flex-col justify-end overflow-hidden pb-2 pl-2 sm:pb-3 sm:pl-3"
           style={{
             left: `${seg.left * 100}%`,
             width: `${(seg.right - seg.left) * 100}%`,
@@ -444,7 +444,7 @@ function SingleBandCollage({
       )}
       {showLabel && (
         <div
-          className="pointer-events-none absolute bottom-0 left-0 flex flex-col items-start pb-2 pl-2 sm:pb-3 sm:pl-3"
+          className="pointer-events-none absolute bottom-0 left-0 flex flex-col pb-2 pl-2 sm:pb-3 sm:pl-3"
           style={{ width: locationImage ? "55%" : "100%" }}
         >
           <span className="break-words font-display text-base font-bold uppercase leading-tight tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-xl">
