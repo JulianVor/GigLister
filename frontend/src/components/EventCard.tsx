@@ -6,7 +6,7 @@ import { entityColor } from "@/lib/entityColor";
 
 interface BandPhoto {
   name: string;
-  url: string;
+  url: string | null;
   genres: string[];
 }
 
@@ -19,36 +19,46 @@ interface BandPhoto {
 export function eventPhotoContent(event: EventSummary, { showLabels = true }: { showLabels?: boolean } = {}): React.ReactNode {
   const heroImage = event.titleImageUrl;
   const locationImage = event.location.titleImageUrl;
-  const bandPhotos: BandPhoto[] = event.bands
-    .map((b) => ({ name: b.name, url: event.bandImageDisplay === "PHOTO" ? b.titleImageUrl : b.logoUrl, genres: b.genres }))
-    .filter((entry): entry is BandPhoto => !!entry.url)
-    .slice(0, 4);
 
   if (heroImage) {
     return <PlainCover src={heroImage} />;
   }
-  if (bandPhotos.length === 0) {
+
+  const isPhotoMode = event.bandImageDisplay === "PHOTO";
+  // Every one of (up to 4) bands gets a slot regardless of whether it has an image - in
+  // PHOTO mode a band without a photo still shows its own color there (see
+  // DiagonalPhotoCollage/SingleBandCollage's handling of a null url) instead of just
+  // dropping out of the lineup and leaving the others to stretch into the space it would
+  // have had; in LOGO mode a missing logo is simply skipped, same as before, since a
+  // logo-shaped color swatch wouldn't read the same way a photo-shaped one does.
+  const allBands: BandPhoto[] = event.bands
+    .slice(0, 4)
+    .map((b) => ({ name: b.name, url: isPhotoMode ? b.titleImageUrl : b.logoUrl, genres: b.genres }));
+  const anyImage = allBands.some((b) => !!b.url);
+
+  if (!anyImage) {
     if (!locationImage) return null;
-    // No band has a photo of its own, but the location does - rather than just showing
+    // No band has an image of its own, but the location does - rather than just showing
     // that alone with no indication of who's playing, lay each band's own color over a
-    // dimmed copy of it in the exact same layout real band photos would use (the fade for
-    // one band, the diagonal strips for more), so this degrades the same way a photo
-    // lineup would instead of looking like a completely different, band-less card.
-    const colorBands: BandPhoto[] = event.bands.slice(0, 4).map((b) => ({ name: b.name, url: "", genres: b.genres }));
-    return colorBands.length === 1 ? (
-      <SingleBandCollage band={colorBands[0]} locationImage={locationImage} showLabel={showLabels} colorMode />
+    // dimmed copy of it in the exact same layout a real photo lineup would use (the fade
+    // for one band, the diagonal strips for more), so this degrades the same way instead
+    // of looking like a completely different, band-less card.
+    return allBands.length === 1 ? (
+      <SingleBandCollage band={allBands[0]} locationImage={locationImage} showLabel={showLabels} colorMode />
     ) : (
-      <DiagonalPhotoCollage bands={colorBands} showLabels={showLabels} colorMode locationImage={locationImage} />
+      <DiagonalPhotoCollage bands={allBands} showLabels={showLabels} colorMode locationImage={locationImage} />
     );
   }
-  if (event.bandImageDisplay === "PHOTO") {
-    return bandPhotos.length === 1 ? (
-      <SingleBandCollage band={bandPhotos[0]} locationImage={locationImage} showLabel={showLabels} />
+
+  if (isPhotoMode) {
+    return allBands.length === 1 ? (
+      <SingleBandCollage band={allBands[0]} locationImage={locationImage} showLabel={showLabels} />
     ) : (
-      <DiagonalPhotoCollage bands={bandPhotos} showLabels={showLabels} />
+      <DiagonalPhotoCollage bands={allBands} showLabels={showLabels} />
     );
   }
-  return <LogoCollage logos={bandPhotos.map((b) => b.url)} locationImage={locationImage} />;
+  const logos = allBands.filter((b): b is BandPhoto & { url: string } => !!b.url).map((b) => b.url);
+  return <LogoCollage logos={logos} locationImage={locationImage} />;
 }
 
 /** An image-forward post-style card (photo up top, a floating date pill, details below) -
@@ -237,9 +247,14 @@ function DiagonalPhotoCollage({
           >
             {colorMode ? (
               <div className="h-full w-full" style={{ backgroundColor: entityColor(seg.name), opacity: 0.7 }} />
-            ) : (
+            ) : seg.url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={seg.url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              // This one band has no photo of its own while at least one other does - its
+              // own flat color stands in, opaque (no location involved: that's only for
+              // when NONE of them have a photo, see the colorMode branch above).
+              <div className="h-full w-full" style={{ backgroundColor: entityColor(seg.name) }} />
             )}
           </div>
         );
@@ -376,7 +391,7 @@ function SingleBandCollage({
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={band.url}
+          src={band.url ?? ""}
           alt=""
           className="absolute inset-y-0 left-0 h-full object-cover"
           style={{ width: `${boxWidth * 100}%`, ...fadeMask }}
