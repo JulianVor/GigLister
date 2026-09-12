@@ -28,7 +28,18 @@ export function eventPhotoContent(event: EventSummary, { showLabels = true }: { 
     return <PlainCover src={heroImage} />;
   }
   if (bandPhotos.length === 0) {
-    return locationImage ? <PlainCover src={locationImage} /> : null;
+    if (!locationImage) return null;
+    // No band has a photo of its own, but the location does - rather than just showing
+    // that alone with no indication of who's playing, lay each band's own color over a
+    // dimmed copy of it in the exact same layout real band photos would use (the fade for
+    // one band, the diagonal strips for more), so this degrades the same way a photo
+    // lineup would instead of looking like a completely different, band-less card.
+    const colorBands: BandPhoto[] = event.bands.slice(0, 4).map((b) => ({ name: b.name, url: "", genres: b.genres }));
+    return colorBands.length === 1 ? (
+      <SingleBandCollage band={colorBands[0]} locationImage={locationImage} showLabel={showLabels} colorMode />
+    ) : (
+      <DiagonalPhotoCollage bands={colorBands} showLabels={showLabels} colorMode locationImage={locationImage} />
+    );
   }
   if (event.bandImageDisplay === "PHOTO") {
     return bandPhotos.length === 1 ? (
@@ -185,12 +196,31 @@ function SeamLine({ boundary, top, bottom }: { boundary: number; top: number; bo
 /** Full-bleed diagonal-cut lineup, each photo cropped to its own strip and (by default)
  * labeled with the band's name - no location image shown once there's more than one band,
  * since the strips already fill the whole card between them. `showLabels` is off on the
- * event detail page, where the Line-up right below already lists every name. */
-function DiagonalPhotoCollage({ bands, showLabels = true }: { bands: BandPhoto[]; showLabels?: boolean }) {
+ * event detail page, where the Line-up right below already lists every name.
+ *
+ * `colorMode` is for when none of the bands have a photo but the location does: each
+ * strip becomes a translucent wash of the band's own color (see entityColor) instead of
+ * an image, over a single dimmed copy of the location photo filling the whole card behind
+ * them all - same geometry either way, just what fills each strip. */
+function DiagonalPhotoCollage({
+  bands,
+  showLabels = true,
+  colorMode = false,
+  locationImage,
+}: {
+  bands: BandPhoto[];
+  showLabels?: boolean;
+  colorMode?: boolean;
+  locationImage?: string | null;
+}) {
   const segments = layoutSegments(bands);
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-surface">
+      {colorMode && locationImage && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={locationImage} alt="" className="absolute inset-0 h-full w-full object-cover brightness-50 saturate-75" />
+      )}
       {segments.map((seg, i) => {
         const box = segmentBox(seg);
         return (
@@ -205,8 +235,12 @@ function DiagonalPhotoCollage({ bands, showLabels = true }: { bands: BandPhoto[]
               clipPath: segmentClipPath(seg, box),
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={seg.url} alt="" className="h-full w-full object-cover" />
+            {colorMode ? (
+              <div className="h-full w-full" style={{ backgroundColor: entityColor(seg.name), opacity: 0.7 }} />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={seg.url} alt="" className="h-full w-full object-cover" />
+            )}
           </div>
         );
       })}
@@ -301,13 +335,21 @@ function SingleBandCollage({
   band,
   locationImage,
   showLabel = true,
+  colorMode = false,
 }: {
   band: BandPhoto;
   locationImage: string | null;
   showLabel?: boolean;
+  colorMode?: boolean;
 }) {
   const boxWidth = locationImage ? BAND_FADE_END : 1;
   const localFadeStart = (BAND_FADE_START / BAND_FADE_END) * 100;
+  const fadeMask = locationImage
+    ? {
+        maskImage: `linear-gradient(to right, black 0%, black ${localFadeStart}%, transparent 100%)`,
+        WebkitMaskImage: `linear-gradient(to right, black 0%, black ${localFadeStart}%, transparent 100%)`,
+      }
+    : {};
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-surface">
@@ -316,30 +358,30 @@ function SingleBandCollage({
         // is never visible there - rendering it at the full card width anyway just makes
         // object-cover crop it harder to fill space nothing shows, same problem the band
         // photo itself had. Sizing its box to just the region it can ever appear in fixes
-        // it the same way.
+        // it the same way. colorMode darkens it - the band side no longer being a photo
+        // itself, the location photo is the only actual picture on the card.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={locationImage}
           alt=""
-          className="absolute inset-y-0 right-0 h-full object-cover"
+          className={`absolute inset-y-0 right-0 h-full object-cover ${colorMode ? "brightness-50 saturate-75" : ""}`}
           style={{ width: `${(1 - BAND_FADE_START) * 100}%` }}
         />
       )}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={band.url}
-        alt=""
-        className="absolute inset-y-0 left-0 h-full object-cover"
-        style={{
-          width: `${boxWidth * 100}%`,
-          ...(locationImage
-            ? {
-                maskImage: `linear-gradient(to right, black 0%, black ${localFadeStart}%, transparent 100%)`,
-                WebkitMaskImage: `linear-gradient(to right, black 0%, black ${localFadeStart}%, transparent 100%)`,
-              }
-            : {}),
-        }}
-      />
+      {colorMode ? (
+        <div
+          className="absolute inset-y-0 left-0 h-full"
+          style={{ width: `${boxWidth * 100}%`, backgroundColor: entityColor(band.name), ...fadeMask }}
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={band.url}
+          alt=""
+          className="absolute inset-y-0 left-0 h-full object-cover"
+          style={{ width: `${boxWidth * 100}%`, ...fadeMask }}
+        />
+      )}
       {showLabel && (
         <div
           className="pointer-events-none absolute bottom-0 left-0 flex flex-col items-start pb-2 pl-2 sm:pb-3 sm:pl-3"
