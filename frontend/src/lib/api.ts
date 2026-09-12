@@ -380,6 +380,16 @@ export function demoteUser(id: number, token: string) {
   return apiFetch<AdminUserResponse>(`/api/admin/users/${id}/demote`, { method: "POST", token });
 }
 
+/** One-off catch-up for locations saved before geocoding existed - see
+ * LocationService.backfillMissingCoordinates on the backend. Can take a while (it
+ * paces its own requests to Nominatim), so callers should show a loading state. */
+export function geocodeMissingLocations(token: string) {
+  return apiFetch<{ attempted: number; resolved: number }>("/api/admin/locations/geocode-missing", {
+    method: "POST",
+    token,
+  });
+}
+
 export function getAdminBands(
   params: { status?: EntityStatus; q?: string; page?: number; size?: number },
   token: string

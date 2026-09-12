@@ -90,7 +90,11 @@ export function ConcertMap({
           return `<a href="/konzerte/${e.id}" style="display:block;margin-top:4px;color:var(--accent);text-decoration:underline">${fullDateLabel(e.date)}${time ? " · " + time : ""}</a>`;
         })
         .join("");
-      const popupHtml = `<div style="font-family:inherit"><strong>${escapeHtml(loc.name)}</strong><br/><span style="color:var(--muted)">${escapeHtml(loc.city)}</span>${list}</div>`;
+      // Coordinates rather than an address string - shortest, most precise destination a
+      // maps app can be handed, and it works the same regardless of what (if anything)
+      // the venue's own address field contains.
+      const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}`;
+      const popupHtml = `<div style="font-family:inherit"><a href="/orte/${loc.id}" style="color:inherit;text-decoration:none"><strong>${escapeHtml(loc.name)}</strong></a><br/><span style="color:var(--muted)">${escapeHtml(loc.city)}</span>${list}<a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:8px;color:var(--accent);text-decoration:underline">Route planen →</a></div>`;
       marker.bindPopup(popupHtml);
     }
 

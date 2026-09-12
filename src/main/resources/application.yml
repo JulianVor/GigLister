@@ -62,3 +62,7 @@ giglister:
     # only - see SecurityConfig/GptSkillAuthFilter). Empty by default: unset means
     # the integration is disabled, nobody can authenticate as it.
     token: ${GIGLISTER_GPT_SKILL_TOKEN:}
+  geocoding:
+    # Off in tests (see src/test/resources/application.yml) so the suite never
+    # depends on outbound network access to Nominatim.
+    enabled: ${GIGLISTER_GEOCODING_ENABLED:true}

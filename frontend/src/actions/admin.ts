@@ -83,6 +83,20 @@ export async function demoteUserAction(userId: number): Promise<ActionResult> {
   }
 }
 
+export async function geocodeMissingLocationsAction(): Promise<ActionResult<{ attempted: number; resolved: number }>> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    const result = await api.geocodeMissingLocations(token);
+    revalidatePath("/admin/locations");
+    return { ok: true, data: result };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
 export async function updateSubmissionAction(
   id: number,
   payload: Record<string, unknown>,

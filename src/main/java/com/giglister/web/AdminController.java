@@ -19,6 +19,7 @@ import com.giglister.dto.submission.SubmissionUpdateRequest;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.AdminService;
 import com.giglister.service.ClaimService;
+import com.giglister.service.LocationService;
 import com.giglister.service.MergeService;
 import com.giglister.service.SubmissionService;
 import jakarta.validation.Valid;
@@ -42,6 +43,7 @@ public class AdminController {
     private final ClaimService claimService;
     private final MergeService mergeService;
     private final SubmissionService submissionService;
+    private final LocationService locationService;
 
     @GetMapping("/dashboard")
     public AdminDashboardResponse dashboard() {
@@ -98,6 +100,15 @@ public class AdminController {
             @RequestParam(defaultValue = "50") int size
     ) {
         return adminService.listAdminBands(status, q, PageRequest.of(page, size));
+    }
+
+    /** One-off backfill for locations saved before geocoding existed - see
+     * LocationService.backfillMissingCoordinates. Synchronous and rate-limited
+     * (~1/sec), so this can take a while on a large backlog; fine for the admin
+     * panel's small, occasional data-maintenance use, not meant to be automated. */
+    @PostMapping("/locations/geocode-missing")
+    public LocationService.BackfillResult geocodeMissingLocations() {
+        return locationService.backfillMissingCoordinates();
     }
 
     @GetMapping("/locations")

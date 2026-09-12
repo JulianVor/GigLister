@@ -3,6 +3,7 @@ import { getAdminLocations } from "@/lib/api";
 import { getToken } from "@/lib/session";
 import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
+import { GeocodeMissingButton } from "@/components/admin/GeocodeMissingButton";
 import { ENTITY_STATUS_HINTS, ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { EntityStatus } from "@/lib/types";
 
@@ -37,6 +38,14 @@ export default async function AdminLocationsPage({
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
         <StatusFilter basePath="/admin/locations" statuses={STATUSES} active={status} query={q} labels={ENTITY_STATUS_LABELS} />
         <AdminSearchForm action="/admin/locations" query={q} placeholder="Suche nach Name …" hidden={{ status }} />
+      </div>
+
+      <div className="mt-4">
+        <GeocodeMissingButton />
+        <p className="mt-1 font-meta text-xs text-muted">
+          Neue und bearbeitete Orte bekommen ihre Koordinaten (für die Karte unter Orte) automatisch - dieser Button holt
+          sie einmalig für ältere Orte nach.
+        </p>
       </div>
 
       <p className="mt-4 font-meta text-xs text-muted">{page.totalElements} Orte</p>
