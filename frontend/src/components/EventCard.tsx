@@ -8,9 +8,10 @@ interface BandPhoto {
   name: string;
   url: string | null;
   genres: string[];
-  /** Only meaningful in PHOTO mode, for a band with no photo (`url` null) - its logo (if
-   * it has one) is shown as large as possible over whatever fills the rest of its segment
-   * (a color wash or dimmed location photo) instead of leaving that segment bare. */
+  /** For a band with no photo (`url` null, which in LOGO mode is every band - see
+   * eventPhotoContent) - its logo (if it has one) is shown as large as possible over
+   * whatever fills the rest of its segment (a color wash or dimmed location photo)
+   * instead of leaving that segment bare. */
   logoUrl?: string | null;
 }
 
@@ -38,24 +39,26 @@ export function eventPhotoContent(
   }
 
   const isPhotoMode = event.bandImageDisplay === "PHOTO";
-  // Every one of (up to 4) bands gets a slot regardless of whether it has an image - in
-  // PHOTO mode a band without a photo still shows its own color there (see
+  // Every one of (up to 4) bands gets a slot regardless of whether it has an image - a
+  // band without one still shows its own color there (see
   // DiagonalPhotoCollage/SingleBandCollage's handling of a null url) instead of just
   // dropping out of the lineup and leaving the others to stretch into the space it would
-  // have had; in LOGO mode a missing logo is simply skipped, same as before, since a
-  // logo-shaped color swatch wouldn't read the same way a photo-shaped one does.
-  // Sorted so every band with an image comes before every one without - a stable sort,
-  // so within each of those two groups the original line-up order is kept. Grouping them
-  // is what lets a partial location photo (see DiagonalPhotoCollage) sit behind exactly
-  // the photo-less bands as one contiguous block instead of needing to peek out from
-  // between unrelated photos wherever a gap happens to fall in the original order.
+  // have had. LOGO mode never uses a band's photo, not even as a fallback - every band's
+  // `url` is null there, so every one of them always takes that same colored-segment path,
+  // just with its logo (if it has one) layered over the color/location fill instead of a
+  // photo ever appearing. Sorted so every band with an image comes before every one
+  // without - a stable sort, so within each of those two groups the original line-up
+  // order is kept. Grouping them is what lets a partial location photo (see
+  // DiagonalPhotoCollage) sit behind exactly the photo-less bands as one contiguous block
+  // instead of needing to peek out from between unrelated photos wherever a gap happens
+  // to fall in the original order.
   const allBands: BandPhoto[] = event.bands
     .slice(0, 4)
     .map((b) => ({
       name: b.name,
-      url: isPhotoMode ? b.titleImageUrl : b.logoUrl,
+      url: isPhotoMode ? b.titleImageUrl : null,
       genres: b.genres,
-      logoUrl: isPhotoMode ? b.logoUrl : undefined,
+      logoUrl: b.logoUrl,
     }))
     .sort((a, b) => (a.url ? 0 : 1) - (b.url ? 0 : 1));
   const anyImage = allBands.some((b) => !!b.url);
@@ -74,15 +77,13 @@ export function eventPhotoContent(
     );
   }
 
-  if (isPhotoMode) {
-    return allBands.length === 1 ? (
-      <SingleBandCollage band={allBands[0]} locationImage={locationImage} showLabel={showLabels} />
-    ) : (
-      <DiagonalPhotoCollage bands={allBands} showLabels={showLabels} locationImage={locationImage} />
-    );
-  }
-  const logos = allBands.filter((b): b is BandPhoto & { url: string } => !!b.url).map((b) => b.url);
-  return <LogoCollage logos={logos} locationImage={locationImage} />;
+  // Only reachable in PHOTO mode - LOGO mode's bands all have a null url above, so they
+  // always take the colored-fallback branch instead.
+  return allBands.length === 1 ? (
+    <SingleBandCollage band={allBands[0]} locationImage={locationImage} showLabel={showLabels} />
+  ) : (
+    <DiagonalPhotoCollage bands={allBands} showLabels={showLabels} locationImage={locationImage} />
+  );
 }
 
 /** An image-forward post-style card (photo up top, a floating date pill, details below) -
@@ -362,8 +363,8 @@ function BandLogoOverlay({ logoUrl }: { logoUrl?: string | null }) {
     // scale within) the padded box instead of rendering at its native size.
     <div className="pointer-events-none absolute inset-0 p-4 sm:p-6">
       {/* A logo isn't meant to be cropped - object-contain shows it whole, floating over
-          whatever fills the segment instead of replacing it, same treatment LogoTile/LineUp
-          already give a logo elsewhere. */}
+          whatever fills the segment instead of replacing it, same treatment LineUp
+          already gives a logo elsewhere. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={logoUrl} alt="" className="h-full w-full object-contain" />
     </div>
@@ -543,64 +544,3 @@ function SingleBandCollage({
   );
 }
 
-/** Each logo's fixed height, tuned so a row (or a stacked pair, for 4 bands) fits inside
- * the card's own h-44/sm:h-60 with room to spare - shrinks as more bands need to fit.
- * Percentage heights don't work here since the tiles sit in nested flex rows/columns
- * with no definite height of their own to be a percentage of. */
-const LOGO_TILE_HEIGHT: Record<1 | 2 | 3 | 4, string> = {
-  1: "h-40 sm:h-56",
-  2: "h-36 sm:h-48",
-  3: "h-28 sm:h-40",
-  4: "h-20 sm:h-28",
-};
-
-/** A logo isn't meant to be cropped or faded at all - clipping any part of it (round,
- * diagonal, or otherwise) can cut off letters or the mark itself, and a soft edge just
- * looks like a rendering glitch on a flat graphic. So unlike the photo collages above,
- * logos always render as plain, uncropped shapes via `object-contain` - no box, no
- * background, no border: wherever the logo file itself has transparency, the location
- * image behind it (or the surface fill, without one) shows straight through, so it
- * reads as a logo floating over the photo rather than a solid card sitting on it. */
-function LogoTile({ url, heightClass }: { url: string; heightClass: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={url} alt="" className={`object-contain ${heightClass}`} style={{ aspectRatio: "1 / 1" }} />
-  );
-}
-
-/** Logos as a clean grid of tiles over the (dimmed) location image - 1-3 bands sit in a
- * single centered row, 4 split into two columns of a stacked pair each, so it never
- * collapses into one crowded row. The location fills whatever the tiles don't cover, so
- * there's never an empty gap; without a location image it's a plain surface fill
- * instead, since blurring a small flat graphic into a full-bleed backdrop (as the photo
- * collages do with a band photo) looks like a rendering error, not a design choice. */
-function LogoCollage({ logos, locationImage }: { logos: string[]; locationImage: string | null }) {
-  // For 4 bands, each column stacks a pair; otherwise every logo is its own single-item
-  // column, which lines them all up side by side in one row instead of stacking them.
-  const columns = logos.length === 4 ? [logos.slice(0, 2), logos.slice(2, 4)] : logos.map((url) => [url]);
-  const heightClass = LOGO_TILE_HEIGHT[logos.length as 1 | 2 | 3 | 4] ?? LOGO_TILE_HEIGHT[4];
-
-  return (
-    <div className="relative h-full w-full overflow-hidden">
-      {locationImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={locationImage}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover brightness-75 saturate-75"
-        />
-      ) : (
-        <div className="absolute inset-0 bg-surface" />
-      )}
-      <div className="absolute inset-0 flex items-center justify-center gap-3 sm:gap-4">
-        {columns.map((col, ci) => (
-          <div key={ci} className="flex flex-col items-center gap-1.5 sm:gap-2">
-            {col.map((url, i) => (
-              <LogoTile key={url + i} url={url} heightClass={heightClass} />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
