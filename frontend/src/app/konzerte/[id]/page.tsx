@@ -30,7 +30,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   const saved = session?.savedEvents.some((e) => e.id === event.id) ?? false;
   const canEdit = canEditEvent(session, event);
-  const photo = eventPhotoContent(event, { showLabels: false });
+  const photo = eventPhotoContent(event, { showLabels: false, requireBandPhoto: true });
 
   return (
     <div className="max-w-2xl">

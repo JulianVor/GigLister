@@ -15,8 +15,17 @@ interface BandPhoto {
  * (if anything) replaces it: the card falls back to ColorCollage, the detail page just
  * shows no banner at all rather than repeating the Line-up's colors a second time.
  * `showLabels` (default on, for the card) draws each band's name over its photo - the
- * detail page turns it off since the Line-up right below already lists every name. */
-export function eventPhotoContent(event: EventSummary, { showLabels = true }: { showLabels?: boolean } = {}): React.ReactNode {
+ * detail page turns it off since the Line-up right below already lists every name.
+ * `requireBandPhoto` (off by default, on for the detail page) skips the "no band has a
+ * photo, but the location does" fallback entirely (returning null instead) - the card
+ * wants that colored-over-location treatment so it's never just a blank location photo
+ * with no indication of who's playing, but on the detail page a location photo alone
+ * isn't a real event photo and the Line-up right below already shows each band's color,
+ * so showing it there too would just be a location photo wearing a costume. */
+export function eventPhotoContent(
+  event: EventSummary,
+  { showLabels = true, requireBandPhoto = false }: { showLabels?: boolean; requireBandPhoto?: boolean } = {}
+): React.ReactNode {
   const heroImage = event.titleImageUrl;
   const locationImage = event.location.titleImageUrl;
 
@@ -43,7 +52,7 @@ export function eventPhotoContent(event: EventSummary, { showLabels = true }: { 
   const anyImage = allBands.some((b) => !!b.url);
 
   if (!anyImage) {
-    if (!locationImage) return null;
+    if (!locationImage || requireBandPhoto) return null;
     // No band has an image of its own, but the location does - rather than just showing
     // that alone with no indication of who's playing, lay each band's own color over a
     // dimmed copy of it in the exact same layout a real photo lineup would use (the fade
