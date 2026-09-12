@@ -46,7 +46,10 @@ public class EventService {
                 .orElseThrow(() -> new NotFoundException("Event " + id + " not found"));
     }
 
-    /** Resolves an EntityRef to an existing Location id, creating a STUB when only a name is given. */
+    /** Resolves an EntityRef to an existing Location id, creating a STUB when only a name is given.
+     * The address/postalCode requirement only applies to actually creating a new stub - a ref
+     * without them can still resolve to an existing Location matched by name+city (e.g. a
+     * separate, fuller Location submission for the same venue that's already been approved). */
     private Long resolveLocation(EntityRef ref) {
         if (ref.isExisting()) {
             locationService.getOrThrow(ref.id());
@@ -55,12 +58,14 @@ public class EventService {
         if (ref.name() == null || ref.name().isBlank() || ref.city() == null || ref.city().isBlank()) {
             throw new BadRequestException("New locations require at least a name and a city");
         }
+        Optional<Location> existing = locationService.findExactMatch(ref.name(), ref.city());
+        if (existing.isPresent()) {
+            return existing.get().getId();
+        }
         if (ref.address() == null || ref.address().isBlank() || ref.postalCode() == null || ref.postalCode().isBlank()) {
             throw new BadRequestException("New locations require a street address and a postal code");
         }
-        return locationService.findExactMatch(ref.name(), ref.city())
-                .map(Location::getId)
-                .orElseGet(() -> locationService.createStub(ref.name(), ref.city(), ref.address(), ref.postalCode()).getId());
+        return locationService.createStub(ref.name(), ref.city(), ref.address(), ref.postalCode()).getId();
     }
 
     private Long resolveBand(EntityRef ref) {

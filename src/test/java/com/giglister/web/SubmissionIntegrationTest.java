@@ -315,6 +315,65 @@ class SubmissionIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void approvingAnEventSubmissionReusesAnAlreadyApprovedLocationWithoutRequiringAnAddressAgain() throws Exception {
+        String adminToken = registerAsAdmin("admin9@giglister.test", "adminpass123", "Admin9");
+
+        // A separate, fuller LOCATION submission for the same venue - approved first, same as
+        // the admin UI's bundling nudges toward. Its address lives on that submission alone;
+        // the event's own reference only needs enough to identify it (name + city).
+        Map<String, Object> locationSubmission = Map.of(
+                "type", "LOCATION",
+                "payload", Map.of("name", "Habibi Atelier", "city", "Hamburg",
+                        "address", "Lüneburger Straße 39", "postalCode", "21073")
+        );
+        var locationSubmitResult = mockMvc.perform(post("/api/submissions")
+                        .header("Authorization", "Bearer " + SKILL_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(locationSubmission)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long locationSubmissionId = objectMapper.readTree(locationSubmitResult.getResponse().getContentAsString()).get("id").asLong();
+        mockMvc.perform(post("/api/admin/submissions/" + locationSubmissionId + "/approve")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+
+        Map<String, Object> eventSubmission = Map.of(
+                "type", "EVENT",
+                "payload", Map.of(
+                        "date", "2027-03-15",
+                        "location", Map.of("name", "Habibi Atelier", "city", "Hamburg"),
+                        "bands", java.util.List.of(Map.of("name", "Some Band"))
+                )
+        );
+        var eventSubmitResult = mockMvc.perform(post("/api/submissions")
+                        .header("Authorization", "Bearer " + SKILL_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(eventSubmission)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long eventSubmissionId = objectMapper.readTree(eventSubmitResult.getResponse().getContentAsString()).get("id").asLong();
+
+        // Must succeed by reusing the already-approved location, not 400 for a missing address.
+        var approveResult = mockMvc.perform(post("/api/admin/submissions/" + eventSubmissionId + "/approve")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"))
+                .andReturn();
+        long eventId = objectMapper.readTree(approveResult.getResponse().getContentAsString()).get("resultEntityId").asLong();
+
+        mockMvc.perform(get("/api/events/" + eventId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.location.name").value("Habibi Atelier"));
+
+        // Reused, not duplicated - only the one Location exists for this name/city
+        // (a freshly created Location is DRAFT, so this has to go through the admin
+        // listing rather than the public one, which only shows PUBLISHED).
+        mockMvc.perform(get("/api/admin/locations").header("Authorization", "Bearer " + adminToken).param("q", "Habibi"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1));
+    }
+
     /**
      * Promotes directly via the repository rather than the bootstrap-email/first-user
      * mechanism, since only one account can ever claim that within a shared test
