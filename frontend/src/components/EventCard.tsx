@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { EventSummary } from "@/lib/types";
 import { dayAndMonth, formatTime, weekdayShort } from "@/lib/format";
 import { eventLineupLabel } from "@/lib/event-display";
-import { entityColor, shade } from "@/lib/entityColor";
+import { entityColor } from "@/lib/entityColor";
 
 interface BandPhoto {
   name: string;
@@ -229,58 +229,36 @@ interface BandColorInfo {
   genres: string[];
 }
 
-/** Each tile's fixed width, tuned so a row (or a stacked pair, for 4 bands) fits inside
- * the card's own h-44/sm:h-60 - shrinks as more bands need to fit, same pattern as
- * LOGO_TILE_HEIGHT below. */
-const COLOR_TILE_WIDTH: Record<1 | 2 | 3 | 4, string> = {
-  1: "w-40 sm:w-52",
-  2: "w-32 sm:w-44",
-  3: "w-28 sm:w-36",
-  4: "w-24 sm:w-32",
-};
-const COLOR_TILE_PADDING: Record<1 | 2 | 3 | 4, string> = {
-  1: "py-5 sm:py-6",
-  2: "py-4 sm:py-5",
-  3: "py-3 sm:py-4",
-  4: "py-2 sm:py-2.5",
-};
-
-/** Same centered-columns layout as LogoCollage, but for when there's no photo at all to
- * show anywhere: each band gets its own deterministic color (see entityColor) instead of
- * a logo, with a small gradient for depth, over the location's own color as the card's
- * base fill - so an entirely photo-less event still looks distinct from every other one
- * instead of falling back to a generic empty state. */
+/** Full-bleed grid of band tiles - each one fills its share of the card (a row for 1-3
+ * bands, a 2x2 grid for 4), with the location's own color showing through only as the
+ * thin gap between them, and each tile's own gradient fading into that same location
+ * color at its edge so the whole thing reads as one connected surface rather than
+ * separate chips glued on top. Tiles get the full card to grow into (unlike a fixed-size
+ * chip), so even a long band name has room to wrap onto two lines instead of truncating. */
 function ColorCollage({ locationName, bands }: { locationName: string; bands: BandColorInfo[] }) {
+  const locationColor = entityColor(locationName);
   const columns = bands.length === 4 ? [bands.slice(0, 2), bands.slice(2, 4)] : bands.map((band) => [band]);
-  const widthClass = COLOR_TILE_WIDTH[bands.length as 1 | 2 | 3 | 4] ?? COLOR_TILE_WIDTH[4];
-  const paddingClass = COLOR_TILE_PADDING[bands.length as 1 | 2 | 3 | 4] ?? COLOR_TILE_PADDING[4];
 
   return (
-    <div
-      className="flex h-full w-full items-center justify-center gap-3 overflow-hidden sm:gap-4"
-      style={{ backgroundColor: entityColor(locationName) }}
-    >
+    <div className="flex h-full w-full gap-1 p-1 sm:gap-1.5 sm:p-1.5" style={{ backgroundColor: locationColor }}>
       {columns.map((col, ci) => (
-        <div key={ci} className="flex flex-col gap-1.5 sm:gap-2">
-          {col.map((band, i) => {
-            const color = entityColor(band.name);
-            return (
-              <div
-                key={band.name + i}
-                className={`flex flex-col items-center justify-center gap-0.5 text-center ${widthClass} ${paddingClass}`}
-                style={{ background: `linear-gradient(160deg, ${shade(color, 14)}, ${shade(color, -18)})` }}
-              >
-                <span className="max-w-full truncate font-display text-sm font-bold uppercase tracking-wide text-white sm:text-base">
-                  {band.name}
+        <div key={ci} className="flex flex-1 flex-col gap-1 sm:gap-1.5">
+          {col.map((band, i) => (
+            <div
+              key={band.name + i}
+              className="flex flex-1 flex-col items-center justify-center gap-1 px-2 text-center"
+              style={{ background: `linear-gradient(160deg, ${entityColor(band.name)}, ${locationColor})` }}
+            >
+              <span className="max-w-full break-words font-display text-base font-bold uppercase leading-tight tracking-wide text-white sm:text-xl">
+                {band.name}
+              </span>
+              {band.genres[0] && (
+                <span className="max-w-full truncate font-meta text-xs uppercase tracking-wide text-white/75 sm:text-sm">
+                  {band.genres[0]}
                 </span>
-                {band.genres[0] && (
-                  <span className="max-w-full truncate font-meta text-[10px] uppercase tracking-wide text-white/75 sm:text-xs">
-                    {band.genres[0]}
-                  </span>
-                )}
-              </div>
-            );
-          })}
+              )}
+            </div>
+          ))}
         </div>
       ))}
     </div>

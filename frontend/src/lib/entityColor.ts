@@ -22,14 +22,3 @@ export function entityColor(seed: string): string {
   }
   return ENTITY_COLOR_PALETTE[Math.abs(hash) % ENTITY_COLOR_PALETTE.length];
 }
-
-/** Lightens (positive amount) or darkens (negative) a "#rrggbb" color - used to make a
- * subtle two-stop gradient out of a single entityColor() result instead of a flat fill. */
-export function shade(hex: string, amount: number): string {
-  const num = parseInt(hex.slice(1), 16);
-  const clamp = (channel: number) => Math.max(0, Math.min(255, channel + amount));
-  const r = clamp(num >> 16);
-  const g = clamp((num >> 8) & 0xff);
-  const b = clamp(num & 0xff);
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
