@@ -1,0 +1,35 @@
+/** Muted, editorial-toned fills for entities without a photo - distinct enough from each
+ * other and from the site's one accent color that a list of placeholders doesn't read as
+ * "all broken images," but restrained enough to still sit inside the black/white/accent
+ * palette rather than clashing with it. Shared by EntityPlaceholder (Band/Location detail
+ * pages) and EventCard's no-photo fallback, so the same name always gets the same color
+ * everywhere it's shown. */
+const ENTITY_COLOR_PALETTE = [
+  "#8a3324", // terracotta
+  "#2f5d5a", // deep teal
+  "#5b5230", // olive
+  "#3c4a6b", // slate blue
+  "#5c3a52", // plum
+  "#7a5a1e", // ochre
+];
+
+/** Deterministic, not random - the same name always gets the same color, so it doesn't
+ * need to be stored anywhere. */
+export function entityColor(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  }
+  return ENTITY_COLOR_PALETTE[Math.abs(hash) % ENTITY_COLOR_PALETTE.length];
+}
+
+/** Lightens (positive amount) or darkens (negative) a "#rrggbb" color - used to make a
+ * subtle two-stop gradient out of a single entityColor() result instead of a flat fill. */
+export function shade(hex: string, amount: number): string {
+  const num = parseInt(hex.slice(1), 16);
+  const clamp = (channel: number) => Math.max(0, Math.min(255, channel + amount));
+  const r = clamp(num >> 16);
+  const g = clamp((num >> 8) & 0xff);
+  const b = clamp(num & 0xff);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}

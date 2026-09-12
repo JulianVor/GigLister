@@ -29,7 +29,8 @@ public class SummaryMapper {
 
     public BandSummary bandSummary(Band band) {
         return new BandSummary(band.getId(), band.getName(), band.getCity(), band.getStatus(),
-                band.getLogoUrl(), band.getTitleImageUrl(), band.getStatus() == EntityStatus.PUBLISHED);
+                band.getLogoUrl(), band.getTitleImageUrl(), band.getStatus() == EntityStatus.PUBLISHED,
+                band.getGenres());
     }
 
     public BandSummary bandSummary(Long bandId) {

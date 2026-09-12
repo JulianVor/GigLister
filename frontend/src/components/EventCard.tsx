@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { EventSummary } from "@/lib/types";
-import { dayAndMonth, dayNumber, formatTime, monthShort, weekdayShort } from "@/lib/format";
+import { dayAndMonth, formatTime, weekdayShort } from "@/lib/format";
 import { eventLineupLabel } from "@/lib/event-display";
+import { entityColor, shade } from "@/lib/entityColor";
 
 interface BandPhoto {
   name: string;
@@ -26,10 +27,10 @@ export function EventCard({ event }: { event: EventSummary }) {
     content = locationImage ? (
       <PlainCover src={locationImage} />
     ) : (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-1">
-        <div className="font-display text-6xl leading-none sm:text-7xl">{dayNumber(event.date)}</div>
-        <div className="font-meta text-sm uppercase tracking-wide text-muted">{monthShort(event.date)}</div>
-      </div>
+      <ColorCollage
+        locationName={event.location.name}
+        bands={event.bands.slice(0, 4).map((b) => ({ name: b.name, genres: b.genres }))}
+      />
     );
   } else if (event.bandImageDisplay === "PHOTO") {
     content =
@@ -217,6 +218,69 @@ function DiagonalPhotoCollage({ bands }: { bands: BandPhoto[] }) {
           <span className="truncate font-display text-sm font-bold uppercase tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-lg">
             {seg.name}
           </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface BandColorInfo {
+  name: string;
+  genres: string[];
+}
+
+/** Each tile's fixed width, tuned so a row (or a stacked pair, for 4 bands) fits inside
+ * the card's own h-44/sm:h-60 - shrinks as more bands need to fit, same pattern as
+ * LOGO_TILE_HEIGHT below. */
+const COLOR_TILE_WIDTH: Record<1 | 2 | 3 | 4, string> = {
+  1: "w-40 sm:w-52",
+  2: "w-32 sm:w-44",
+  3: "w-28 sm:w-36",
+  4: "w-24 sm:w-32",
+};
+const COLOR_TILE_PADDING: Record<1 | 2 | 3 | 4, string> = {
+  1: "py-5 sm:py-6",
+  2: "py-4 sm:py-5",
+  3: "py-3 sm:py-4",
+  4: "py-2 sm:py-2.5",
+};
+
+/** Same centered-columns layout as LogoCollage, but for when there's no photo at all to
+ * show anywhere: each band gets its own deterministic color (see entityColor) instead of
+ * a logo, with a small gradient for depth, over the location's own color as the card's
+ * base fill - so an entirely photo-less event still looks distinct from every other one
+ * instead of falling back to a generic empty state. */
+function ColorCollage({ locationName, bands }: { locationName: string; bands: BandColorInfo[] }) {
+  const columns = bands.length === 4 ? [bands.slice(0, 2), bands.slice(2, 4)] : bands.map((band) => [band]);
+  const widthClass = COLOR_TILE_WIDTH[bands.length as 1 | 2 | 3 | 4] ?? COLOR_TILE_WIDTH[4];
+  const paddingClass = COLOR_TILE_PADDING[bands.length as 1 | 2 | 3 | 4] ?? COLOR_TILE_PADDING[4];
+
+  return (
+    <div
+      className="flex h-full w-full items-center justify-center gap-3 overflow-hidden sm:gap-4"
+      style={{ backgroundColor: entityColor(locationName) }}
+    >
+      {columns.map((col, ci) => (
+        <div key={ci} className="flex flex-col gap-1.5 sm:gap-2">
+          {col.map((band, i) => {
+            const color = entityColor(band.name);
+            return (
+              <div
+                key={band.name + i}
+                className={`flex flex-col items-center justify-center gap-0.5 text-center ${widthClass} ${paddingClass}`}
+                style={{ background: `linear-gradient(160deg, ${shade(color, 14)}, ${shade(color, -18)})` }}
+              >
+                <span className="max-w-full truncate font-display text-sm font-bold uppercase tracking-wide text-white sm:text-base">
+                  {band.name}
+                </span>
+                {band.genres[0] && (
+                  <span className="max-w-full truncate font-meta text-[10px] uppercase tracking-wide text-white/75 sm:text-xs">
+                    {band.genres[0]}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       ))}
     </div>

@@ -23,6 +23,7 @@ export interface BandSummary {
   logoUrl: string | null;
   titleImageUrl: string | null;
   linkable: boolean;
+  genres: string[];
 }
 
 export interface LocationSummary {
