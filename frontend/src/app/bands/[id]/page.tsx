@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { FollowBandButton } from "@/components/FollowBandButton";
 import { ClaimButton } from "@/components/ClaimButton";
+import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 
 export default async function BandDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,15 +25,23 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="max-w-2xl">
-      {band.titleImageUrl && (
+      {band.titleImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={band.titleImageUrl} alt="" className="mb-6 aspect-video w-full border border-line object-cover" />
+      ) : (
+        <EntityPlaceholder
+          name={band.name}
+          className="mb-6 aspect-video w-full border border-line"
+          textClassName="text-6xl sm:text-7xl"
+        />
       )}
 
       <div className="flex items-start gap-4">
-        {band.logoUrl && (
+        {band.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={band.logoUrl} alt="" className="h-16 w-16 flex-none border border-line object-cover" />
+        ) : (
+          <EntityPlaceholder name={band.name} className="h-16 w-16 flex-none border border-line" textClassName="text-2xl" />
         )}
         <div className="flex-1">
           <h1 className="font-display text-4xl">{band.name}</h1>

@@ -7,6 +7,7 @@ import { EventCard } from "@/components/EventCard";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClaimButton } from "@/components/ClaimButton";
+import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 
 export default async function LocationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,9 +26,15 @@ export default async function LocationDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="max-w-2xl">
-      {location.titleImageUrl && (
+      {location.titleImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={location.titleImageUrl} alt="" className="mb-6 aspect-video w-full border border-line object-cover" />
+      ) : (
+        <EntityPlaceholder
+          name={location.name}
+          className="mb-6 aspect-video w-full border border-line"
+          textClassName="text-6xl sm:text-7xl"
+        />
       )}
 
       <div className="flex items-start justify-between gap-4">
