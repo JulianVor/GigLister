@@ -1,0 +1,13 @@
+<!-- A plain accent-colored dot, same "you are here" marker motif as the Orte map on the
+     web app (ConcertMap.tsx) - simplest possible mark that still reads as GigLister's own,
+     and safe hand-written path data (two arcs forming a full circle) rather than a
+     detailed logo that's easy to get subtly wrong without a renderer to check it in. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/accent"
+        android:pathData="M34,54 A20,20 0 1,0 74,54 A20,20 0 1,0 34,54 Z" />
+</vector>

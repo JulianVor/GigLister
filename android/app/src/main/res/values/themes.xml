@@ -1,0 +1,7 @@
+<resources>
+    <!-- Only the window background before Compose takes over - actual colors/typography
+         come from ui/theme/Theme.kt (MaterialTheme), not from this XML theme. -->
+    <style name="Theme.GigLister" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/background</item>
+    </style>
+</resources>

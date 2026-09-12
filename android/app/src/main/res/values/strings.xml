@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">GigLister</string>
+    <string name="notification_channel_id">nearby_concerts</string>
+    <string name="notification_channel_name">Konzerte in der Nähe</string>
+</resources>

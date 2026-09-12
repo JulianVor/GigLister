@@ -1,0 +1,8 @@
+<resources>
+    <!-- Same palette as the web app (frontend/src/app/globals.css) for a consistent brand
+         across both - background/foreground/accent are the three that matter here; the
+         full palette (including dark mode) lives in ui/theme/Theme.kt for Compose. -->
+    <color name="background">#F7F5EF</color>
+    <color name="foreground">#16140F</color>
+    <color name="accent">#E8481C</color>
+</resources>
