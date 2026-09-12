@@ -259,7 +259,7 @@ function DiagonalPhotoCollage({
               height: `${(seg.bottom - seg.top) * 100}%`,
             }}
           >
-            <span className="truncate font-display text-sm font-bold uppercase tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-lg">
+            <span className="break-words font-display text-sm font-bold uppercase leading-tight tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-lg">
               {seg.name}
             </span>
             {seg.genres[0] && (
@@ -387,7 +387,7 @@ function SingleBandCollage({
           className="pointer-events-none absolute bottom-0 left-0 flex flex-col items-start pb-2 pl-2 sm:pb-3 sm:pl-3"
           style={{ width: locationImage ? "55%" : "100%" }}
         >
-          <span className="truncate font-display text-base font-bold uppercase tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-xl">
+          <span className="break-words font-display text-base font-bold uppercase leading-tight tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-xl">
             {band.name}
           </span>
           {band.genres[0] && (
