@@ -63,13 +63,18 @@ export function ConcertMap({
         .addTo(map)
         .bindTooltip("Dein Standort");
 
-      const circle = L.circle([center.lat, center.lon], {
+      L.circle([center.lat, center.lon], {
         radius: radiusKm * 1000,
         color: "var(--accent)",
         weight: 1,
         fillOpacity: 0.05,
       }).addTo(map);
-      bounds.extend(circle.getBounds());
+      // The initial view fits your own position and the venues that actually have
+      // concerts, not the full radius circle - that circle is often much bigger than
+      // where the markers actually cluster, which would zoom out far past the point of
+      // being able to tell them apart. It's still drawn (just not fit to), so it's there
+      // to see once you zoom/pan back out.
+      bounds.extend([center.lat, center.lon]);
     }
 
     for (const loc of locations) {
@@ -98,11 +103,13 @@ export function ConcertMap({
       marker.bindPopup(popupHtml);
     }
 
-    // Refines the placeholder view above now that the real content (the radius circle,
-    // any venue markers) is known - left as-is when there's nothing to fit to (e.g. a
-    // center with no matching venues at all).
+    // Refines the placeholder view above now that the real content (your position, any
+    // venue markers) is known - left as-is when there's nothing to fit to (e.g. a center
+    // with no matching venues at all). A higher maxZoom than the radius circle itself
+    // would ever need, since venues can legitimately cluster within a few hundred meters
+    // of each other and should still end up visibly apart, not just a blob of markers.
     if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
+      map.fitBounds(bounds, { padding: [24, 24], maxZoom: 16 });
     }
 
     return () => {
