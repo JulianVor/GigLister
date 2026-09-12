@@ -20,4 +20,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByResetToken(String token);
 
     List<User> findByEmailContainingIgnoreCaseOrUsernameContainingIgnoreCase(String email, String username);
+
+    List<User> findByHomeLatitudeIsNotNull();
 }

@@ -79,6 +79,13 @@ services:
       # Empty by default - the GPT-skill integration (POST /api/submissions) is
       # disabled until you set this. See .env.example.
       GIGLISTER_GPT_SKILL_TOKEN: ${GIGLISTER_GPT_SKILL_TOKEN:-}
+      # Empty by default - push notifications (see PushNotificationService) stay
+      # disabled until this points at a real path. Once you have a Firebase
+      # service-account JSON key (Firebase console > Project settings > Service
+      # accounts > Generate new private key), add a line like
+      # "- ./firebase-credentials.json:/data/firebase-credentials.json:ro" under
+      # this service's volumes below and set this to that container path.
+      GIGLISTER_FIREBASE_CREDENTIALS_FILE: ${GIGLISTER_FIREBASE_CREDENTIALS_FILE:-}
     volumes:
       - giglister-uploads-data:/data/uploads
     ports:

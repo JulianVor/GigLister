@@ -1,12 +1,16 @@
 package com.giglister.web;
 
+import com.giglister.dto.DeviceTokenRequest;
 import com.giglister.dto.MeResponse;
 import com.giglister.dto.ProfileUpdateRequest;
 import com.giglister.dto.band.BandResponse;
 import com.giglister.dto.common.EventSummary;
 import com.giglister.security.CurrentUser;
+import com.giglister.service.PushNotificationService;
 import com.giglister.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +21,7 @@ import java.util.List;
 public class MeController {
 
     private final UserService userService;
+    private final PushNotificationService pushNotificationService;
 
     @GetMapping
     public MeResponse me() {
@@ -38,5 +43,21 @@ public class MeController {
     @GetMapping("/events")
     public List<EventSummary> myEvents() {
         return userService.myBandEvents(CurrentUser.requireId());
+    }
+
+    /** Registers (or reassigns, if already registered to a different account) this
+     * device's Firebase token for push notifications - called by the Android app once
+     * it has a token and knows who's logged in. */
+    @PostMapping("/device-token")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void registerDeviceToken(@Valid @RequestBody DeviceTokenRequest request) {
+        pushNotificationService.registerToken(CurrentUser.requireId(), request.token());
+    }
+
+    /** Called on logout, so a signed-out device stops receiving another account's pushes. */
+    @DeleteMapping("/device-token")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unregisterDeviceToken(@Valid @RequestBody DeviceTokenRequest request) {
+        pushNotificationService.unregisterToken(request.token());
     }
 }

@@ -3,6 +3,7 @@ package com.giglister.service;
 import com.giglister.domain.Band;
 import com.giglister.domain.Event;
 import com.giglister.domain.Location;
+import com.giglister.domain.User;
 import com.giglister.domain.enums.BandImageDisplay;
 import com.giglister.domain.enums.EntityType;
 import com.giglister.domain.enums.EventStatus;
@@ -16,7 +17,9 @@ import com.giglister.exception.BadRequestException;
 import com.giglister.exception.ForbiddenException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.EventRepository;
+import com.giglister.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -27,10 +30,12 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EventService {
 
@@ -40,6 +45,8 @@ public class EventService {
     private final PermissionService permissionService;
     private final GeoService geoService;
     private final SummaryMapper summaryMapper;
+    private final UserRepository userRepository;
+    private final PushNotificationService pushNotificationService;
 
     public Event getOrThrow(Long id) {
         return eventRepository.findById(id)
@@ -101,7 +108,40 @@ public class EventService {
                 .status(EventStatus.PUBLISHED)
                 .createdBy(createdBy)
                 .build();
-        return eventRepository.save(event);
+        event = eventRepository.save(event);
+        // Never lets a notification problem undo or fail the event creation itself - the
+        // event is already saved by the time this runs, this is purely a side effect.
+        try {
+            notifyNearbyUsers(event, createdBy);
+        } catch (Exception e) {
+            log.warn("Failed to notify nearby users about event {}: {}", event.getId(), e.toString());
+        }
+        return event;
+    }
+
+    /** Push notification for anyone who saved a home location + radius (see
+     * ProfileLocationForm/PushNotificationService) that this new event's location falls
+     * within - the creator themselves is excluded, and so is anyone who never set a
+     * radius (an unset radius is a deliberate "don't apply a distance filter" elsewhere
+     * in this app, but for an opt-in push it has to mean the opposite: nothing to compare
+     * against, so no push, rather than one for every event everywhere). */
+    private void notifyNearbyUsers(Event event, Long createdBy) {
+        Location location = locationService.getOrThrow(event.getLocationId());
+        if (location.getLatitude() == null || location.getLongitude() == null) {
+            return;
+        }
+        String title = "Neues Konzert in deiner Nähe";
+        String body = location.getName() + " · " + location.getCity();
+        for (User user : userRepository.findByHomeLatitudeIsNotNull()) {
+            if (user.getId().equals(createdBy) || user.getRadiusKm() == null) {
+                continue;
+            }
+            double distance = geoService.distanceKm(
+                    location.getLatitude(), location.getLongitude(), user.getHomeLatitude(), user.getHomeLongitude());
+            if (distance <= user.getRadiusKm()) {
+                pushNotificationService.sendToUser(user.getId(), title, body, Map.of("eventId", String.valueOf(event.getId())));
+            }
+        }
     }
 
     @Transactional
