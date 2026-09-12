@@ -67,6 +67,14 @@ dependencies {
     implementation("androidx.compose.material:material-icons-core")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
+    // Not used for any actual UI (everything here is Compose) - only pulled in because
+    // res/values/themes.xml's Theme.Material3.DayNight.NoActionBar base style lives in
+    // this classic Android Views library, not in Compose's own (name-alike but separate)
+    // androidx.compose.material3 above. Every Compose app still needs one plain XML
+    // theme for the window background before Compose takes over, and this is where that
+    // style comes from.
+    implementation("com.google.android.material:material:1.12.0")
+
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
