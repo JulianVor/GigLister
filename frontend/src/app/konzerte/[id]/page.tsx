@@ -8,7 +8,7 @@ import { eventLineupLabel } from "@/lib/event-display";
 import { LineUp } from "@/components/LineUp";
 import { SaveEventButton } from "@/components/SaveEventButton";
 import { StatusBadge } from "@/components/StatusBadge";
-import { EventCard } from "@/components/EventCard";
+import { EventCard, eventPhotoContent } from "@/components/EventCard";
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,12 +30,18 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   const saved = session?.savedEvents.some((e) => e.id === event.id) ?? false;
   const canEdit = canEditEvent(session, event);
+  const photo = eventPhotoContent(event);
 
   return (
     <div className="max-w-2xl">
       {event.status === "CANCELLED" && (
         <p className="mb-4 border border-accent px-3 py-2 font-meta text-sm text-accent">Dieses Konzert wurde abgesagt.</p>
       )}
+
+      {/* Only shown when there's an actual photo somewhere (event/band/location) - the
+          colored-tile fallback used in listings would just repeat the Line-up below in a
+          bigger box, with no photo of its own to add. */}
+      {photo && <div className="relative mb-6 aspect-video w-full overflow-hidden border border-line">{photo}</div>}
 
       <div className="font-meta text-lg tracking-wide text-muted">
         {weekdayShort(event.date)}

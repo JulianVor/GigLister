@@ -9,10 +9,11 @@ interface BandPhoto {
   url: string;
 }
 
-/** An image-forward post-style card (photo up top, a floating date pill, details below) -
- * self-spaced (`mb-4`) so every list of these just stacks without callers adding gaps. */
-export function EventCard({ event }: { event: EventSummary }) {
-  const time = formatTime(event.startTime);
+/** The event/band/location photo treatment shared by the card and the event detail page's
+ * own banner - null when there's no photo anywhere to show, so each caller decides what
+ * (if anything) replaces it: the card falls back to ColorCollage, the detail page just
+ * shows no banner at all rather than repeating the Line-up's colors a second time. */
+export function eventPhotoContent(event: EventSummary): React.ReactNode {
   const heroImage = event.titleImageUrl;
   const locationImage = event.location.titleImageUrl;
   const bandPhotos: BandPhoto[] = event.bands
@@ -20,28 +21,32 @@ export function EventCard({ event }: { event: EventSummary }) {
     .filter((entry): entry is BandPhoto => !!entry.url)
     .slice(0, 4);
 
-  let content;
   if (heroImage) {
-    content = <PlainCover src={heroImage} />;
-  } else if (bandPhotos.length === 0) {
-    content = locationImage ? (
-      <PlainCover src={locationImage} />
-    ) : (
-      <ColorCollage
-        locationName={event.location.name}
-        bands={event.bands.slice(0, 4).map((b) => ({ name: b.name, genres: b.genres }))}
-      />
-    );
-  } else if (event.bandImageDisplay === "PHOTO") {
-    content =
-      bandPhotos.length === 1 ? (
-        <SingleBandCollage band={bandPhotos[0]} locationImage={locationImage} />
-      ) : (
-        <DiagonalPhotoCollage bands={bandPhotos} />
-      );
-  } else {
-    content = <LogoCollage logos={bandPhotos.map((b) => b.url)} locationImage={locationImage} />;
+    return <PlainCover src={heroImage} />;
   }
+  if (bandPhotos.length === 0) {
+    return locationImage ? <PlainCover src={locationImage} /> : null;
+  }
+  if (event.bandImageDisplay === "PHOTO") {
+    return bandPhotos.length === 1 ? (
+      <SingleBandCollage band={bandPhotos[0]} locationImage={locationImage} />
+    ) : (
+      <DiagonalPhotoCollage bands={bandPhotos} />
+    );
+  }
+  return <LogoCollage logos={bandPhotos.map((b) => b.url)} locationImage={locationImage} />;
+}
+
+/** An image-forward post-style card (photo up top, a floating date pill, details below) -
+ * self-spaced (`mb-4`) so every list of these just stacks without callers adding gaps. */
+export function EventCard({ event }: { event: EventSummary }) {
+  const time = formatTime(event.startTime);
+  const content = eventPhotoContent(event) ?? (
+    <ColorCollage
+      locationName={event.location.name}
+      bands={event.bands.slice(0, 4).map((b) => ({ name: b.name, genres: b.genres }))}
+    />
+  );
 
   return (
     <Link href={`/konzerte/${event.id}`} className="group mb-4 block border border-line hover:border-fg">
