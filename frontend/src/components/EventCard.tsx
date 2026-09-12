@@ -31,9 +31,15 @@ export function eventPhotoContent(event: EventSummary, { showLabels = true }: { 
   // dropping out of the lineup and leaving the others to stretch into the space it would
   // have had; in LOGO mode a missing logo is simply skipped, same as before, since a
   // logo-shaped color swatch wouldn't read the same way a photo-shaped one does.
+  // Sorted so every band with an image comes before every one without - a stable sort,
+  // so within each of those two groups the original line-up order is kept. Grouping them
+  // is what lets a partial location photo (see DiagonalPhotoCollage) sit behind exactly
+  // the photo-less bands as one contiguous block instead of needing to peek out from
+  // between unrelated photos wherever a gap happens to fall in the original order.
   const allBands: BandPhoto[] = event.bands
     .slice(0, 4)
-    .map((b) => ({ name: b.name, url: isPhotoMode ? b.titleImageUrl : b.logoUrl, genres: b.genres }));
+    .map((b) => ({ name: b.name, url: isPhotoMode ? b.titleImageUrl : b.logoUrl, genres: b.genres }))
+    .sort((a, b) => (a.url ? 0 : 1) - (b.url ? 0 : 1));
   const anyImage = allBands.some((b) => !!b.url);
 
   if (!anyImage) {
@@ -54,7 +60,7 @@ export function eventPhotoContent(event: EventSummary, { showLabels = true }: { 
     return allBands.length === 1 ? (
       <SingleBandCollage band={allBands[0]} locationImage={locationImage} showLabel={showLabels} />
     ) : (
-      <DiagonalPhotoCollage bands={allBands} showLabels={showLabels} />
+      <DiagonalPhotoCollage bands={allBands} showLabels={showLabels} locationImage={locationImage} />
     );
   }
   const logos = allBands.filter((b): b is BandPhoto & { url: string } => !!b.url).map((b) => b.url);
@@ -211,7 +217,13 @@ function SeamLine({ boundary, top, bottom }: { boundary: number; top: number; bo
  * `colorMode` is for when none of the bands have a photo but the location does: each
  * strip becomes a translucent wash of the band's own color (see entityColor) instead of
  * an image, over a single dimmed copy of the location photo filling the whole card behind
- * them all - same geometry either way, just what fills each strip. */
+ * them all - same geometry either way, just what fills each strip.
+ *
+ * Without colorMode, `bands` can still be a mix (some with a photo, some without, per
+ * `eventPhotoContent`'s sort grouping every photo-less one at the end): that contiguous
+ * group gets the same dimmed-location-behind-a-translucent-wash treatment as colorMode,
+ * just sized to only that group's own share of the card - not the ones that already have
+ * a real photo, which stay exactly as if colorMode/no-location never applied to them. */
 function DiagonalPhotoCollage({
   bands,
   showLabels = true,
@@ -224,6 +236,8 @@ function DiagonalPhotoCollage({
   locationImage?: string | null;
 }) {
   const segments = layoutSegments(bands);
+  const firstPhotolessIndex = colorMode ? -1 : segments.findIndex((s) => !s.url);
+  const partialLocation = !colorMode && firstPhotolessIndex !== -1 && !!locationImage;
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-surface">
@@ -231,8 +245,23 @@ function DiagonalPhotoCollage({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={locationImage} alt="" className="absolute inset-0 h-full w-full object-cover brightness-50 saturate-75" />
       )}
+      {partialLocation && (
+        // Sized to just the photo-less group's own share of the card (from its left edge,
+        // itself a plain segment boundary that - like an outer edge - never needs the
+        // rightward CUT_SKEW widening segmentBox gives an internal right edge, to the
+        // card's own right edge) - the same "don't stretch a photo across space it's
+        // never actually visible in" fix segmentBox/SingleBandCollage already apply.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={locationImage}
+          alt=""
+          className="absolute inset-y-0 right-0 h-full object-cover brightness-50 saturate-75"
+          style={{ width: `${(1 - firstPhotolessIndex / segments.length) * 100}%` }}
+        />
+      )}
       {segments.map((seg, i) => {
         const box = segmentBox(seg);
+        const translucent = colorMode || partialLocation;
         return (
           <div
             key={i}
@@ -245,16 +274,14 @@ function DiagonalPhotoCollage({
               clipPath: segmentClipPath(seg, box),
             }}
           >
-            {colorMode ? (
-              <div className="h-full w-full" style={{ backgroundColor: entityColor(seg.name), opacity: 0.7 }} />
-            ) : seg.url ? (
+            {seg.url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={seg.url} alt="" className="h-full w-full object-cover" />
             ) : (
-              // This one band has no photo of its own while at least one other does - its
-              // own flat color stands in, opaque (no location involved: that's only for
-              // when NONE of them have a photo, see the colorMode branch above).
-              <div className="h-full w-full" style={{ backgroundColor: entityColor(seg.name) }} />
+              <div
+                className="h-full w-full"
+                style={{ backgroundColor: entityColor(seg.name), opacity: translucent ? 0.7 : 1 }}
+              />
             )}
           </div>
         );
