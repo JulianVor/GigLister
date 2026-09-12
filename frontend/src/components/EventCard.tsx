@@ -8,6 +8,10 @@ interface BandPhoto {
   name: string;
   url: string | null;
   genres: string[];
+  /** Only meaningful in PHOTO mode, for a band with no photo (`url` null) - its logo (if
+   * it has one) is shown as large as possible over whatever fills the rest of its segment
+   * (a color wash or dimmed location photo) instead of leaving that segment bare. */
+  logoUrl?: string | null;
 }
 
 /** The event/band/location photo treatment shared by the card and the event detail page's
@@ -47,7 +51,12 @@ export function eventPhotoContent(
   // between unrelated photos wherever a gap happens to fall in the original order.
   const allBands: BandPhoto[] = event.bands
     .slice(0, 4)
-    .map((b) => ({ name: b.name, url: isPhotoMode ? b.titleImageUrl : b.logoUrl, genres: b.genres }))
+    .map((b) => ({
+      name: b.name,
+      url: isPhotoMode ? b.titleImageUrl : b.logoUrl,
+      genres: b.genres,
+      logoUrl: isPhotoMode ? b.logoUrl : undefined,
+    }))
     .sort((a, b) => (a.url ? 0 : 1) - (b.url ? 0 : 1));
   const anyImage = allBands.some((b) => !!b.url);
 
@@ -83,7 +92,7 @@ export function EventCard({ event }: { event: EventSummary }) {
   const content = eventPhotoContent(event) ?? (
     <ColorCollage
       locationName={event.location.name}
-      bands={event.bands.slice(0, 4).map((b) => ({ name: b.name, genres: b.genres }))}
+      bands={event.bands.slice(0, 4).map((b) => ({ name: b.name, genres: b.genres, logoUrl: b.logoUrl }))}
     />
   );
 
@@ -296,6 +305,24 @@ function DiagonalPhotoCollage({
       {segments.slice(0, -1).map((seg, i) => (
         <SeamLine key={`seam-${i}`} boundary={seg.right} top={seg.top} bottom={seg.bottom} />
       ))}
+      {segments.map(
+        (seg, i) =>
+          !seg.url &&
+          seg.logoUrl && (
+            <div
+              key={`logo-${i}`}
+              className="absolute"
+              style={{
+                left: `${seg.left * 100}%`,
+                width: `${(seg.right - seg.left) * 100}%`,
+                top: `${seg.top * 100}%`,
+                height: `${(seg.bottom - seg.top) * 100}%`,
+              }}
+            >
+              <BandLogoOverlay logoUrl={seg.logoUrl} />
+            </div>
+          )
+      )}
       {showLabels &&
         segments.map((seg, i) => (
           <div
@@ -322,9 +349,31 @@ function DiagonalPhotoCollage({
   );
 }
 
+/** A band with no photo but a logo gets it shown here, as large as the segment/box
+ * comfortably allows, instead of leaving just the flat color/gradient behind it bare.
+ * Positioned with generous insets so it never runs into a diagonal cut or a label. */
+function BandLogoOverlay({ logoUrl }: { logoUrl?: string | null }) {
+  if (!logoUrl) return null;
+  return (
+    // The padding lives on this wrapper, not the <img> itself - an absolutely positioned
+    // <img> with 'auto' width/height sizes itself to its own intrinsic pixel size even
+    // when inset on all four sides, ignoring the box that would imply; giving the <img>
+    // an explicit h-full/w-full here is what actually makes it fill (and object-contain
+    // scale within) the padded box instead of rendering at its native size.
+    <div className="pointer-events-none absolute inset-0 p-4 sm:p-6">
+      {/* A logo isn't meant to be cropped - object-contain shows it whole, floating over
+          whatever fills the segment instead of replacing it, same treatment LogoTile/LineUp
+          already give a logo elsewhere. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={logoUrl} alt="" className="h-full w-full object-contain" />
+    </div>
+  );
+}
+
 interface BandColorInfo {
   name: string;
   genres: string[];
+  logoUrl: string | null;
 }
 
 /** Same diagonal-strip geometry as DiagonalPhotoCollage, for when neither the location nor
@@ -358,6 +407,23 @@ function ColorCollage({ locationName, bands }: { locationName: string; bands: Ba
       {segments.slice(0, -1).map((seg, i) => (
         <SeamLine key={`seam-${i}`} boundary={seg.right} top={seg.top} bottom={seg.bottom} color={locationColor} />
       ))}
+      {segments.map(
+        (seg, i) =>
+          seg.logoUrl && (
+            <div
+              key={`logo-${i}`}
+              className="absolute"
+              style={{
+                left: `${seg.left * 100}%`,
+                width: `${(seg.right - seg.left) * 100}%`,
+                top: `${seg.top * 100}%`,
+                height: `${(seg.bottom - seg.top) * 100}%`,
+              }}
+            >
+              <BandLogoOverlay logoUrl={seg.logoUrl} />
+            </div>
+          )
+      )}
       {segments.map((seg, i) => (
         <div
           key={`label-${i}`}
@@ -450,6 +516,13 @@ function SingleBandCollage({
           className="absolute inset-y-0 left-0 h-full object-cover"
           style={{ width: `${boxWidth * 100}%`, ...fadeMask }}
         />
+      )}
+      {colorMode && (
+        // Not masked like the color fill behind it - the logo itself shouldn't fade out,
+        // only the flat color it's floating over.
+        <div className="absolute inset-y-0 left-0 h-full" style={{ width: `${boxWidth * 100}%` }}>
+          <BandLogoOverlay logoUrl={band.logoUrl} />
+        </div>
       )}
       {showLabel && (
         <div
