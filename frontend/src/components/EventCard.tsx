@@ -7,6 +7,7 @@ import { entityColor } from "@/lib/entityColor";
 interface BandPhoto {
   name: string;
   url: string;
+  genres: string[];
 }
 
 /** The event/band/location photo treatment shared by the card and the event detail page's
@@ -19,7 +20,7 @@ export function eventPhotoContent(event: EventSummary, { showLabels = true }: { 
   const heroImage = event.titleImageUrl;
   const locationImage = event.location.titleImageUrl;
   const bandPhotos: BandPhoto[] = event.bands
-    .map((b) => ({ name: b.name, url: event.bandImageDisplay === "PHOTO" ? b.titleImageUrl : b.logoUrl }))
+    .map((b) => ({ name: b.name, url: event.bandImageDisplay === "PHOTO" ? b.titleImageUrl : b.logoUrl, genres: b.genres }))
     .filter((entry): entry is BandPhoto => !!entry.url)
     .slice(0, 4);
 
@@ -216,7 +217,7 @@ function DiagonalPhotoCollage({ bands, showLabels = true }: { bands: BandPhoto[]
         segments.map((seg, i) => (
           <div
             key={`label-${i}`}
-            className="pointer-events-none absolute flex items-end justify-start overflow-hidden pb-2 pl-2 sm:pb-3 sm:pl-3"
+            className="pointer-events-none absolute flex flex-col items-start justify-end overflow-hidden pb-2 pl-2 sm:pb-3 sm:pl-3"
             style={{
               left: `${seg.left * 100}%`,
               width: `${(seg.right - seg.left) * 100}%`,
@@ -227,6 +228,11 @@ function DiagonalPhotoCollage({ bands, showLabels = true }: { bands: BandPhoto[]
             <span className="truncate font-display text-sm font-bold uppercase tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-lg">
               {seg.name}
             </span>
+            {seg.genres[0] && (
+              <span className="truncate font-meta text-xs uppercase tracking-wide text-white/80 [text-shadow:0_1px_4px_rgba(0,0,0,0.85)]">
+                {seg.genres[0]}
+              </span>
+            )}
           </div>
         ))}
     </div>
@@ -336,12 +342,17 @@ function SingleBandCollage({
       />
       {showLabel && (
         <div
-          className="pointer-events-none absolute bottom-0 left-0 flex items-end pb-2 pl-2 sm:pb-3 sm:pl-3"
+          className="pointer-events-none absolute bottom-0 left-0 flex flex-col items-start pb-2 pl-2 sm:pb-3 sm:pl-3"
           style={{ width: locationImage ? "55%" : "100%" }}
         >
           <span className="truncate font-display text-base font-bold uppercase tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-xl">
             {band.name}
           </span>
+          {band.genres[0] && (
+            <span className="truncate font-meta text-xs uppercase tracking-wide text-white/80 [text-shadow:0_1px_4px_rgba(0,0,0,0.85)]">
+              {band.genres[0]}
+            </span>
+          )}
         </div>
       )}
     </div>
