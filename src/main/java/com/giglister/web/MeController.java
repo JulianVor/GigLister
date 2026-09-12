@@ -1,11 +1,13 @@
 package com.giglister.web;
 
+import com.giglister.dto.ChangePasswordRequest;
 import com.giglister.dto.DeviceTokenRequest;
 import com.giglister.dto.MeResponse;
 import com.giglister.dto.ProfileUpdateRequest;
 import com.giglister.dto.band.BandResponse;
 import com.giglister.dto.common.EventSummary;
 import com.giglister.security.CurrentUser;
+import com.giglister.service.AuthService;
 import com.giglister.service.PushNotificationService;
 import com.giglister.service.UserService;
 import jakarta.validation.Valid;
@@ -22,6 +24,7 @@ public class MeController {
 
     private final UserService userService;
     private final PushNotificationService pushNotificationService;
+    private final AuthService authService;
 
     @GetMapping
     public MeResponse me() {
@@ -59,5 +62,14 @@ public class MeController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unregisterDeviceToken(@Valid @RequestBody DeviceTokenRequest request) {
         pushNotificationService.unregisterToken(request.token());
+    }
+
+    /** Changing a known password while logged in - no email round-trip needed, unlike
+     * /api/auth/reset-password, since knowing the current password already proves it's
+     * really the account owner. */
+    @PutMapping("/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(CurrentUser.requireId(), request.currentPassword(), request.newPassword());
     }
 }

@@ -8,6 +8,7 @@ import com.giglister.dto.auth.RegisterResponse;
 import com.giglister.exception.BadRequestException;
 import com.giglister.exception.ConflictException;
 import com.giglister.exception.ForbiddenException;
+import com.giglister.exception.NotFoundException;
 import com.giglister.repository.UserRepository;
 import com.giglister.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -116,6 +117,21 @@ public class AuthService {
         user.setEmailVerified(true);
         user = userRepository.save(user);
         return toAuthResponse(user);
+    }
+
+    /** For an already-logged-in user changing their password by choice - unlike
+     * resetPassword (which proves control of the inbox via an emailed token instead),
+     * this requires the current password so a stolen/leaked session token alone can't be
+     * used to permanently lock the real owner out. */
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User " + userId + " not found"));
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new BadRequestException("Das aktuelle Passwort ist falsch.");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     public AuthResponse login(LoginRequest request) {

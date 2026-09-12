@@ -17,7 +17,20 @@ export async function updateProfileAction(input: {
 
   try {
     await api.updateProfile(input, token);
-    revalidatePath("/mein-giglister");
+    revalidatePath("/einstellungen");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+export async function changePasswordAction(input: { currentPassword: string; newPassword: string }): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.changePassword(input, token);
     return { ok: true, data: undefined };
   } catch (err) {
     if (err instanceof api.ApiError) return { ok: false, error: err.message };

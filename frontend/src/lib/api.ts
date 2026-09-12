@@ -332,6 +332,10 @@ export function updateProfile(
   return apiFetch<MeResponse>("/api/me", { method: "PUT", body: data, token });
 }
 
+export function changePassword(data: { currentPassword: string; newPassword: string }, token: string) {
+  return apiFetch<void>("/api/me/password", { method: "PUT", body: data, token });
+}
+
 /** "Meine Bands": every band the current user holds EDIT/MANAGE on. */
 export function getMyBands(token: string) {
   return apiFetch<BandResponse[]>("/api/me/bands", { token });

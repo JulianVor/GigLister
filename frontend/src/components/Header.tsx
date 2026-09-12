@@ -39,6 +39,9 @@ export async function Header() {
               <Link href="/mein-giglister" className="hover:text-accent">
                 Mein GigLister
               </Link>
+              <Link href="/einstellungen" className="hover:text-accent">
+                Einstellungen
+              </Link>
               {session.platformAdmin && (
                 <Link href="/admin" className="hover:text-accent">
                   Admin
