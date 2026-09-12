@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { BandSummary, MeResponse } from "@/lib/types";
 import { canManageEntity } from "@/lib/permissions";
+import { EntityPlaceholder } from "./EntityPlaceholder";
 import { StatusBadge } from "./StatusBadge";
 
 export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; loggedIn: boolean; session: MeResponse | null }) {
@@ -16,7 +17,7 @@ export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; log
               // eslint-disable-next-line @next/next/no-img-element
               <img src={band.logoUrl} alt="" className="h-12 w-12 flex-none object-contain" />
             ) : (
-              <div className="h-12 w-12 flex-none border border-line" />
+              <EntityPlaceholder name={band.name} className="h-12 w-12 flex-none" textClassName="text-xl" />
             )}
             <div>
               <div className="font-display text-base">{band.name}</div>
