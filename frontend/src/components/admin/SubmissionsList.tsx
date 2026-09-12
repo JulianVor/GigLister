@@ -54,10 +54,16 @@ export function SubmissionsList({ submissions }: { submissions: SubmissionRespon
  * bundle it under the event instead of leaving it as an unrelated list entry, since
  * approving the event first would otherwise create a duplicate stub. There's no explicit
  * link between these submissions (the GPT-skill sends them as independent calls), so
- * matching is by name (+ city when both sides give one) rather than an id. */
+ * matching is by name (+ city when both sides give one) rather than an id.
+ *
+ * A single Location (a venue hosting several upcoming shows) or Band can legitimately be
+ * referenced by more than one pending Event - matching must NOT be exclusive (a submission
+ * "claimed" by the first event that matches it), or every later event referencing the same
+ * not-yet-existing entry silently gets no bundle at all. So a match can be attached under
+ * multiple events at once; it's only removed from the top-level list once. */
 function groupSubmissions(submissions: SubmissionResponse[]): { primary: SubmissionResponse; related: SubmissionResponse[] }[] {
   const pool = submissions.filter((s) => s.type === "BAND" || s.type === "LOCATION");
-  const consumed = new Set<number>();
+  const matchedToAnyEvent = new Set<number>();
   const childrenByEventId = new Map<number, SubmissionResponse[]>();
 
   function normalize(s?: string): string {
@@ -67,7 +73,7 @@ function groupSubmissions(submissions: SubmissionResponse[]): { primary: Submiss
   function findMatch(type: "BAND" | "LOCATION", ref: EntityRef | undefined): SubmissionResponse | undefined {
     if (!ref || ref.id != null || !ref.name) return undefined;
     return pool.find((s) => {
-      if (s.type !== type || consumed.has(s.id)) return false;
+      if (s.type !== type) return false;
       const payloadName = typeof s.payload.name === "string" ? s.payload.name : "";
       if (normalize(payloadName) !== normalize(ref.name)) return false;
       const payloadCity = typeof s.payload.city === "string" ? s.payload.city : "";
@@ -84,13 +90,13 @@ function groupSubmissions(submissions: SubmissionResponse[]): { primary: Submiss
     const locationMatch = findMatch("LOCATION", payload.location);
     if (locationMatch) {
       related.push(locationMatch);
-      consumed.add(locationMatch.id);
+      matchedToAnyEvent.add(locationMatch.id);
     }
     for (const bandRef of payload.bands ?? []) {
       const bandMatch = findMatch("BAND", bandRef);
       if (bandMatch) {
         related.push(bandMatch);
-        consumed.add(bandMatch.id);
+        matchedToAnyEvent.add(bandMatch.id);
       }
     }
 
@@ -101,7 +107,7 @@ function groupSubmissions(submissions: SubmissionResponse[]): { primary: Submiss
 
   const groups: { primary: SubmissionResponse; related: SubmissionResponse[] }[] = [];
   for (const submission of submissions) {
-    if (consumed.has(submission.id)) continue;
+    if (matchedToAnyEvent.has(submission.id)) continue;
     groups.push({ primary: submission, related: childrenByEventId.get(submission.id) ?? [] });
   }
   return groups;
