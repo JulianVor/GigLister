@@ -21,7 +21,10 @@ export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; log
             )}
             <div>
               <div className="font-display text-base">{band.name}</div>
-              {band.city && <div className="font-meta text-sm text-muted">{band.city}</div>}
+              {/* City is rarely useful here - this site is for local gigs, so almost every
+                  band already plays in or near the city the event itself is in. Genres
+                  tell a visitor something they don't already know. */}
+              {band.genres.length > 0 && <div className="font-meta text-sm text-muted">{band.genres.join(", ")}</div>}
             </div>
             {/* Unvollständig/Entwurf is only meaningful to an admin or this band's own manager - a
                 random visitor doesn't need to see internal workflow state. */}
