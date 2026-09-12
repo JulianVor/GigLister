@@ -127,19 +127,14 @@ function cutX(boundary: number, y: number): number {
   return boundary + CUT_SKEW * (1 - y);
 }
 
-interface Segment extends BandPhoto {
+interface Segment {
   left: number;
   right: number;
   top: number;
   bottom: number;
 }
 
-interface SegmentBox {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-}
+type SegmentBox = Segment;
 
 /** cutX only ever shifts a boundary to the right (by up to CUT_SKEW, at the top edge) -
  * never left - so a segment's photo only needs a wider box than its own nominal strip
@@ -169,10 +164,12 @@ function segmentClipPath(seg: Segment, box: SegmentBox): string {
 }
 
 /** Every band count splits the card into equal-width, full-height diagonal strips side
- * by side - 2, 3, or 4, all the same layout, just narrower per strip as more bands join. */
-function layoutSegments(bands: BandPhoto[]): Segment[] {
-  const n = bands.length;
-  return bands.map((band, i) => ({ ...band, left: i / n, right: (i + 1) / n, top: 0, bottom: 1 }));
+ * by side - 2, 3, or 4, all the same layout, just narrower per strip as more bands join.
+ * Generic so both the photo collage and the fully-colored one (ColorCollage) share this
+ * layout and the seam-drawing code built on it. */
+function layoutSegments<T>(items: T[]): (T & Segment)[] {
+  const n = items.length;
+  return items.map((item, i) => ({ ...item, left: i / n, right: (i + 1) / n, top: 0, bottom: 1 }));
 }
 
 /** Half-thickness of the white seam line drawn over each internal boundary, as a fraction
@@ -183,7 +180,7 @@ const SEAM_HALF_WIDTH = 0.0015;
  * happen to meet - no pixels of its own. This draws a thin white sliver centered exactly
  * on that shared line (same cutX as the segments themselves, so it tracks it perfectly at
  * every height) as its own layer on top, in a box just wide enough to hold it. */
-function SeamLine({ boundary, top, bottom }: { boundary: number; top: number; bottom: number }) {
+function SeamLine({ boundary, top, bottom, color = "#fff" }: { boundary: number; top: number; bottom: number; color?: string }) {
   const boxLeft = Math.max(0, boundary - SEAM_HALF_WIDTH);
   const boxRight = Math.min(1, boundary + CUT_SKEW + SEAM_HALF_WIDTH);
   const w = boxRight - boxLeft;
@@ -197,12 +194,13 @@ function SeamLine({ boundary, top, bottom }: { boundary: number; top: number; bo
   ];
   return (
     <div
-      className="pointer-events-none absolute bg-white"
+      className="pointer-events-none absolute"
       style={{
         left: `${boxLeft * 100}%`,
         width: `${w * 100}%`,
         top: `${top * 100}%`,
         height: `${h * 100}%`,
+        backgroundColor: color,
         clipPath: `polygon(${points.map(([x, y]) => `${x * 100}% ${y * 100}%`).join(", ")})`,
       }}
     />
@@ -320,36 +318,56 @@ interface BandColorInfo {
   genres: string[];
 }
 
-/** Full-bleed grid of band tiles - each one fills its share of the card (a row for 1-3
- * bands, a 2x2 grid for 4), with the location's own color showing through only as the
- * thin gap between them, and each tile's own gradient fading into that same location
- * color at its edge so the whole thing reads as one connected surface rather than
- * separate chips glued on top. Tiles get the full card to grow into (unlike a fixed-size
- * chip), so even a long band name has room to wrap onto two lines instead of truncating. */
+/** Same diagonal-strip geometry as DiagonalPhotoCollage, for when neither the location nor
+ * any band has a photo at all: each strip is a gradient from its own band's color (see
+ * entityColor) into the location's, and the seams between them - plus a frame around the
+ * whole card - use the location's color instead of white/border-line, so the location
+ * still visibly ties the card together even without a photo of its own. */
 function ColorCollage({ locationName, bands }: { locationName: string; bands: BandColorInfo[] }) {
   const locationColor = entityColor(locationName);
-  const columns = bands.length === 4 ? [bands.slice(0, 2), bands.slice(2, 4)] : bands.map((band) => [band]);
+  const segments = layoutSegments(bands);
 
   return (
-    <div className="flex h-full w-full gap-1 p-1 sm:gap-1.5 sm:p-1.5" style={{ backgroundColor: locationColor }}>
-      {columns.map((col, ci) => (
-        <div key={ci} className="flex flex-1 flex-col gap-1 sm:gap-1.5">
-          {col.map((band, i) => (
-            <div
-              key={band.name + i}
-              className="flex flex-1 flex-col items-center justify-center gap-1 px-2 text-center"
-              style={{ background: `linear-gradient(160deg, ${entityColor(band.name)}, ${locationColor})` }}
-            >
-              <span className="max-w-full break-words font-display text-base font-bold uppercase leading-tight tracking-wide text-white sm:text-xl">
-                {band.name}
-              </span>
-              {band.genres[0] && (
-                <span className="max-w-full truncate font-meta text-xs uppercase tracking-wide text-white/75 sm:text-sm">
-                  {band.genres[0]}
-                </span>
-              )}
-            </div>
-          ))}
+    <div className="relative h-full w-full overflow-hidden" style={{ boxShadow: `inset 0 0 0 3px ${locationColor}` }}>
+      {segments.map((seg, i) => {
+        const box = segmentBox(seg);
+        return (
+          <div
+            key={i}
+            className="absolute"
+            style={{
+              left: `${box.left * 100}%`,
+              width: `${(box.right - box.left) * 100}%`,
+              top: `${box.top * 100}%`,
+              height: `${(box.bottom - box.top) * 100}%`,
+              clipPath: segmentClipPath(seg, box),
+              background: `linear-gradient(160deg, ${entityColor(seg.name)}, ${locationColor})`,
+            }}
+          />
+        );
+      })}
+      {segments.slice(0, -1).map((seg, i) => (
+        <SeamLine key={`seam-${i}`} boundary={seg.right} top={seg.top} bottom={seg.bottom} color={locationColor} />
+      ))}
+      {segments.map((seg, i) => (
+        <div
+          key={`label-${i}`}
+          className="pointer-events-none absolute flex flex-col items-start justify-end overflow-hidden pb-2 pl-2 sm:pb-3 sm:pl-3"
+          style={{
+            left: `${seg.left * 100}%`,
+            width: `${(seg.right - seg.left) * 100}%`,
+            top: `${seg.top * 100}%`,
+            height: `${(seg.bottom - seg.top) * 100}%`,
+          }}
+        >
+          <span className="break-words font-display text-sm font-bold uppercase leading-tight tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-lg">
+            {seg.name}
+          </span>
+          {seg.genres[0] && (
+            <span className="truncate font-meta text-xs uppercase tracking-wide text-white/80 [text-shadow:0_1px_4px_rgba(0,0,0,0.85)]">
+              {seg.genres[0]}
+            </span>
+          )}
         </div>
       ))}
     </div>
