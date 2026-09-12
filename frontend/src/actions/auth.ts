@@ -5,11 +5,13 @@ import { redirect } from "next/navigation";
 import {
   ApiError,
   forgotPassword as apiForgotPassword,
+  getMe,
   login as apiLogin,
   register as apiRegister,
   resetPassword as apiResetPassword,
 } from "@/lib/api";
 import { TOKEN_COOKIE } from "@/lib/session";
+import { applyHomeLocationCookies } from "@/lib/location-prefs";
 
 export type AuthFormState = { error?: string } | undefined;
 export type RegisterFormState = { error?: string; success?: boolean; email?: string } | undefined;
@@ -38,6 +40,10 @@ export async function loginAction(_prevState: AuthFormState, formData: FormData)
   try {
     const res = await apiLogin({ username, password });
     await setSessionCookie(res.token);
+    // Same as picking it by hand in "Standort wählen" - just done for them, right away,
+    // from whatever they already saved on their profile.
+    const me = await getMe(res.token);
+    await applyHomeLocationCookies(me);
   } catch (err) {
     if (err instanceof ApiError) {
       return { error: err.status === 401 ? "Nutzername oder Passwort ist falsch." : err.message };

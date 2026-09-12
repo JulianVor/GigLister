@@ -8,6 +8,8 @@ public record LocationSummary(
         String city,
         EntityStatus status,
         String titleImageUrl,
-        boolean linkable
+        boolean linkable,
+        Double latitude,
+        Double longitude
 ) {
 }

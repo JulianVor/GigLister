@@ -33,6 +33,8 @@ export interface LocationSummary {
   status: EntityStatus;
   titleImageUrl: string | null;
   linkable: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface EventSummary {
@@ -129,6 +131,8 @@ export interface MeResponse {
   email: string;
   username: string;
   homeCity: string | null;
+  homeLatitude: number | null;
+  homeLongitude: number | null;
   radiusKm: number | null;
   platformAdmin: boolean;
   savedEvents: EventSummary[];

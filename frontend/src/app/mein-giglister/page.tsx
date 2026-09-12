@@ -5,6 +5,7 @@ import { getMyBands, getMyEvents } from "@/lib/api";
 import { EventCard } from "@/components/EventCard";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ProfileLocationForm } from "@/components/ProfileLocationForm";
 import type { BandResponse, EventSummary } from "@/lib/types";
 
 export default async function MeinGigListerPage() {
@@ -24,6 +25,14 @@ export default async function MeinGigListerPage() {
       <p className="mt-1 font-meta text-sm text-muted">
         {session.username} · {session.email}
       </p>
+
+      <section className="mt-10">
+        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Standort</h2>
+        <p className="mt-1 font-meta text-xs text-muted">
+          Wird bei der nächsten Anmeldung automatisch als &quot;Standort wählen&quot; übernommen.
+        </p>
+        <ProfileLocationForm homeCity={session.homeCity} radiusKm={session.radiusKm} />
+      </section>
 
       <section className="mt-10">
         <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Gemerkt</h2>

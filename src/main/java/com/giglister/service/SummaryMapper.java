@@ -41,7 +41,8 @@ public class SummaryMapper {
 
     public LocationSummary locationSummary(Location location) {
         return new LocationSummary(location.getId(), location.getName(), location.getCity(),
-                location.getStatus(), location.getTitleImageUrl(), location.getStatus() == EntityStatus.PUBLISHED);
+                location.getStatus(), location.getTitleImageUrl(), location.getStatus() == EntityStatus.PUBLISHED,
+                location.getLatitude(), location.getLongitude());
     }
 
     public LocationSummary locationSummary(Long locationId) {

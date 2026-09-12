@@ -11,6 +11,8 @@ public record MeResponse(
         String email,
         String username,
         String homeCity,
+        Double homeLatitude,
+        Double homeLongitude,
         Integer radiusKm,
         boolean platformAdmin,
         List<EventSummary> savedEvents,

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CITY_COOKIE, LAT_COOKIE, LON_COOKIE, RADIUS_COOKIE } from "@/lib/location-cookies";
+import { geocodeCity } from "@/lib/geocode";
 
 const RADII = [10, 25, 50];
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -22,6 +23,7 @@ export function LocationPicker({
   const [radiusInput, setRadiusInput] = useState(radiusKm ?? 25);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
+  const [geocoding, setGeocoding] = useState(false);
 
   function setCookie(name: string, value: string) {
     document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=${COOKIE_MAX_AGE}`;
@@ -31,12 +33,23 @@ export function LocationPicker({
     document.cookie = `${name}=;path=/;max-age=0`;
   }
 
-  function applyCity(nextCity: string, nextRadius: number) {
-    setCookie(CITY_COOKIE, nextCity.trim());
+  async function applyCity(nextCity: string, nextRadius: number) {
+    const trimmed = nextCity.trim();
+    setCookie(CITY_COOKIE, trimmed);
     setCookie(RADIUS_COOKIE, String(nextRadius));
-    // A typed city name replaces any earlier device coordinates, so the two never conflict.
-    clearCookie(LAT_COOKIE);
-    clearCookie(LON_COOKIE);
+    setGeocoding(true);
+    // Resolves the typed name to real coordinates (e.g. for the Orte map) - best-effort,
+    // so a failed/offline lookup still leaves the plain text filter working exactly like
+    // it always did, just without a real radius/map center until it succeeds.
+    const coords = await geocodeCity(trimmed);
+    if (coords) {
+      setCookie(LAT_COOKIE, String(coords.lat));
+      setCookie(LON_COOKIE, String(coords.lon));
+    } else {
+      clearCookie(LAT_COOKIE);
+      clearCookie(LON_COOKIE);
+    }
+    setGeocoding(false);
     setOpen(false);
     router.refresh();
   }
@@ -87,7 +100,7 @@ export function LocationPicker({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            applyCity(cityInput, radiusInput);
+            void applyCity(cityInput, radiusInput);
           }}
           className="absolute right-0 z-20 mt-2 w-64 space-y-3 border border-line bg-surface p-4 shadow-lg"
         >
@@ -118,8 +131,12 @@ export function LocationPicker({
               ))}
             </div>
           </div>
-          <button type="submit" className="w-full bg-fg py-2 text-sm text-bg hover:bg-accent hover:text-accent-fg">
-            Übernehmen
+          <button
+            type="submit"
+            disabled={geocoding}
+            className="w-full bg-fg py-2 text-sm text-bg hover:bg-accent hover:text-accent-fg disabled:opacity-60"
+          >
+            {geocoding ? "Wird gesucht …" : "Übernehmen"}
           </button>
           <button
             type="button"

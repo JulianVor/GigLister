@@ -67,10 +67,20 @@ public class UserService {
             }
             user.setUsername(request.username());
         }
-        user.setHomeCity(request.homeCity());
-        user.setHomeLatitude(request.homeLatitude());
-        user.setHomeLongitude(request.homeLongitude());
-        user.setRadiusKm(request.radiusKm());
+        // Null-guarded like username above - a caller only sending the field(s) it actually
+        // changed (e.g. just radiusKm) must not wipe out the others.
+        if (request.homeCity() != null) {
+            user.setHomeCity(request.homeCity());
+        }
+        if (request.homeLatitude() != null) {
+            user.setHomeLatitude(request.homeLatitude());
+        }
+        if (request.homeLongitude() != null) {
+            user.setHomeLongitude(request.homeLongitude());
+        }
+        if (request.radiusKm() != null) {
+            user.setRadiusKm(request.radiusKm());
+        }
         return userRepository.save(user);
     }
 
@@ -104,6 +114,7 @@ public class UserService {
                 .toList();
 
         return new MeResponse(user.getId(), user.getEmail(), user.getUsername(), user.getHomeCity(),
+                user.getHomeLatitude(), user.getHomeLongitude(),
                 user.getRadiusKm(), user.isPlatformAdmin(), saved, followedBands, managed);
     }
 
