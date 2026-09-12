@@ -31,10 +31,11 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"https://sandbox.fotosvorju.de\"")
         }
         debug {
-            // Android emulators reach the host machine's localhost via 10.0.2.2, not
-            // 127.0.0.1/localhost (which inside the emulator means the emulator itself) -
-            // a real phone on the same Wi-Fi needs your machine's actual LAN IP instead.
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080\"")
+            // Points at the live server for now (same as release) while testing against
+            // real data - switch this to "http://10.0.2.2:8080" (how an emulator reaches
+            // the host machine's own localhost:8080) or your PC's LAN IP once you want to
+            // test against a locally-run backend instead.
+            buildConfigField("String", "API_BASE_URL", "\"https://sandbox.fotosvorju.de\"")
         }
     }
 
