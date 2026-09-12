@@ -30,7 +30,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   const saved = session?.savedEvents.some((e) => e.id === event.id) ?? false;
   const canEdit = canEditEvent(session, event);
-  const photo = eventPhotoContent(event);
+  const photo = eventPhotoContent(event, { showLabels: false });
 
   return (
     <div className="max-w-2xl">
@@ -40,8 +40,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
       {/* Only shown when there's an actual photo somewhere (event/band/location) - the
           colored-tile fallback used in listings would just repeat the Line-up below in a
-          bigger box, with no photo of its own to add. */}
-      {photo && <div className="relative mb-6 aspect-video w-full overflow-hidden border border-line">{photo}</div>}
+          bigger box, with no photo of its own to add. Same height as the card in listings
+          (not a taller aspect-video) - shorter keeps each band's photo more visible instead
+          of cropping it further just to fill extra height; names are left off since the
+          Line-up right below already lists every one. */}
+      {photo && <div className="relative mb-6 h-44 w-full overflow-hidden border border-line sm:h-60">{photo}</div>}
 
       <div className="font-meta text-lg tracking-wide text-muted">
         {weekdayShort(event.date)}

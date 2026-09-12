@@ -12,8 +12,10 @@ interface BandPhoto {
 /** The event/band/location photo treatment shared by the card and the event detail page's
  * own banner - null when there's no photo anywhere to show, so each caller decides what
  * (if anything) replaces it: the card falls back to ColorCollage, the detail page just
- * shows no banner at all rather than repeating the Line-up's colors a second time. */
-export function eventPhotoContent(event: EventSummary): React.ReactNode {
+ * shows no banner at all rather than repeating the Line-up's colors a second time.
+ * `showLabels` (default on, for the card) draws each band's name over its photo - the
+ * detail page turns it off since the Line-up right below already lists every name. */
+export function eventPhotoContent(event: EventSummary, { showLabels = true }: { showLabels?: boolean } = {}): React.ReactNode {
   const heroImage = event.titleImageUrl;
   const locationImage = event.location.titleImageUrl;
   const bandPhotos: BandPhoto[] = event.bands
@@ -29,9 +31,9 @@ export function eventPhotoContent(event: EventSummary): React.ReactNode {
   }
   if (event.bandImageDisplay === "PHOTO") {
     return bandPhotos.length === 1 ? (
-      <SingleBandCollage band={bandPhotos[0]} locationImage={locationImage} />
+      <SingleBandCollage band={bandPhotos[0]} locationImage={locationImage} showLabel={showLabels} />
     ) : (
-      <DiagonalPhotoCollage bands={bandPhotos} />
+      <DiagonalPhotoCollage bands={bandPhotos} showLabels={showLabels} />
     );
   }
   return <LogoCollage logos={bandPhotos.map((b) => b.url)} locationImage={locationImage} />;
@@ -179,10 +181,11 @@ function SeamLine({ boundary, top, bottom }: { boundary: number; top: number; bo
   );
 }
 
-/** Full-bleed diagonal-cut lineup, each photo cropped to its own strip and labeled with
- * the band's name - no location image shown once there's more than one band, since the
- * strips already fill the whole card between them. */
-function DiagonalPhotoCollage({ bands }: { bands: BandPhoto[] }) {
+/** Full-bleed diagonal-cut lineup, each photo cropped to its own strip and (by default)
+ * labeled with the band's name - no location image shown once there's more than one band,
+ * since the strips already fill the whole card between them. `showLabels` is off on the
+ * event detail page, where the Line-up right below already lists every name. */
+function DiagonalPhotoCollage({ bands, showLabels = true }: { bands: BandPhoto[]; showLabels?: boolean }) {
   const segments = layoutSegments(bands);
 
   return (
@@ -209,22 +212,23 @@ function DiagonalPhotoCollage({ bands }: { bands: BandPhoto[] }) {
       {segments.slice(0, -1).map((seg, i) => (
         <SeamLine key={`seam-${i}`} boundary={seg.right} top={seg.top} bottom={seg.bottom} />
       ))}
-      {segments.map((seg, i) => (
-        <div
-          key={`label-${i}`}
-          className="pointer-events-none absolute flex items-end justify-start overflow-hidden pb-2 pl-2 sm:pb-3 sm:pl-3"
-          style={{
-            left: `${seg.left * 100}%`,
-            width: `${(seg.right - seg.left) * 100}%`,
-            top: `${seg.top * 100}%`,
-            height: `${(seg.bottom - seg.top) * 100}%`,
-          }}
-        >
-          <span className="truncate font-display text-sm font-bold uppercase tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-lg">
-            {seg.name}
-          </span>
-        </div>
-      ))}
+      {showLabels &&
+        segments.map((seg, i) => (
+          <div
+            key={`label-${i}`}
+            className="pointer-events-none absolute flex items-end justify-start overflow-hidden pb-2 pl-2 sm:pb-3 sm:pl-3"
+            style={{
+              left: `${seg.left * 100}%`,
+              width: `${(seg.right - seg.left) * 100}%`,
+              top: `${seg.top * 100}%`,
+              height: `${(seg.bottom - seg.top) * 100}%`,
+            }}
+          >
+            <span className="truncate font-display text-sm font-bold uppercase tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-lg">
+              {seg.name}
+            </span>
+          </div>
+        ))}
     </div>
   );
 }
@@ -287,7 +291,15 @@ const BAND_FADE_END = 0.78;
  * are re-expressed relative to that narrower box (BAND_FADE_START/BAND_FADE_END instead
  * of BAND_FADE_START/BAND_FADE_END of the card) so the visible fade still lands at the
  * same spot on the card. */
-function SingleBandCollage({ band, locationImage }: { band: BandPhoto; locationImage: string | null }) {
+function SingleBandCollage({
+  band,
+  locationImage,
+  showLabel = true,
+}: {
+  band: BandPhoto;
+  locationImage: string | null;
+  showLabel?: boolean;
+}) {
   const boxWidth = locationImage ? BAND_FADE_END : 1;
   const localFadeStart = (BAND_FADE_START / BAND_FADE_END) * 100;
 
@@ -322,14 +334,16 @@ function SingleBandCollage({ band, locationImage }: { band: BandPhoto; locationI
             : {}),
         }}
       />
-      <div
-        className="pointer-events-none absolute bottom-0 left-0 flex items-end pb-2 pl-2 sm:pb-3 sm:pl-3"
-        style={{ width: locationImage ? "55%" : "100%" }}
-      >
-        <span className="truncate font-display text-base font-bold uppercase tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-xl">
-          {band.name}
-        </span>
-      </div>
+      {showLabel && (
+        <div
+          className="pointer-events-none absolute bottom-0 left-0 flex items-end pb-2 pl-2 sm:pb-3 sm:pl-3"
+          style={{ width: locationImage ? "55%" : "100%" }}
+        >
+          <span className="truncate font-display text-base font-bold uppercase tracking-wide text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.85)] sm:text-xl">
+            {band.name}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
