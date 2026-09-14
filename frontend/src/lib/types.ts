@@ -2,7 +2,7 @@
 
 export type EntityStatus = "STUB" | "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED";
-export type EntityType = "BAND" | "LOCATION";
+export type EntityType = "BAND" | "LOCATION" | "EVENT_SERIES";
 export type PermissionLevel = "EDIT" | "MANAGE";
 export type ClaimStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type BandImageDisplay = "LOGO" | "PHOTO";
@@ -37,6 +37,12 @@ export interface LocationSummary {
   longitude: number | null;
 }
 
+export interface EventSeriesSummary {
+  id: number;
+  name: string;
+  titleImageUrl: string | null;
+}
+
 export interface EventSummary {
   id: number;
   title: string | null;
@@ -47,6 +53,7 @@ export interface EventSummary {
   titleImageUrl: string | null;
   bandImageDisplay: BandImageDisplay;
   status: EventStatus;
+  eventSeries: EventSeriesSummary | null;
 }
 
 export interface EventResponse {
@@ -62,6 +69,22 @@ export interface EventResponse {
   bandImageDisplay: BandImageDisplay;
   status: EventStatus;
   createdBy: number;
+  eventSeries: EventSeriesSummary | null;
+}
+
+export interface EventSeriesResponse {
+  id: number;
+  name: string;
+  description: string | null;
+  titleImageUrl: string | null;
+  ticketUrl: string | null;
+  events: EventSummary[];
+}
+
+export interface AdminEventSeriesListItem {
+  id: number;
+  name: string;
+  eventCount: number;
 }
 
 export interface LocationResponse {

@@ -29,6 +29,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     List<Event> findByLocationId(Long locationId);
 
+    List<Event> findByEventSeriesIdOrderByDateAscStartTimeAsc(Long eventSeriesId);
+
     @Query("select e from Event e where e.status = :status and :bandId member of e.bandIds and e.date >= :from order by e.date asc, e.startTime asc")
     List<Event> findUpcomingForBand(@Param("bandId") Long bandId, @Param("status") EventStatus status, @Param("from") LocalDate from);
 

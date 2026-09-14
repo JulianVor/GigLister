@@ -20,6 +20,8 @@ public record EventCreateRequest(
         String ticketUrl,
         String titleImageUrl,
         /** Defaults to PHOTO when omitted - see Event.bandImageDisplay. */
-        BandImageDisplay bandImageDisplay
+        BandImageDisplay bandImageDisplay,
+        /** Optional - which EventSeries (if any) this concert belongs to. */
+        Long eventSeriesId
 ) {
 }

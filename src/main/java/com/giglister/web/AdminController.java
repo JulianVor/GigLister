@@ -8,6 +8,7 @@ import com.giglister.domain.enums.SubmissionStatus;
 import com.giglister.dto.admin.AdminBandListItem;
 import com.giglister.dto.admin.AdminDashboardResponse;
 import com.giglister.dto.admin.AdminEventListItem;
+import com.giglister.dto.admin.AdminEventSeriesListItem;
 import com.giglister.dto.admin.AdminLocationListItem;
 import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.ClaimResponse;
@@ -129,6 +130,15 @@ public class AdminController {
             @RequestParam(defaultValue = "50") int size
     ) {
         return adminService.listAdminEvents(status, q, PageRequest.of(page, size));
+    }
+
+    @GetMapping("/reihen")
+    public Page<AdminEventSeriesListItem> eventSeries(
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return adminService.listAdminEventSeries(q, PageRequest.of(page, size));
     }
 
     @GetMapping("/submissions")

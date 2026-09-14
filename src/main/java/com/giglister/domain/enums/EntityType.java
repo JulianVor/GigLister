@@ -2,5 +2,6 @@ package com.giglister.domain.enums;
 
 public enum EntityType {
     BAND,
-    LOCATION
+    LOCATION,
+    EVENT_SERIES
 }

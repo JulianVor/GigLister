@@ -56,6 +56,15 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
       <h1 className="mt-4 font-display text-4xl leading-tight">{eventLineupLabel(event)}</h1>
 
+      {event.eventSeries && (
+        <p className="mt-1 font-meta text-sm uppercase tracking-wide">
+          Teil von{" "}
+          <Link href={`/reihen/${event.eventSeries.id}`} className="text-accent hover:underline">
+            {event.eventSeries.name}
+          </Link>
+        </p>
+      )}
+
       <p className="mt-2 font-meta text-lg">
         {event.location.linkable || session ? (
           <Link href={`/orte/${event.location.id}`} className="hover:text-accent">

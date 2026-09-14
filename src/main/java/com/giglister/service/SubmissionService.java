@@ -140,7 +140,7 @@ public class SubmissionService {
         if (imageUrl != null) {
             request = new EventCreateRequest(request.title(), request.date(), request.startTime(),
                     request.location(), request.bands(), request.description(), request.ticketUrl(), imageUrl,
-                    request.bandImageDisplay());
+                    request.bandImageDisplay(), request.eventSeriesId());
         }
         return eventService.create(request, adminUserId).getId();
     }

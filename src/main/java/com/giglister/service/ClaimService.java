@@ -6,6 +6,7 @@ import com.giglister.domain.enums.ClaimStatus;
 import com.giglister.domain.enums.EntityType;
 import com.giglister.domain.enums.PermissionLevel;
 import com.giglister.dto.admin.ClaimResponse;
+import com.giglister.exception.BadRequestException;
 import com.giglister.exception.ConflictException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.ClaimRepository;
@@ -82,10 +83,12 @@ public class ClaimService {
     }
 
     private void assertExists(EntityType type, Long entityId) {
-        if (type == EntityType.BAND) {
-            bandService.getOrThrow(entityId);
-        } else {
-            locationService.getOrThrow(entityId);
+        switch (type) {
+            case BAND -> bandService.getOrThrow(entityId);
+            case LOCATION -> locationService.getOrThrow(entityId);
+            // A series is deliberately never unclaimed/claimable (see EventSeries' own
+            // class comment) - it always already has a creator with MANAGE permission.
+            case EVENT_SERIES -> throw new BadRequestException("EventSeries can't be claimed");
         }
     }
 
@@ -93,6 +96,7 @@ public class ClaimService {
         String name = switch (claim.getEntityType()) {
             case BAND -> bandService.getOrThrow(claim.getEntityId()).getName();
             case LOCATION -> locationService.getOrThrow(claim.getEntityId()).getName();
+            case EVENT_SERIES -> throw new BadRequestException("EventSeries can't be claimed");
         };
         User requester = userRepository.findById(claim.getRequestedBy())
                 .orElseThrow(() -> new NotFoundException("User not found"));

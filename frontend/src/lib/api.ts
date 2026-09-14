@@ -3,6 +3,7 @@ import type {
   AdminBandListItem,
   AdminDashboardResponse,
   AdminEventListItem,
+  AdminEventSeriesListItem,
   AdminLocationListItem,
   AdminUserResponse,
   AuthResponse,
@@ -17,6 +18,8 @@ import type {
   EntityRef,
   EntityType,
   EventResponse,
+  EventSeriesResponse,
+  EventSeriesSummary,
   EventStatus,
   EventSummary,
   EntityStatus,
@@ -171,6 +174,7 @@ export interface EventInput {
   ticketUrl?: string;
   titleImageUrl?: string;
   bandImageDisplay?: BandImageDisplay;
+  eventSeriesId?: number;
 }
 
 export function createEvent(data: EventInput, token: string) {
@@ -309,6 +313,34 @@ export function claimLocation(id: number, message: string | undefined, token: st
   return apiFetch<ClaimResponse>(`/api/locations/${id}/claim`, { method: "POST", body: { message }, token });
 }
 
+// --- Event series (Reihen/Festivals) ---
+
+/** Every series, for the "welche Reihe?" dropdown on the event form and for a simple
+ * admin overview - see EventSeries' own backend class comment for why there's no
+ * published/draft split to filter by here. */
+export function getEventSeriesList() {
+  return apiFetch<EventSeriesSummary[]>("/api/event-series");
+}
+
+export function getEventSeries(id: number) {
+  return apiFetch<EventSeriesResponse>(`/api/event-series/${id}`);
+}
+
+export interface EventSeriesInput {
+  name: string;
+  description?: string;
+  titleImageUrl?: string;
+  ticketUrl?: string;
+}
+
+export function createEventSeries(data: EventSeriesInput, token: string) {
+  return apiFetch<EventSeriesResponse>("/api/event-series", { method: "POST", body: data, token });
+}
+
+export function updateEventSeries(id: number, data: EventSeriesInput, token: string) {
+  return apiFetch<EventSeriesResponse>(`/api/event-series/${id}`, { method: "PUT", body: data, token });
+}
+
 // --- Search / Discover ---
 
 export function search(q: string, type?: string) {
@@ -406,6 +438,10 @@ export function getAdminLocations(
   token: string
 ) {
   return apiFetch<Page<AdminLocationListItem>>(`/api/admin/locations${toQuery(params)}`, { token });
+}
+
+export function getAdminEventSeries(params: { q?: string; page?: number; size?: number }, token: string) {
+  return apiFetch<Page<AdminEventSeriesListItem>>(`/api/admin/reihen${toQuery(params)}`, { token });
 }
 
 export function getAdminEvents(

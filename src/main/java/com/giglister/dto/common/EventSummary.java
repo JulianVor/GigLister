@@ -16,6 +16,9 @@ public record EventSummary(
         List<BandSummary> bands,
         String titleImageUrl,
         BandImageDisplay bandImageDisplay,
-        EventStatus status
+        EventStatus status,
+        /** Null when this event isn't part of any festival/themed night - see
+         * EventSeries. */
+        EventSeriesSummary eventSeries
 ) {
 }

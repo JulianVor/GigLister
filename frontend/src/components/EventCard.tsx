@@ -114,6 +114,11 @@ export function EventCard({ event }: { event: EventSummary }) {
         <div className="mt-1 font-meta text-sm text-muted">
           {event.location.name} · {event.location.city}
         </div>
+        {event.eventSeries && (
+          <div className="mt-1 font-meta text-xs uppercase tracking-wide text-accent">
+            Teil von {event.eventSeries.name}
+          </div>
+        )}
       </div>
     </Link>
   );

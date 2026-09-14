@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { ApiError, getEvent } from "@/lib/api";
+import { ApiError, getEvent, getEventSeriesList } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { canEditEvent } from "@/lib/permissions";
 import { EventForm } from "@/components/EventForm";
@@ -10,10 +10,13 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const event = await getEvent(eventId).catch((err) => {
-    if (err instanceof ApiError && err.status === 404) notFound();
-    throw err;
-  });
+  const [event, eventSeriesOptions] = await Promise.all([
+    getEvent(eventId).catch((err) => {
+      if (err instanceof ApiError && err.status === 404) notFound();
+      throw err;
+    }),
+    getEventSeriesList(),
+  ]);
 
   if (!canEditEvent(session, event)) {
     redirect(`/konzerte/${eventId}`);
@@ -23,7 +26,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
     <div>
       <h1 className="font-display text-3xl">Konzert bearbeiten</h1>
       <div className="mt-6">
-        <EventForm eventId={eventId} initial={event} />
+        <EventForm eventId={eventId} initial={event} eventSeriesOptions={eventSeriesOptions} />
       </div>
     </div>
   );

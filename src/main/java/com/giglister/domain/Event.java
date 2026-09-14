@@ -62,6 +62,12 @@ public class Event {
 
     private String titleImageUrl;
 
+    /** Optional - which EventSeries (festival/themed night, e.g. "SüdKultur MusicNight")
+     * this concert is part of, if any. Nullable at the DB level for the same reason as
+     * bandImageDisplay below: ddl-auto: update adds this column via a plain ALTER TABLE
+     * against a table that may already have rows. */
+    private Long eventSeriesId;
+
     /** Whether the event's own listings/collage show each band's logo or its title
      * (promo) photo - see BandImageDisplay. Defaults to PHOTO.
      *

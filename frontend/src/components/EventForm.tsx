@@ -6,7 +6,7 @@ import { createEventAction, updateEventAction } from "@/actions/events";
 import { EntityPicker, toEntityRef, type EntityPickerValue } from "@/components/EntityPicker";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { BAND_IMAGE_DISPLAY_LABELS } from "@/lib/status-labels";
-import type { BandImageDisplay, EventResponse } from "@/lib/types";
+import type { BandImageDisplay, EventResponse, EventSeriesSummary } from "@/lib/types";
 
 const BAND_IMAGE_DISPLAY_OPTIONS: BandImageDisplay[] = ["PHOTO", "LOGO"];
 
@@ -14,7 +14,15 @@ function emptyBand(): EntityPickerValue {
   return { name: "", city: "" };
 }
 
-export function EventForm({ eventId, initial }: { eventId?: number; initial?: EventResponse }) {
+export function EventForm({
+  eventId,
+  initial,
+  eventSeriesOptions = [],
+}: {
+  eventId?: number;
+  initial?: EventResponse;
+  eventSeriesOptions?: EventSeriesSummary[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +42,7 @@ export function EventForm({ eventId, initial }: { eventId?: number; initial?: Ev
   const [titleImageUrl, setTitleImageUrl] = useState(initial?.titleImageUrl ?? "");
   const [bandImageDisplay, setBandImageDisplay] = useState<BandImageDisplay>(initial?.bandImageDisplay ?? "PHOTO");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [eventSeriesId, setEventSeriesId] = useState<number | undefined>(initial?.eventSeries?.id);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +67,7 @@ export function EventForm({ eventId, initial }: { eventId?: number; initial?: Ev
       titleImageUrl: titleImageUrl.trim() || undefined,
       bandImageDisplay,
       description: description.trim() || undefined,
+      eventSeriesId,
     };
 
     startTransition(async () => {
@@ -142,6 +152,30 @@ export function EventForm({ eventId, initial }: { eventId?: number; initial?: Ev
           onChange={(e) => setTitle(e.target.value)}
           className="mt-1 w-full border border-line bg-bg px-3 py-2 outline-none focus:border-accent"
         />
+      </div>
+
+      <div>
+        <div className="flex items-baseline justify-between">
+          <label className="font-meta text-sm text-muted" htmlFor="eventSeriesId">
+            Reihe (optional, z. B. Festival)
+          </label>
+          <a href="/reihen/neu" target="_blank" rel="noreferrer" className="font-meta text-xs text-accent hover:underline">
+            + Neue Reihe anlegen
+          </a>
+        </div>
+        <select
+          id="eventSeriesId"
+          value={eventSeriesId ?? ""}
+          onChange={(e) => setEventSeriesId(e.target.value ? Number(e.target.value) : undefined)}
+          className="mt-1 w-full border border-line bg-bg px-3 py-2 outline-none focus:border-accent"
+        >
+          <option value="">— keine —</option>
+          {eventSeriesOptions.map((series) => (
+            <option key={series.id} value={series.id}>
+              {series.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>

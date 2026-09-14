@@ -2,13 +2,16 @@ package com.giglister.service;
 
 import com.giglister.domain.Band;
 import com.giglister.domain.Event;
+import com.giglister.domain.EventSeries;
 import com.giglister.domain.Location;
 import com.giglister.domain.enums.EntityStatus;
 import com.giglister.dto.common.BandSummary;
+import com.giglister.dto.common.EventSeriesSummary;
 import com.giglister.dto.common.EventSummary;
 import com.giglister.dto.common.LocationSummary;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandRepository;
+import com.giglister.repository.EventSeriesRepository;
 import com.giglister.repository.LocationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -26,6 +29,7 @@ public class SummaryMapper {
 
     private final BandRepository bandRepository;
     private final LocationRepository locationRepository;
+    private final EventSeriesRepository eventSeriesRepository;
 
     public BandSummary bandSummary(Band band) {
         return new BandSummary(band.getId(), band.getName(), band.getCity(), band.getStatus(),
@@ -55,6 +59,19 @@ public class SummaryMapper {
         List<BandSummary> bands = event.getBandIds().stream().map(this::bandSummary).toList();
         return new EventSummary(event.getId(), event.getTitle(), event.getDate(), event.getStartTime(),
                 locationSummary(event.getLocationId()), bands, event.getTitleImageUrl(),
-                event.getBandImageDisplay(), event.getStatus());
+                event.getBandImageDisplay(), event.getStatus(), eventSeriesSummary(event.getEventSeriesId()));
+    }
+
+    /** Best-effort, not a NotFoundException like bandSummary(Long)/locationSummary(Long) -
+     * this reference is optional on Event (unlike a band/location, which every event
+     * always has), so a dangling id (e.g. the series was deleted) should just mean "not
+     * part of a series" rather than breaking every read of that event. */
+    public EventSeriesSummary eventSeriesSummary(Long eventSeriesId) {
+        if (eventSeriesId == null) {
+            return null;
+        }
+        return eventSeriesRepository.findById(eventSeriesId)
+                .map(s -> new EventSeriesSummary(s.getId(), s.getName(), s.getTitleImageUrl()))
+                .orElse(null);
     }
 }

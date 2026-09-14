@@ -2,6 +2,7 @@ package com.giglister.service;
 
 import com.giglister.domain.Band;
 import com.giglister.domain.Event;
+import com.giglister.domain.EventSeries;
 import com.giglister.domain.Location;
 import com.giglister.domain.User;
 import com.giglister.domain.enums.ClaimStatus;
@@ -12,6 +13,7 @@ import com.giglister.domain.enums.SubmissionStatus;
 import com.giglister.dto.admin.AdminBandListItem;
 import com.giglister.dto.admin.AdminDashboardResponse;
 import com.giglister.dto.admin.AdminEventListItem;
+import com.giglister.dto.admin.AdminEventSeriesListItem;
 import com.giglister.dto.admin.AdminLocationListItem;
 import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.DuplicatePair;
@@ -20,6 +22,7 @@ import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandRepository;
 import com.giglister.repository.ClaimRepository;
 import com.giglister.repository.EventRepository;
+import com.giglister.repository.EventSeriesRepository;
 import com.giglister.repository.LocationRepository;
 import com.giglister.repository.SubmissionRepository;
 import com.giglister.repository.UserRepository;
@@ -44,6 +47,7 @@ public class AdminService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final SubmissionRepository submissionRepository;
+    private final EventSeriesRepository eventSeriesRepository;
 
     private static final List<EntityStatus> NEEDS_ATTENTION = List.of(EntityStatus.STUB, EntityStatus.DRAFT);
 
@@ -142,6 +146,16 @@ public class AdminService {
                 .toList();
         return paginate(matches, pageable)
                 .map(l -> new AdminLocationListItem(l.getId(), l.getName(), l.getCity(), l.getStatus()));
+    }
+
+    public Page<AdminEventSeriesListItem> listAdminEventSeries(String query, Pageable pageable) {
+        List<EventSeries> matches = eventSeriesRepository.findAll().stream()
+                .filter(s -> matchesQuery(s.getName(), query))
+                .sorted(Comparator.comparing(EventSeries::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        return paginate(matches, pageable)
+                .map(s -> new AdminEventSeriesListItem(s.getId(), s.getName(),
+                        eventRepository.findByEventSeriesIdOrderByDateAscStartTimeAsc(s.getId()).size()));
     }
 
     public Page<AdminEventListItem> listAdminEvents(EventStatus status, String query, Pageable pageable) {

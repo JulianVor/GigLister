@@ -20,6 +20,8 @@ public record EventUpdateRequest(
         String ticketUrl,
         String titleImageUrl,
         /** Defaults to LOGO when omitted - see Event.bandImageDisplay. */
-        BandImageDisplay bandImageDisplay
+        BandImageDisplay bandImageDisplay,
+        /** Optional - which EventSeries (if any) this concert belongs to. */
+        Long eventSeriesId
 ) {
 }

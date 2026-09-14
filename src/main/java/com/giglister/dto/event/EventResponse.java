@@ -3,6 +3,7 @@ package com.giglister.dto.event;
 import com.giglister.domain.enums.BandImageDisplay;
 import com.giglister.domain.enums.EventStatus;
 import com.giglister.dto.common.BandSummary;
+import com.giglister.dto.common.EventSeriesSummary;
 import com.giglister.dto.common.LocationSummary;
 
 import java.time.LocalDate;
@@ -21,6 +22,8 @@ public record EventResponse(
         String titleImageUrl,
         BandImageDisplay bandImageDisplay,
         EventStatus status,
-        Long createdBy
+        Long createdBy,
+        /** Null when this event isn't part of any festival/themed night. */
+        EventSeriesSummary eventSeries
 ) {
 }

@@ -105,6 +105,7 @@ public class EventService {
                 .ticketUrl(request.ticketUrl())
                 .titleImageUrl(request.titleImageUrl())
                 .bandImageDisplay(request.bandImageDisplay() != null ? request.bandImageDisplay() : BandImageDisplay.PHOTO)
+                .eventSeriesId(request.eventSeriesId())
                 .status(EventStatus.PUBLISHED)
                 .createdBy(createdBy)
                 .build();
@@ -163,6 +164,7 @@ public class EventService {
         event.setTicketUrl(request.ticketUrl());
         event.setTitleImageUrl(request.titleImageUrl());
         event.setBandImageDisplay(request.bandImageDisplay() != null ? request.bandImageDisplay() : BandImageDisplay.PHOTO);
+        event.setEventSeriesId(request.eventSeriesId());
         return eventRepository.save(event);
     }
 
@@ -253,7 +255,7 @@ public class EventService {
                 event.getId(), event.getTitle(), event.getDate(), event.getStartTime(),
                 summaryMapper.locationSummary(event.getLocationId()), bands, event.getDescription(),
                 event.getTicketUrl(), event.getTitleImageUrl(), event.getBandImageDisplay(),
-                event.getStatus(), event.getCreatedBy()
+                event.getStatus(), event.getCreatedBy(), summaryMapper.eventSeriesSummary(event.getEventSeriesId())
         );
     }
 

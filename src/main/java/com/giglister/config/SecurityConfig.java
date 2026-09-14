@@ -58,7 +58,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.GET,
-                                "/api/events/**", "/api/locations/**", "/api/bands/**",
+                                "/api/events/**", "/api/locations/**", "/api/bands/**", "/api/event-series/**",
                                 "/api/search/**", "/api/discover/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // The GPT-skill integration: can only ever propose a submission, never
