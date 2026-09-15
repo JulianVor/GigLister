@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ClaimButton } from "@/components/ClaimButton";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
+import { LocationTitleImage } from "@/components/LocationTitleImage";
 
 export default async function LocationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,7 +27,9 @@ export default async function LocationDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="max-w-2xl">
-      {location.titleImageUrl ? (
+      {canEdit ? (
+        <LocationTitleImage location={location} />
+      ) : location.titleImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={location.titleImageUrl} alt="" className="mb-6 aspect-video w-full border border-line object-cover" />
       ) : (

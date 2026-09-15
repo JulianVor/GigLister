@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { FollowBandButton } from "@/components/FollowBandButton";
 import { ClaimButton } from "@/components/ClaimButton";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
+import { BandTitleImage, BandLogo } from "@/components/BandImages";
 
 export default async function BandDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,7 +26,9 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="max-w-2xl">
-      {band.titleImageUrl ? (
+      {canEdit ? (
+        <BandTitleImage band={band} />
+      ) : band.titleImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={band.titleImageUrl} alt="" className="mb-6 aspect-video w-full border border-line object-cover" />
       ) : (
@@ -37,7 +40,9 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
       )}
 
       <div className="flex items-start gap-4">
-        {band.logoUrl ? (
+        {canEdit ? (
+          <BandLogo band={band} />
+        ) : band.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={band.logoUrl} alt="" className="h-16 w-16 flex-none border border-line object-cover" />
         ) : (
