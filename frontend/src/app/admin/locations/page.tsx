@@ -4,6 +4,8 @@ import { getToken } from "@/lib/session";
 import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
 import { GeocodeMissingButton } from "@/components/admin/GeocodeMissingButton";
+import { CompletenessBadge } from "@/components/admin/CompletenessBadge";
+import { CompletenessSort } from "@/components/admin/CompletenessSort";
 import { ENTITY_STATUS_HINTS, ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { EntityStatus } from "@/lib/types";
 
@@ -12,11 +14,11 @@ const STATUSES: EntityStatus[] = ["STUB", "DRAFT", "PUBLISHED", "ARCHIVED"];
 export default async function AdminLocationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: EntityStatus; q?: string }>;
+  searchParams: Promise<{ status?: EntityStatus; q?: string; sort?: string }>;
 }) {
-  const { status, q } = await searchParams;
+  const { status, q, sort } = await searchParams;
   const token = (await getToken())!;
-  const page = await getAdminLocations({ status, q, size: 100 }, token);
+  const page = await getAdminLocations({ status, q, sort, size: 100 }, token);
 
   return (
     <div>
@@ -36,8 +38,11 @@ export default async function AdminLocationsPage({
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <StatusFilter basePath="/admin/locations" statuses={STATUSES} active={status} query={q} labels={ENTITY_STATUS_LABELS} />
-        <AdminSearchForm action="/admin/locations" query={q} placeholder="Suche nach Name …" hidden={{ status }} />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusFilter basePath="/admin/locations" statuses={STATUSES} active={status} query={q} labels={ENTITY_STATUS_LABELS} />
+          <CompletenessSort basePath="/admin/locations" sort={sort} status={status} query={q} />
+        </div>
+        <AdminSearchForm action="/admin/locations" query={q} placeholder="Suche nach Name …" hidden={{ status, sort }} />
       </div>
 
       <div className="mt-4">
@@ -63,6 +68,7 @@ export default async function AdminLocationsPage({
                 {location.city && <div className="font-meta text-sm text-muted">{location.city}</div>}
               </div>
               <div className="flex items-center gap-3">
+                <CompletenessBadge percent={location.completeness} />
                 <span
                   title={ENTITY_STATUS_HINTS[location.status]}
                   className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted"

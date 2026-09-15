@@ -3,6 +3,8 @@ import { getAdminBands } from "@/lib/api";
 import { getToken } from "@/lib/session";
 import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
+import { CompletenessBadge } from "@/components/admin/CompletenessBadge";
+import { CompletenessSort } from "@/components/admin/CompletenessSort";
 import { ENTITY_STATUS_HINTS, ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { EntityStatus } from "@/lib/types";
 
@@ -11,11 +13,11 @@ const STATUSES: EntityStatus[] = ["STUB", "DRAFT", "PUBLISHED", "ARCHIVED"];
 export default async function AdminBandsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: EntityStatus; q?: string }>;
+  searchParams: Promise<{ status?: EntityStatus; q?: string; sort?: string }>;
 }) {
-  const { status, q } = await searchParams;
+  const { status, q, sort } = await searchParams;
   const token = (await getToken())!;
-  const page = await getAdminBands({ status, q, size: 100 }, token);
+  const page = await getAdminBands({ status, q, sort, size: 100 }, token);
 
   return (
     <div>
@@ -35,8 +37,11 @@ export default async function AdminBandsPage({
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <StatusFilter basePath="/admin/bands" statuses={STATUSES} active={status} query={q} labels={ENTITY_STATUS_LABELS} />
-        <AdminSearchForm action="/admin/bands" query={q} placeholder="Suche nach Name …" hidden={{ status }} />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusFilter basePath="/admin/bands" statuses={STATUSES} active={status} query={q} labels={ENTITY_STATUS_LABELS} />
+          <CompletenessSort basePath="/admin/bands" sort={sort} status={status} query={q} />
+        </div>
+        <AdminSearchForm action="/admin/bands" query={q} placeholder="Suche nach Name …" hidden={{ status, sort }} />
       </div>
 
       <p className="mt-4 font-meta text-xs text-muted">{page.totalElements} Bands</p>
@@ -54,6 +59,7 @@ export default async function AdminBandsPage({
                 {band.city && <div className="font-meta text-sm text-muted">{band.city}</div>}
               </div>
               <div className="flex items-center gap-3">
+                <CompletenessBadge percent={band.completeness} />
                 <span
                   title={ENTITY_STATUS_HINTS[band.status]}
                   className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted"

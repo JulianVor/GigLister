@@ -464,14 +464,14 @@ export function geocodeMissingLocations(token: string) {
 }
 
 export function getAdminBands(
-  params: { status?: EntityStatus; q?: string; page?: number; size?: number },
+  params: { status?: EntityStatus; q?: string; sort?: string; page?: number; size?: number },
   token: string
 ) {
   return apiFetch<Page<AdminBandListItem>>(`/api/admin/bands${toQuery(params)}`, { token });
 }
 
 export function getAdminLocations(
-  params: { status?: EntityStatus; q?: string; page?: number; size?: number },
+  params: { status?: EntityStatus; q?: string; sort?: string; page?: number; size?: number },
   token: string
 ) {
   return apiFetch<Page<AdminLocationListItem>>(`/api/admin/locations${toQuery(params)}`, { token });
@@ -482,7 +482,7 @@ export function getAdminEventSeries(params: { q?: string; page?: number; size?: 
 }
 
 export function getAdminEvents(
-  params: { status?: EventStatus; q?: string; page?: number; size?: number },
+  params: { status?: EventStatus; q?: string; sort?: string; page?: number; size?: number },
   token: string
 ) {
   return apiFetch<Page<AdminEventListItem>>(`/api/admin/events${toQuery(params)}`, { token });

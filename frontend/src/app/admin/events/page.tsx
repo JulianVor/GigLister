@@ -3,6 +3,8 @@ import { getAdminEvents } from "@/lib/api";
 import { getToken } from "@/lib/session";
 import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
+import { CompletenessBadge } from "@/components/admin/CompletenessBadge";
+import { CompletenessSort } from "@/components/admin/CompletenessSort";
 import { dayAndMonth, weekdayShort } from "@/lib/format";
 import { EVENT_STATUS_LABELS } from "@/lib/status-labels";
 import type { EventStatus } from "@/lib/types";
@@ -12,11 +14,11 @@ const STATUSES: EventStatus[] = ["DRAFT", "PUBLISHED", "CANCELLED"];
 export default async function AdminEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: EventStatus; q?: string }>;
+  searchParams: Promise<{ status?: EventStatus; q?: string; sort?: string }>;
 }) {
-  const { status, q } = await searchParams;
+  const { status, q, sort } = await searchParams;
   const token = (await getToken())!;
-  const page = await getAdminEvents({ status, q, size: 100 }, token);
+  const page = await getAdminEvents({ status, q, sort, size: 100 }, token);
 
   return (
     <div>
@@ -34,12 +36,15 @@ export default async function AdminEventsPage({
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <StatusFilter basePath="/admin/events" statuses={STATUSES} active={status} query={q} labels={EVENT_STATUS_LABELS} />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusFilter basePath="/admin/events" statuses={STATUSES} active={status} query={q} labels={EVENT_STATUS_LABELS} />
+          <CompletenessSort basePath="/admin/events" sort={sort} status={status} query={q} />
+        </div>
         <AdminSearchForm
           action="/admin/events"
           query={q}
           placeholder="Suche nach Titel oder Band …"
-          hidden={{ status }}
+          hidden={{ status, sort }}
         />
       </div>
 
@@ -61,6 +66,7 @@ export default async function AdminEventsPage({
                 <div className="font-meta text-sm text-muted">{event.locationName}</div>
               </div>
               <div className="flex items-center gap-3">
+                <CompletenessBadge percent={event.completeness} />
                 <span className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted">
                   {EVENT_STATUS_LABELS[event.status]}
                 </span>

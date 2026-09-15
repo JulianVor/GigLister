@@ -232,6 +232,7 @@ export interface AdminBandListItem {
   name: string;
   city: string | null;
   status: EntityStatus;
+  completeness: number;
 }
 
 export interface AdminLocationListItem {
@@ -239,6 +240,7 @@ export interface AdminLocationListItem {
   name: string;
   city: string | null;
   status: EntityStatus;
+  completeness: number;
 }
 
 export interface AdminEventListItem {
@@ -248,6 +250,7 @@ export interface AdminEventListItem {
   locationName: string;
   bandNames: string[];
   status: EventStatus;
+  completeness: number;
 }
 
 export interface CalendarDayCount {

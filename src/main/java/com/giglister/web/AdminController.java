@@ -93,14 +93,17 @@ public class AdminController {
         return adminService.setPlatformAdmin(id, false, CurrentUser.requireId());
     }
 
+    /** `sort` is "completeness_asc"/"completeness_desc" (see AdminService.completenessOrElse)
+     * or omitted for the default name order. */
     @GetMapping("/bands")
     public Page<AdminBandListItem> bands(
             @RequestParam(required = false) EntityStatus status,
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        return adminService.listAdminBands(status, q, PageRequest.of(page, size));
+        return adminService.listAdminBands(status, q, sort, PageRequest.of(page, size));
     }
 
     /** One-off backfill for locations saved before geocoding existed - see
@@ -116,20 +119,22 @@ public class AdminController {
     public Page<AdminLocationListItem> locations(
             @RequestParam(required = false) EntityStatus status,
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        return adminService.listAdminLocations(status, q, PageRequest.of(page, size));
+        return adminService.listAdminLocations(status, q, sort, PageRequest.of(page, size));
     }
 
     @GetMapping("/events")
     public Page<AdminEventListItem> events(
             @RequestParam(required = false) EventStatus status,
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        return adminService.listAdminEvents(status, q, PageRequest.of(page, size));
+        return adminService.listAdminEvents(status, q, sort, PageRequest.of(page, size));
     }
 
     @GetMapping("/reihen")

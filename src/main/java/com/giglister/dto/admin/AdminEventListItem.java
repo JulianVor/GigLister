@@ -11,6 +11,9 @@ public record AdminEventListItem(
         String title,
         String locationName,
         List<String> bandNames,
-        EventStatus status
+        EventStatus status,
+        /** 0-100, see AdminService.eventCompleteness - how much of the optional detail
+         * data (beyond the always-required date/location/line-up) is filled in. */
+        int completeness
 ) {
 }
