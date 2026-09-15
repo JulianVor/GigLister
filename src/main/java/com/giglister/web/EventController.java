@@ -2,6 +2,7 @@ package com.giglister.web;
 
 import com.giglister.domain.Event;
 import com.giglister.dto.CalendarDayCount;
+import com.giglister.dto.GenreFilterOption;
 import com.giglister.dto.event.EventCreateRequest;
 import com.giglister.dto.event.EventResponse;
 import com.giglister.dto.event.EventStatusUpdateRequest;
@@ -37,11 +38,24 @@ public class EventController {
             @RequestParam(required = false) Integer radiusKm,
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String genre,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return eventService.listUpcoming(city, lat, lon, radiusKm, from, to, PageRequest.of(page, size))
+        return eventService.listUpcoming(city, lat, lon, radiusKm, from, to, genre, PageRequest.of(page, size))
                 .map(eventService::toResponse);
+    }
+
+    @GetMapping("/genres")
+    public List<GenreFilterOption> genres(
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lon,
+            @RequestParam(required = false) Integer radiusKm,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        return eventService.availableGenreFilters(city, lat, lon, radiusKm, from, to);
     }
 
     @GetMapping("/calendar")

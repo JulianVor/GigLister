@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { getEvents } from "@/lib/api";
+import { getEvents, getGenreFilters } from "@/lib/api";
 import { getLocationPrefs } from "@/lib/location-prefs";
 import { resolveDateRange } from "@/lib/date-range";
 import { DateNav } from "@/components/DateNav";
+import { GenreFilter } from "@/components/GenreFilter";
 import { EventListByDay } from "@/components/EventListByDay";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -11,29 +12,30 @@ const PAGE_SIZE = 20;
 export default async function KonzerteePage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; from?: string; to?: string; page?: string }>;
+  searchParams: Promise<{ range?: string; from?: string; to?: string; genre?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const prefs = await getLocationPrefs();
   const { from, to, active } = resolveDateRange(params);
   const page = params.page ? Math.max(0, Number(params.page) - 1) : 0;
-
-  const result = await getEvents({
+  const locationFilter = {
     city: prefs.city ?? undefined,
     lat: prefs.lat ?? undefined,
     lon: prefs.lon ?? undefined,
     radiusKm: prefs.radiusKm ?? undefined,
-    from,
-    to,
-    page,
-    size: PAGE_SIZE,
-  });
+  };
+
+  const [result, genreOptions] = await Promise.all([
+    getEvents({ ...locationFilter, from, to, genre: params.genre, page, size: PAGE_SIZE }),
+    getGenreFilters({ ...locationFilter, from, to }),
+  ]);
 
   function pageHref(targetPage: number): string {
     const q = new URLSearchParams();
     if (params.range) q.set("range", params.range);
     if (params.from) q.set("from", params.from);
     if (params.to) q.set("to", params.to);
+    if (params.genre) q.set("genre", params.genre);
     q.set("page", String(targetPage));
     return `/konzerte?${q.toString()}`;
   }
@@ -50,11 +52,23 @@ export default async function KonzerteePage({
       </p>
 
       <div className="mt-6">
-        <DateNav active={active} />
+        <DateNav active={active} genre={params.genre} />
+      </div>
+
+      <div className="mt-3">
+        <GenreFilter
+          options={genreOptions}
+          active={params.genre}
+          carryParams={{ range: params.range, from: params.from, to: params.to }}
+        />
       </div>
 
       {result.content.length === 0 ? (
-        <EmptyState>Für diesen Zeitraum sind keine Konzerte gelistet.</EmptyState>
+        <EmptyState>
+          {params.genre
+            ? `Für diesen Zeitraum sind keine ${params.genre}-Konzerte gelistet.`
+            : "Für diesen Zeitraum sind keine Konzerte gelistet."}
+        </EmptyState>
       ) : (
         <EventListByDay events={result.content} />
       )}

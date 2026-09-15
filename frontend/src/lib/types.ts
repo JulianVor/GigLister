@@ -7,6 +7,11 @@ export type PermissionLevel = "EDIT" | "MANAGE";
 export type ClaimStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type BandImageDisplay = "LOGO" | "PHOTO";
 
+export interface GenreFilterOption {
+  genre: string;
+  eventCount: number;
+}
+
 export interface Page<T> {
   content: T[];
   totalElements: number;

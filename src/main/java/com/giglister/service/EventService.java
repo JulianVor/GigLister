@@ -9,6 +9,7 @@ import com.giglister.domain.enums.EntityType;
 import com.giglister.domain.enums.EventStatus;
 import com.giglister.domain.enums.PermissionLevel;
 import com.giglister.dto.CalendarDayCount;
+import com.giglister.dto.GenreFilterOption;
 import com.giglister.dto.common.EntityRef;
 import com.giglister.dto.event.EventCreateRequest;
 import com.giglister.dto.event.EventResponse;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -207,25 +209,63 @@ public class EventService {
     }
 
     public Page<Event> listUpcoming(String city, Double centerLat, Double centerLon, Integer radiusKm,
-                                     LocalDate from, LocalDate to, Pageable pageable) {
-        LocalDate start = from != null ? from : LocalDate.now();
-        List<Event> all;
-        if (to != null) {
-            all = eventRepository
-                    .findByStatusAndDateBetweenOrderByDateAscStartTimeAsc(EventStatus.PUBLISHED, start, to, Pageable.unpaged())
-                    .getContent();
-        } else {
-            all = eventRepository
-                    .findByStatusAndDateGreaterThanEqualOrderByDateAscStartTimeAsc(EventStatus.PUBLISHED, start, Pageable.unpaged())
-                    .getContent();
+                                     LocalDate from, LocalDate to, String genre, Pageable pageable) {
+        List<Event> filtered = filterByLocationRadius(upcomingByDate(from, to), city, centerLat, centerLon, radiusKm);
+        if (genre != null && !genre.isBlank()) {
+            filtered = filterByGenre(filtered, genre);
         }
-        List<Event> filtered = filterByLocationRadius(all, city, centerLat, centerLon, radiusKm);
         int pageStart = (int) pageable.getOffset();
         if (pageStart >= filtered.size()) {
             return new PageImpl<>(List.of(), pageable, filtered.size());
         }
         int pageEnd = Math.min(pageStart + pageable.getPageSize(), filtered.size());
         return new PageImpl<>(filtered.subList(pageStart, pageEnd), pageable, filtered.size());
+    }
+
+    private List<Event> upcomingByDate(LocalDate from, LocalDate to) {
+        LocalDate start = from != null ? from : LocalDate.now();
+        if (to != null) {
+            return eventRepository
+                    .findByStatusAndDateBetweenOrderByDateAscStartTimeAsc(EventStatus.PUBLISHED, start, to, Pageable.unpaged())
+                    .getContent();
+        }
+        return eventRepository
+                .findByStatusAndDateGreaterThanEqualOrderByDateAscStartTimeAsc(EventStatus.PUBLISHED, start, Pageable.unpaged())
+                .getContent();
+    }
+
+    /** One batch lookup for every band across all given events, instead of a query per event
+     * per genre - callers otherwise re-check the same events against each of the ~40 base
+     * genres (see availableGenreFilters). */
+    private Map<Long, List<String>> genresByBandId(List<Event> events) {
+        List<Long> bandIds = events.stream().flatMap(e -> e.getBandIds().stream()).distinct().toList();
+        return bandService.findByIds(bandIds).stream().collect(Collectors.toMap(Band::getId, Band::getGenres));
+    }
+
+    private boolean eventMatchesGenre(Event event, String genre, Map<Long, List<String>> genresByBandId) {
+        return event.getBandIds().stream()
+                .map(genresByBandId::get)
+                .filter(Objects::nonNull)
+                .anyMatch(genres -> GenreTaxonomy.matches(genres, genre));
+    }
+
+    private List<Event> filterByGenre(List<Event> events, String genre) {
+        Map<Long, List<String>> genresByBandId = genresByBandId(events);
+        return events.stream().filter(e -> eventMatchesGenre(e, genre, genresByBandId)).toList();
+    }
+
+    /** Only ever returns base genres with at least one matching upcoming event under the same
+     * city/radius/date filters as the listing it's a facet for - a filter nobody could click
+     * to a non-empty result (e.g. Punk with zero upcoming Punk shows) would just be confusing. */
+    public List<GenreFilterOption> availableGenreFilters(String city, Double centerLat, Double centerLon,
+                                                          Integer radiusKm, LocalDate from, LocalDate to) {
+        List<Event> filtered = filterByLocationRadius(upcomingByDate(from, to), city, centerLat, centerLon, radiusKm);
+        Map<Long, List<String>> genresByBandId = genresByBandId(filtered);
+        return GenreTaxonomy.BASE_GENRES.stream()
+                .map(genre -> new GenreFilterOption(genre,
+                        filtered.stream().filter(e -> eventMatchesGenre(e, genre, genresByBandId)).count()))
+                .filter(option -> option.eventCount() > 0)
+                .toList();
     }
 
     /** Without a location filter this uses a single GROUP BY count query; with one, distance

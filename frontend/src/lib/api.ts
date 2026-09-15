@@ -23,6 +23,7 @@ import type {
   EventStatus,
   EventSummary,
   EntityStatus,
+  GenreFilterOption,
   LocationListItem,
   LocationResponse,
   MeResponse,
@@ -148,10 +149,33 @@ export function login(data: { username: string; password: string }) {
 // --- Events ---
 
 export function getEvents(
-  params: { city?: string; lat?: number; lon?: number; radiusKm?: number; from?: string; to?: string; page?: number; size?: number },
+  params: {
+    city?: string;
+    lat?: number;
+    lon?: number;
+    radiusKm?: number;
+    from?: string;
+    to?: string;
+    genre?: string;
+    page?: number;
+    size?: number;
+  },
   token?: string
 ) {
   return apiFetch<Page<EventResponse>>(`/api/events${toQuery(params)}`, { token });
+}
+
+/** Only ever returns genres with at least one matching upcoming event under the same
+ * city/radius/date filters, so the filter bar never offers an option with zero results. */
+export function getGenreFilters(params: {
+  city?: string;
+  lat?: number;
+  lon?: number;
+  radiusKm?: number;
+  from?: string;
+  to?: string;
+}) {
+  return apiFetch<GenreFilterOption[]>(`/api/events/genres${toQuery(params)}`);
 }
 
 export function getEvent(id: number, token?: string) {
