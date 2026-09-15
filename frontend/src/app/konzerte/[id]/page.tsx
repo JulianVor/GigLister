@@ -60,7 +60,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       {event.eventSeries && (
         <p className="mt-1 font-meta text-sm uppercase tracking-wide">
           Teil von{" "}
-          <Link href={`/reihen/${event.eventSeries.id}`} className="text-accent hover:underline">
+          <Link href={`/festivals/${event.eventSeries.id}`} className="text-accent hover:underline">
             {event.eventSeries.name}
           </Link>
         </p>

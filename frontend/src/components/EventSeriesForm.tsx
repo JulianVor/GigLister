@@ -34,7 +34,7 @@ export function EventSeriesForm({ series }: { series?: EventSeriesResponse }) {
           setError(result.error);
           return;
         }
-        router.push(`/reihen/${series.id}`);
+        router.push(`/festivals/${series.id}`);
         router.refresh();
         return;
       }
@@ -44,7 +44,7 @@ export function EventSeriesForm({ series }: { series?: EventSeriesResponse }) {
         setError(result.error);
         return;
       }
-      router.push(`/reihen/${result.data.id}`);
+      router.push(`/festivals/${result.data.id}`);
       router.refresh();
     });
   }
@@ -57,7 +57,7 @@ export function EventSeriesForm({ series }: { series?: EventSeriesResponse }) {
       <Field label="Beschreibung">
         <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="input" />
       </Field>
-      <Field label="Ticketlink (für die ganze Reihe, falls es ein gemeinsames Ticket gibt)">
+      <Field label="Ticketlink (für das ganze Festival, falls es ein gemeinsames Ticket gibt)">
         <input type="url" value={ticketUrl} onChange={(e) => setTicketUrl(e.target.value)} className="input" />
       </Field>
       <Field label="Titelbild">
@@ -71,7 +71,7 @@ export function EventSeriesForm({ series }: { series?: EventSeriesResponse }) {
         disabled={pending}
         className="bg-fg px-6 py-2.5 font-meta text-sm text-bg hover:bg-accent hover:text-accent-fg disabled:opacity-60"
       >
-        {pending ? "Wird gespeichert …" : series ? "Speichern" : "Reihe anlegen"}
+        {pending ? "Wird gespeichert …" : series ? "Speichern" : "Festival anlegen"}
       </button>
     </form>
   );

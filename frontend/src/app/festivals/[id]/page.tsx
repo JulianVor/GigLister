@@ -41,7 +41,7 @@ export default async function EventSeriesDetailPage({ params }: { params: Promis
           </a>
         )}
         {canEdit && (
-          <Link href={`/reihen/${series.id}/bearbeiten`} className="text-accent hover:underline">
+          <Link href={`/festivals/${series.id}/bearbeiten`} className="text-accent hover:underline">
             Bearbeiten
           </Link>
         )}
@@ -49,10 +49,10 @@ export default async function EventSeriesDetailPage({ params }: { params: Promis
 
       {series.description && <p className="mt-6 whitespace-pre-wrap leading-relaxed">{series.description}</p>}
 
-      <h2 className="mt-10 font-meta text-sm uppercase tracking-wide text-muted">Konzerte dieser Reihe</h2>
+      <h2 className="mt-10 font-meta text-sm uppercase tracking-wide text-muted">Konzerte dieses Festivals</h2>
       <div className="mt-2">
         {series.events.length === 0 ? (
-          <EmptyState>Noch keine Konzerte dieser Reihe zugeordnet.</EmptyState>
+          <EmptyState>Noch keine Konzerte diesem Festival zugeordnet.</EmptyState>
         ) : (
           <SeriesTimetable events={series.events} />
         )}

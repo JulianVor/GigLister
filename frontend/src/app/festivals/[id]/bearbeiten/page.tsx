@@ -16,12 +16,12 @@ export default async function EditEventSeriesPage({ params }: { params: Promise<
   });
 
   if (!canManageEntity(session, "EVENT_SERIES", series.id)) {
-    redirect(`/reihen/${series.id}`);
+    redirect(`/festivals/${series.id}`);
   }
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Reihe bearbeiten</h1>
+      <h1 className="font-display text-3xl">Festival bearbeiten</h1>
       <div className="mt-6">
         <EventSeriesForm series={series} />
       </div>

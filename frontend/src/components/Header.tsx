@@ -21,6 +21,9 @@ export async function Header() {
           <Link href="/orte" className="hover:text-accent">
             Orte
           </Link>
+          <Link href="/festivals" className="hover:text-accent">
+            Festivals
+          </Link>
           <Link href="/entdecken" className="hover:text-accent">
             Entdecken
           </Link>

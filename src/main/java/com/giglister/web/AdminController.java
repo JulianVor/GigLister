@@ -137,7 +137,7 @@ public class AdminController {
         return adminService.listAdminEvents(status, q, sort, PageRequest.of(page, size));
     }
 
-    @GetMapping("/reihen")
+    @GetMapping("/festivals")
     public Page<AdminEventSeriesListItem> eventSeries(
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,

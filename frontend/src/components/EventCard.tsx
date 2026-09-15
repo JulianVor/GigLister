@@ -88,8 +88,8 @@ export function eventPhotoContent(
 
 /** An image-forward post-style card (photo up top, a floating date pill, details below) -
  * self-spaced (`mb-4`) so every list of these just stacks without callers adding gaps.
- * `hideSeriesPrefix` is only for SeriesTimetable's own fallback (a day within a Reihe with
- * just one concert) - everywhere else the "<Reihe> - " prefix is what tells a listing that
+ * `hideSeriesPrefix` is only for SeriesTimetable's own fallback (a day within a Festival with
+ * just one concert) - everywhere else the "<Festival> - " prefix is what tells a listing that
  * this concert belongs to a series in the first place. */
 export function EventCard({ event, hideSeriesPrefix = false }: { event: EventSummary; hideSeriesPrefix?: boolean }) {
   const time = formatTime(event.startTime);

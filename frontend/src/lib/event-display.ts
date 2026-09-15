@@ -7,7 +7,7 @@ export function eventLineupLabel(event: { title: string | null; bands: BandSumma
   return event.bands.map((b) => b.name).join(" + ");
 }
 
-/** Same as eventLineupLabel, but prefixed with "<Reihe> - " when the event belongs to one -
+/** Same as eventLineupLabel, but prefixed with "<Festival> - " when the event belongs to one -
  * for listing contexts (EventCard) outside the series' own page, where that context would
  * otherwise be invisible. Never used on the series' own page itself (see EventCard's
  * hideSeriesPrefix) - there the series name is already the page, so plain eventLineupLabel

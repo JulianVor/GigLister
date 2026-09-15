@@ -157,10 +157,10 @@ export function EventForm({
       <div>
         <div className="flex items-baseline justify-between">
           <label className="font-meta text-sm text-muted" htmlFor="eventSeriesId">
-            Reihe (optional, z. B. Festival)
+            Festival (optional)
           </label>
-          <a href="/reihen/neu" target="_blank" rel="noreferrer" className="font-meta text-xs text-accent hover:underline">
-            + Neue Reihe anlegen
+          <a href="/festivals/neu" target="_blank" rel="noreferrer" className="font-meta text-xs text-accent hover:underline">
+            + Neues Festival anlegen
           </a>
         </div>
         <select

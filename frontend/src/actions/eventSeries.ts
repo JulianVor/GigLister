@@ -25,7 +25,7 @@ export async function updateEventSeriesAction(id: number, input: EventSeriesInpu
 
   try {
     await api.updateEventSeries(id, input, token);
-    revalidatePath(`/reihen/${id}`);
+    revalidatePath(`/festivals/${id}`);
     return { ok: true, data: undefined };
   } catch (err) {
     if (err instanceof api.ApiError) return { ok: false, error: err.message };

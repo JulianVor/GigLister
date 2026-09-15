@@ -337,9 +337,9 @@ export function claimLocation(id: number, message: string | undefined, token: st
   return apiFetch<ClaimResponse>(`/api/locations/${id}/claim`, { method: "POST", body: { message }, token });
 }
 
-// --- Event series (Reihen/Festivals) ---
+// --- Event series (Festivals) ---
 
-/** Every series, for the "welche Reihe?" dropdown on the event form and for a simple
+/** Every series, for the "welches Festival?" dropdown on the event form and for a simple
  * admin overview - see EventSeries' own backend class comment for why there's no
  * published/draft split to filter by here. */
 export function getEventSeriesList() {
@@ -478,7 +478,7 @@ export function getAdminLocations(
 }
 
 export function getAdminEventSeries(params: { q?: string; page?: number; size?: number }, token: string) {
-  return apiFetch<Page<AdminEventSeriesListItem>>(`/api/admin/reihen${toQuery(params)}`, { token });
+  return apiFetch<Page<AdminEventSeriesListItem>>(`/api/admin/festivals${toQuery(params)}`, { token });
 }
 
 export function getAdminEvents(

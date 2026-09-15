@@ -8,7 +8,7 @@ export default async function NewEventSeriesPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Neue Reihe</h1>
+      <h1 className="font-display text-3xl">Neues Festival</h1>
       <p className="mt-1 font-meta text-sm text-muted">
         Für ein Festival oder eine Nacht, die mehrere einzelne Konzerte an verschiedenen Orten bündelt.
       </p>

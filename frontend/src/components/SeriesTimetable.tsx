@@ -5,7 +5,7 @@ import { eventLineupLabel } from "@/lib/event-display";
 import { entityColor } from "@/lib/entityColor";
 import { EventCard } from "./EventCard";
 
-/** A Reihe's events grouped by day - a day with only one concert still gets the normal
+/** A Festival's events grouped by day - a day with only one concert still gets the normal
  * photo-card treatment, but once several overlap (the whole point of a multi-location
  * night like "SüdKultur MusicNight"), stacked full-size cards are hard to scan
  * chronologically - and don't show which of them actually run at the same time, when
