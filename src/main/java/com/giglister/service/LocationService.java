@@ -306,7 +306,7 @@ public class LocationService {
     }
 
     public LocationListItem toListItem(Location location) {
-        return new LocationListItem(location.getId(), location.getName(), location.getCity(), upcomingEventCount(location.getId()));
+        return new LocationListItem(location.getId(), location.getName(), location.getCity(), upcomingEventCount(location.getId()), location.getStatus());
     }
 
     public List<Location> listAllPublishedSortedByUpcoming(String city, int limit) {

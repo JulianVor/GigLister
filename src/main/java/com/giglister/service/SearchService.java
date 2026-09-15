@@ -25,7 +25,14 @@ public class SearchService {
     private final LocationService locationService;
     private final SummaryMapper summaryMapper;
 
-    public SearchResults search(String query, String type) {
+    /**
+     * includeUnpublished mirrors BandController/LocationController's assertVisible: a
+     * STUB/DRAFT/ARCHIVED band or location has no public profile yet, so anonymous
+     * visitors only ever find PUBLISHED ones here - but a logged-in user can already open
+     * such a profile directly by id, so search should be able to lead them there too
+     * (otherwise a band you just created stays unfindable until someone publishes it).
+     */
+    public SearchResults search(String query, String type, boolean includeUnpublished) {
         boolean wantEvents = type == null || type.equalsIgnoreCase("ALL") || type.equalsIgnoreCase("EVENT");
         boolean wantBands = type == null || type.equalsIgnoreCase("ALL") || type.equalsIgnoreCase("BAND");
         boolean wantLocations = type == null || type.equalsIgnoreCase("ALL") || type.equalsIgnoreCase("LOCATION");
@@ -36,12 +43,12 @@ public class SearchService {
                 : List.<com.giglister.dto.common.EventSummary>of();
 
         var bands = wantBands
-                ? bandRepository.searchByNameAndStatus(query, EntityStatus.PUBLISHED)
+                ? (includeUnpublished ? bandRepository.searchByName(query) : bandRepository.searchByNameAndStatus(query, EntityStatus.PUBLISHED))
                 .stream().limit(MAX_RESULTS_PER_TYPE).map(bandService::toResponse).toList()
                 : List.<com.giglister.dto.band.BandResponse>of();
 
         var locations = wantLocations
-                ? locationRepository.searchByNameAndStatus(query, EntityStatus.PUBLISHED)
+                ? (includeUnpublished ? locationRepository.searchByName(query) : locationRepository.searchByNameAndStatus(query, EntityStatus.PUBLISHED))
                 .stream().limit(MAX_RESULTS_PER_TYPE).map(locationService::toListItem).toList()
                 : List.<com.giglister.dto.location.LocationListItem>of();
 

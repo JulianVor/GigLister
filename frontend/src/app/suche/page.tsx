@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { search } from "@/lib/api";
+import { getToken } from "@/lib/session";
 import { SearchBar } from "@/components/SearchBar";
 import { EventCard } from "@/components/EventCard";
 import { StatusBadge } from "@/components/StatusBadge";
 
 export default async function SuchePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
-  const results = q ? await search(q) : null;
+  const [{ q }, token] = await Promise.all([searchParams, getToken()]);
+  const results = q ? await search(q, undefined, token) : null;
 
   return (
     <div>
@@ -67,6 +68,7 @@ export default async function SuchePage({ searchParams }: { searchParams: Promis
                       <div className="font-display text-lg">{location.name}</div>
                       <div className="font-meta text-sm text-muted">{location.city}</div>
                     </div>
+                    <StatusBadge status={location.status} />
                   </Link>
                 ))}
               </div>

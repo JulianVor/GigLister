@@ -1,6 +1,7 @@
 package com.giglister.web;
 
 import com.giglister.dto.SearchResults;
+import com.giglister.security.CurrentUser;
 import com.giglister.service.SearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +18,6 @@ public class SearchController {
 
     @GetMapping
     public SearchResults search(@RequestParam String q, @RequestParam(required = false) String type) {
-        return searchService.search(q, type);
+        return searchService.search(q, type, CurrentUser.getOrNull() != null);
     }
 }

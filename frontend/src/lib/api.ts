@@ -382,8 +382,12 @@ export function updateEventSeries(id: number, data: EventSeriesInput, token: str
 
 // --- Search / Discover ---
 
-export function search(q: string, type?: string) {
-  return apiFetch<SearchResults>(`/api/search${toQuery({ q, type })}`);
+/** token is optional and, passed, lets a logged-in user's search also surface their own
+ * not-yet-published bands/locations (see SearchController/SearchService on the backend) -
+ * same STUB/DRAFT/ARCHIVED-visible-to-any-logged-in-user rule the band/location detail
+ * pages already apply, just reached via search instead of a direct link. */
+export function search(q: string, type?: string, token?: string) {
+  return apiFetch<SearchResults>(`/api/search${toQuery({ q, type })}`, { token });
 }
 
 export function discover(params: { city?: string; lat?: number; lon?: number; radiusKm?: number }, token?: string) {

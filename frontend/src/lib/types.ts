@@ -115,6 +115,7 @@ export interface LocationListItem {
   name: string;
   city: string;
   upcomingEventCount: number;
+  status: EntityStatus;
 }
 
 export interface BandResponse {
