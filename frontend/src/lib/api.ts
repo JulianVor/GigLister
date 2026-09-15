@@ -214,6 +214,10 @@ export function updateEventStatus(id: number, status: EventStatus, token: string
   return apiFetch<EventResponse>(`/api/events/${id}/status`, { method: "PATCH", body: { status }, token });
 }
 
+export function deleteEvent(id: number, token: string) {
+  return apiFetch<void>(`/api/events/${id}`, { method: "DELETE", token });
+}
+
 export function saveEvent(id: number, token: string) {
   return apiFetch<void>(`/api/events/${id}/save`, { method: "POST", token });
 }
@@ -257,6 +261,11 @@ export function updateBand(id: number, data: BandInput, token: string) {
 
 export function updateBandStatus(id: number, status: EntityStatus, token: string) {
   return apiFetch<BandResponse>(`/api/bands/${id}/status`, { method: "PATCH", body: { status }, token });
+}
+
+/** Refused by the backend (409) while any event still lists this band. */
+export function deleteBand(id: number, token: string) {
+  return apiFetch<void>(`/api/bands/${id}`, { method: "DELETE", token });
 }
 
 export function getBandPermissions(id: number, token: string) {
@@ -320,6 +329,11 @@ export function updateLocation(id: number, data: LocationInput, token: string) {
 
 export function updateLocationStatus(id: number, status: EntityStatus, token: string) {
   return apiFetch<LocationResponse>(`/api/locations/${id}/status`, { method: "PATCH", body: { status }, token });
+}
+
+/** Refused by the backend (409) while any event still lists this location. */
+export function deleteLocation(id: number, token: string) {
+  return apiFetch<void>(`/api/locations/${id}`, { method: "DELETE", token });
 }
 
 export function getLocationPermissions(id: number, token: string) {

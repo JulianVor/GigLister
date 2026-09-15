@@ -17,6 +17,8 @@ public interface SavedEventRepository extends JpaRepository<SavedEvent, Long> {
 
     boolean existsByUserIdAndEventId(Long userId, Long eventId);
 
+    void deleteByEventId(Long eventId);
+
     /** For the "Beliebt in deiner Nähe" fallback when there's no personalization signal yet
      * - one grouped query instead of a save-count lookup per candidate event. */
     @Query("select se.eventId as eventId, count(se) as cnt from SavedEvent se where se.eventId in :eventIds group by se.eventId")

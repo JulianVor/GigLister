@@ -50,6 +50,20 @@ export async function updateBandStatusAction(id: number, status: EntityStatus): 
   }
 }
 
+export async function deleteBandAction(id: number): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.deleteBand(id, token);
+    revalidatePath("/admin/bands");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
 export async function toggleFollowBandAction(bandId: number, follow: boolean): Promise<ActionResult> {
   const token = await getToken();
   if (!token) redirect("/login");

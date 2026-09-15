@@ -72,6 +72,22 @@ export async function reactivateEventAction(id: number): Promise<ActionResult> {
   }
 }
 
+export async function deleteEventAction(id: number): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.deleteEvent(id, token);
+    revalidatePath("/konzerte");
+    revalidatePath("/entdecken");
+    revalidatePath("/admin/events");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
 export async function toggleSaveEventAction(eventId: number, save: boolean): Promise<ActionResult> {
   const token = await getToken();
   if (!token) redirect("/login");

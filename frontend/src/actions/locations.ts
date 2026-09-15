@@ -49,6 +49,20 @@ export async function updateLocationStatusAction(id: number, status: EntityStatu
   }
 }
 
+export async function deleteLocationAction(id: number): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.deleteLocation(id, token);
+    revalidatePath("/admin/locations");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
 export async function claimLocationAction(locationId: number, message?: string): Promise<ActionResult> {
   const token = await getToken();
   if (!token) return { ok: false, error: "Bitte zuerst einloggen." };

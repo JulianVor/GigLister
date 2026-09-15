@@ -11,6 +11,7 @@ import com.giglister.dto.location.LocationCreateRequest;
 import com.giglister.dto.location.LocationListItem;
 import com.giglister.dto.location.LocationResponse;
 import com.giglister.dto.location.LocationUpdateRequest;
+import com.giglister.exception.ConflictException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.EventRepository;
 import com.giglister.repository.LocationRepository;
@@ -252,6 +253,23 @@ public class LocationService {
         Location location = getOrThrow(id);
         location.setStatus(status);
         return locationRepository.save(location);
+    }
+
+    /** Same MANAGE tier as updateStatus - deleting is at least as destructive as archiving.
+     * Blocked while any event (of any status) still lists this location, same as merge()
+     * refuses to leave a concert without a location - "kein Konzert darf seine Location
+     * verlieren" applies here too, just via a hard stop instead of a relink. Permission
+     * grants are cleaned up rather than left as orphaned rows a future location created
+     * with a reused id could otherwise inherit. */
+    @Transactional
+    public void delete(Long id, Long userId, boolean platformAdmin) {
+        permissionService.require(userId, platformAdmin, EntityType.LOCATION, id, PermissionLevel.MANAGE);
+        Location location = getOrThrow(id);
+        if (!eventRepository.findByLocationId(id).isEmpty()) {
+            throw new ConflictException("Dieser Ort hat noch Konzerte und kann daher nicht gelöscht werden.");
+        }
+        permissionService.revokeAll(EntityType.LOCATION, id);
+        locationRepository.delete(location);
     }
 
     public List<EventSummary> upcomingEvents(Long locationId) {

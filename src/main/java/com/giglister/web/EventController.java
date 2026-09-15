@@ -110,6 +110,13 @@ public class EventController {
         return eventService.toResponse(event);
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        var user = CurrentUser.require();
+        eventService.delete(id, user.getId(), user.isPlatformAdmin());
+    }
+
     @PostMapping("/{id}/save")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void save(@PathVariable Long id) {

@@ -6,6 +6,7 @@ import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
 import { GeocodeMissingButton } from "@/components/admin/GeocodeMissingButton";
 import { CompletenessBadge } from "@/components/admin/CompletenessBadge";
 import { CompletenessSort } from "@/components/admin/CompletenessSort";
+import { DeleteButton } from "@/components/DeleteButton";
 import { ENTITY_STATUS_HINTS, ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { EntityStatus } from "@/lib/types";
 
@@ -78,6 +79,7 @@ export default async function AdminLocationsPage({
                 <Link href={`/orte/${location.id}/bearbeiten`} className="font-meta text-sm text-accent hover:underline">
                   Bearbeiten
                 </Link>
+                <DeleteButton entityType="location" entityId={location.id} className="font-meta text-sm text-accent hover:underline" />
               </div>
             </div>
           ))

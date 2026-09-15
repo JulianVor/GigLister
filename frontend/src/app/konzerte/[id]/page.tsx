@@ -10,6 +10,7 @@ import { SaveEventButton } from "@/components/SaveEventButton";
 import { CancelEventButton } from "@/components/CancelEventButton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EventCard, eventPhotoContent } from "@/components/EventCard";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -104,6 +105,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           </Link>
         )}
         {canEdit && <CancelEventButton eventId={event.id} status={event.status} />}
+        {canEdit && <DeleteButton entityType="event" entityId={event.id} redirectTo="/konzerte" />}
       </div>
 
       {event.description && <p className="mt-8 whitespace-pre-wrap leading-relaxed">{event.description}</p>}

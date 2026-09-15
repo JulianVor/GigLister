@@ -9,6 +9,7 @@ import com.giglister.domain.enums.PermissionLevel;
 import com.giglister.dto.band.BandCreateRequest;
 import com.giglister.dto.band.BandResponse;
 import com.giglister.dto.band.BandUpdateRequest;
+import com.giglister.exception.ConflictException;
 import com.giglister.exception.ForbiddenException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandFollowRepository;
@@ -150,6 +151,24 @@ public class BandService {
         Band band = getOrThrow(id);
         band.setStatus(status);
         return bandRepository.save(band);
+    }
+
+    /** Same MANAGE tier as updateStatus - deleting is at least as destructive as archiving.
+     * Blocked while any event (of any status) still lists this band, same as merge()
+     * refuses to leave a concert without a location/band - "kein Konzert darf seine Band
+     * verlieren" applies here too, just via a hard stop instead of a relink. Follows and
+     * permission grants are cleaned up rather than left as orphaned rows a future band
+     * created with a reused id could otherwise inherit. */
+    @Transactional
+    public void delete(Long id, Long userId, boolean platformAdmin) {
+        permissionService.require(userId, platformAdmin, EntityType.BAND, id, PermissionLevel.MANAGE);
+        Band band = getOrThrow(id);
+        if (!eventRepository.findByBandId(id).isEmpty()) {
+            throw new ConflictException("Diese Band hat noch Konzerte und kann daher nicht gelöscht werden.");
+        }
+        bandFollowRepository.deleteByBandId(id);
+        permissionService.revokeAll(EntityType.BAND, id);
+        bandRepository.delete(band);
     }
 
     public List<com.giglister.dto.common.EventSummary> upcomingEvents(Long bandId) {

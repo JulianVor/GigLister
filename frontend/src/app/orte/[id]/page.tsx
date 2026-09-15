@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { ClaimButton } from "@/components/ClaimButton";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 import { LocationTitleImage } from "@/components/LocationTitleImage";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function LocationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -72,6 +73,9 @@ export default async function LocationDetailPage({ params }: { params: Promise<{
           <Link href={`/orte/${location.id}/bearbeiten`} className="text-accent hover:underline">
             Bearbeiten
           </Link>
+        )}
+        {canEdit && (
+          <DeleteButton entityType="location" entityId={location.id} redirectTo="/orte" className="text-accent hover:underline" />
         )}
       </div>
 

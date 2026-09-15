@@ -98,6 +98,13 @@ public class LocationController {
         return locationService.toResponse(locationService.updateStatus(id, request.status(), user.getId(), user.isPlatformAdmin()));
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        var user = CurrentUser.require();
+        locationService.delete(id, user.getId(), user.isPlatformAdmin());
+    }
+
     @GetMapping("/{id}/permissions")
     public List<PermissionResponse> permissions(@PathVariable Long id) {
         var user = CurrentUser.require();

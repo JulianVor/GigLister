@@ -14,4 +14,6 @@ public interface BandFollowRepository extends JpaRepository<BandFollow, Long> {
     void deleteByUserIdAndBandId(Long userId, Long bandId);
 
     boolean existsByUserIdAndBandId(Long userId, Long bandId);
+
+    void deleteByBandId(Long bandId);
 }

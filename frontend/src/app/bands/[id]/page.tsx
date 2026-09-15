@@ -10,6 +10,7 @@ import { FollowBandButton } from "@/components/FollowBandButton";
 import { ClaimButton } from "@/components/ClaimButton";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 import { BandTitleImage, BandLogo } from "@/components/BandImages";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function BandDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -93,6 +94,7 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
             Bearbeiten
           </Link>
         )}
+        {canEdit && <DeleteButton entityType="band" entityId={band.id} redirectTo="/" />}
       </div>
 
       <h2 className="mt-10 font-meta text-sm uppercase tracking-wide text-muted">Nächste Konzerte</h2>

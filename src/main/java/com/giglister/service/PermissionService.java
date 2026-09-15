@@ -91,6 +91,14 @@ public class PermissionService {
         permissionRepository.deleteByUserIdAndEntityTypeAndEntityId(userId, type, entityId);
     }
 
+    /** Clears every grant on an entity that's about to be deleted - otherwise these would
+     * just be orphaned rows a future entity created with a reused id could inherit. */
+    @Transactional
+    public void revokeAll(EntityType type, Long entityId) {
+        permissionRepository.findByEntityTypeAndEntityId(type, entityId)
+                .forEach(p -> permissionRepository.deleteByUserIdAndEntityTypeAndEntityId(p.getUserId(), type, entityId));
+    }
+
     public List<PermissionResponse> listHolders(EntityType type, Long entityId) {
         return permissionRepository.findByEntityTypeAndEntityId(type, entityId).stream()
                 .map(p -> {

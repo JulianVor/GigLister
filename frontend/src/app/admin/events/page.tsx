@@ -5,6 +5,7 @@ import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
 import { CompletenessBadge } from "@/components/admin/CompletenessBadge";
 import { CompletenessSort } from "@/components/admin/CompletenessSort";
+import { DeleteButton } from "@/components/DeleteButton";
 import { dayAndMonth, weekdayShort } from "@/lib/format";
 import { EVENT_STATUS_LABELS } from "@/lib/status-labels";
 import type { EventStatus } from "@/lib/types";
@@ -73,6 +74,7 @@ export default async function AdminEventsPage({
                 <Link href={`/konzerte/${event.id}/bearbeiten`} className="font-meta text-sm text-accent hover:underline">
                   Bearbeiten
                 </Link>
+                <DeleteButton entityType="event" entityId={event.id} className="font-meta text-sm text-accent hover:underline" />
               </div>
             </div>
           ))

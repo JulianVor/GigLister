@@ -18,6 +18,7 @@ import com.giglister.exception.BadRequestException;
 import com.giglister.exception.ForbiddenException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.EventRepository;
+import com.giglister.repository.SavedEventRepository;
 import com.giglister.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +50,7 @@ public class EventService {
     private final SummaryMapper summaryMapper;
     private final UserRepository userRepository;
     private final PushNotificationService pushNotificationService;
+    private final SavedEventRepository savedEventRepository;
 
     public Event getOrThrow(Long id) {
         return eventRepository.findById(id)
@@ -176,6 +178,18 @@ public class EventService {
         requireEditRights(event, userId, platformAdmin);
         event.setStatus(status);
         return eventRepository.save(event);
+    }
+
+    /** Unlike Band/Location, an event has nothing else that would ever refuse to let it go
+     * - it's the leaf of the model, not something other rows point at by id. Only "saved"
+     * bookmarks need cleaning up (a user's own saved-events list already tolerates a
+     * missing event by filtering it out, but there's no reason to leave the row behind). */
+    @Transactional
+    public void delete(Long id, Long userId, boolean platformAdmin) {
+        Event event = getOrThrow(id);
+        requireEditRights(event, userId, platformAdmin);
+        savedEventRepository.deleteByEventId(id);
+        eventRepository.delete(event);
     }
 
     /** Creator, platform admin, or anyone with EDIT+ on the location or any of the line-up's bands. */
