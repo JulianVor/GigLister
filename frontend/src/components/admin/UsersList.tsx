@@ -34,6 +34,14 @@ export function UsersList({ users, currentUserId }: { users: AdminUserResponse[]
               <div className="font-meta text-sm text-muted">{user.email}</div>
             </div>
             <div className="flex items-center gap-3">
+              {user.mustChangePassword && (
+                <span
+                  title="Nutzer hat sich noch nicht mit einem eigenen Passwort angemeldet"
+                  className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted"
+                >
+                  Wartet auf Passwortänderung
+                </span>
+              )}
               <span className="font-meta text-xs uppercase tracking-wide text-muted">
                 {user.platformAdmin ? "Admin" : "Nutzer"}
               </span>

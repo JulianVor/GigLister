@@ -128,7 +128,8 @@ public class UserService {
 
         return new MeResponse(user.getId(), user.getEmail(), user.getUsername(), user.getHomeCity(),
                 user.getHomeLatitude(), user.getHomeLongitude(),
-                user.getRadiusKm(), user.getPreferredGenres(), user.isPlatformAdmin(), saved, followedBands, managed);
+                user.getRadiusKm(), user.getPreferredGenres(), user.isPlatformAdmin(), user.isMustChangePassword(),
+                saved, followedBands, managed);
     }
 
     private List<Long> myManagedBandIds(Long userId) {

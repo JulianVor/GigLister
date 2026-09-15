@@ -1,6 +1,7 @@
 import { getAdminUsers } from "@/lib/api";
 import { getSession, getToken } from "@/lib/session";
 import { UsersList } from "@/components/admin/UsersList";
+import { CreateUserForm } from "@/components/admin/CreateUserForm";
 
 export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
@@ -13,6 +14,10 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
       <p className="mt-1 font-meta text-sm text-muted">
         Admin-Rechte sind nur ein Flag auf einem ganz normalen Konto — kein eigener Account-Typ.
       </p>
+
+      <div className="mt-6">
+        <CreateUserForm />
+      </div>
 
       <form action="/admin/users" className="mt-6 flex max-w-sm gap-2">
         <input

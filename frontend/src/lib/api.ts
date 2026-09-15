@@ -1,6 +1,7 @@
 import "server-only";
 import type {
   AdminBandListItem,
+  AdminCreateUserResponse,
   AdminDashboardResponse,
   AdminEventListItem,
   AdminEventSeriesListItem,
@@ -443,6 +444,12 @@ export function mergeEntities(data: { entityType: EntityType; sourceEntityId: nu
 
 export function getAdminUsers(query: string | undefined, token: string) {
   return apiFetch<AdminUserResponse[]>(`/api/admin/users${toQuery({ q: query })}`, { token });
+}
+
+/** No password in the request - the backend generates a temporary one and hands it back
+ * once, in the response, for the admin to pass along to the new user themselves. */
+export function createAdminUser(data: { email: string; username: string }, token: string) {
+  return apiFetch<AdminCreateUserResponse>("/api/admin/users", { method: "POST", body: data, token });
 }
 
 export function promoteUser(id: number, token: string) {

@@ -11,6 +11,8 @@ import com.giglister.domain.enums.EntityType;
 import com.giglister.domain.enums.EventStatus;
 import com.giglister.domain.enums.SubmissionStatus;
 import com.giglister.dto.admin.AdminBandListItem;
+import com.giglister.dto.admin.AdminCreateUserRequest;
+import com.giglister.dto.admin.AdminCreateUserResponse;
 import com.giglister.dto.admin.AdminDashboardResponse;
 import com.giglister.dto.admin.AdminEventListItem;
 import com.giglister.dto.admin.AdminEventSeriesListItem;
@@ -18,6 +20,7 @@ import com.giglister.dto.admin.AdminLocationListItem;
 import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.DuplicatePair;
 import com.giglister.exception.BadRequestException;
+import com.giglister.exception.ConflictException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandRepository;
 import com.giglister.repository.ClaimRepository;
@@ -30,9 +33,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -48,8 +53,14 @@ public class AdminService {
     private final UserRepository userRepository;
     private final SubmissionRepository submissionRepository;
     private final EventSeriesRepository eventSeriesRepository;
+    private final PasswordEncoder passwordEncoder;
 
     private static final List<EntityStatus> NEEDS_ATTENTION = List.of(EntityStatus.STUB, EntityStatus.DRAFT);
+    // Excludes visually ambiguous characters (0/O, 1/l/I) since a temporary password has to
+    // be read off a screen by an admin and typed in by hand by whoever they hand it to.
+    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    private static final int TEMP_PASSWORD_LENGTH = 12;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public AdminDashboardResponse dashboard() {
         long openClaims = claimRepository.findByStatus(ClaimStatus.PENDING).size();
@@ -107,7 +118,7 @@ public class AdminService {
                 : userRepository.findByEmailContainingIgnoreCaseOrUsernameContainingIgnoreCase(query, query);
         return users.stream()
                 .sorted(Comparator.comparing(User::getEmail))
-                .map(u -> new AdminUserResponse(u.getId(), u.getEmail(), u.getUsername(), u.isPlatformAdmin()))
+                .map(this::toAdminUserResponse)
                 .toList();
     }
 
@@ -120,7 +131,47 @@ public class AdminService {
                 .orElseThrow(() -> new NotFoundException("User " + userId + " not found"));
         user.setPlatformAdmin(platformAdmin);
         userRepository.save(user);
-        return new AdminUserResponse(user.getId(), user.getEmail(), user.getUsername(), user.isPlatformAdmin());
+        return toAdminUserResponse(user);
+    }
+
+    /** Invite-style account creation: an admin only ever provides email/username, never a
+     * password - one is generated and handed back once (see AdminCreateUserResponse) for
+     * the admin to pass along however they reach this person, and mustChangePassword
+     * forces it to be replaced with something only the new user knows before they can do
+     * anything else (see RequirePasswordChange on the frontend). */
+    @Transactional
+    public AdminCreateUserResponse createUser(AdminCreateUserRequest request) {
+        if (userRepository.existsByEmailIgnoreCase(request.email())) {
+            throw new ConflictException("An account with this email already exists");
+        }
+        if (userRepository.existsByUsernameIgnoreCase(request.username())) {
+            throw new ConflictException("This username is already taken");
+        }
+        String temporaryPassword = generateTemporaryPassword();
+        User user = User.builder()
+                .email(request.email())
+                .username(request.username())
+                .passwordHash(passwordEncoder.encode(temporaryPassword))
+                // An admin entering this email themselves is itself the verification -
+                // there's no inbox-click step to wait on, unlike self-registration.
+                .emailVerified(true)
+                .mustChangePassword(true)
+                .build();
+        user = userRepository.save(user);
+        return new AdminCreateUserResponse(user.getId(), user.getEmail(), user.getUsername(), temporaryPassword);
+    }
+
+    private String generateTemporaryPassword() {
+        StringBuilder sb = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
+            sb.append(TEMP_PASSWORD_CHARS.charAt(secureRandom.nextInt(TEMP_PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
+    }
+
+    private AdminUserResponse toAdminUserResponse(User user) {
+        return new AdminUserResponse(user.getId(), user.getEmail(), user.getUsername(),
+                user.isPlatformAdmin(), user.isMustChangePassword());
     }
 
     /**

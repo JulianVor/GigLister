@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Archivo_Black, Barlow_Condensed, Inter } from "next/font/google";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { RequirePasswordChange } from "@/components/RequirePasswordChange";
 import "./globals.css";
 
 const displayFont = Archivo_Black({
@@ -31,7 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="de" className={`${displayFont.variable} ${metaFont.variable} ${sansFont.variable} h-full`}>
       <body className="min-h-full flex flex-col font-sans antialiased">
         <Header />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+          <RequirePasswordChange>{children}</RequirePasswordChange>
+        </main>
         <Footer />
       </body>
     </html>

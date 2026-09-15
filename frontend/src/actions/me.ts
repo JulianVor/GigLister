@@ -32,6 +32,9 @@ export async function changePasswordAction(input: { currentPassword: string; new
 
   try {
     await api.changePassword(input, token);
+    // Layout-wide, not just this path - a successful change also clears
+    // mustChangePassword, which RequirePasswordChange gates every page behind.
+    revalidatePath("/", "layout");
     return { ok: true, data: undefined };
   } catch (err) {
     if (err instanceof api.ApiError) return { ok: false, error: err.message };

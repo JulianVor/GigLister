@@ -16,6 +16,10 @@ public record MeResponse(
         Integer radiusKm,
         List<String> preferredGenres,
         boolean platformAdmin,
+        /** True right after an admin creates this account with a temporary password -
+         * the frontend blocks every page behind a forced "Passwort ändern" screen while
+         * this is set (see RequirePasswordChange). */
+        boolean mustChangePassword,
         List<EventSummary> savedEvents,
         List<ManagedFollowedBand> followedBands,
         List<ManagedEntity> managedEntities

@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { changePasswordAction } from "@/actions/me";
 
 /** Changing a known password while logged in - no email round-trip like "Passwort
  * vergessen" needs, since typing the current password already proves it's really the
  * account owner (see AuthService.changePassword on the backend). */
 export function ChangePasswordForm() {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -39,6 +41,7 @@ export function ChangePasswordForm() {
     setNewPassword("");
     setConfirmPassword("");
     setMessage("Passwort geändert.");
+    router.refresh();
   }
 
   return (

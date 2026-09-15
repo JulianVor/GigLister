@@ -164,6 +164,7 @@ export interface MeResponse {
   radiusKm: number | null;
   preferredGenres: string[];
   platformAdmin: boolean;
+  mustChangePassword: boolean;
   savedEvents: EventSummary[];
   followedBands: { id: number; name: string; nextEventDate: string | null }[];
   managedEntities: {
@@ -198,6 +199,14 @@ export interface AdminUserResponse {
   email: string;
   username: string;
   platformAdmin: boolean;
+  mustChangePassword: boolean;
+}
+
+export interface AdminCreateUserResponse {
+  id: number;
+  email: string;
+  username: string;
+  temporaryPassword: string;
 }
 
 export interface DuplicateCandidate {

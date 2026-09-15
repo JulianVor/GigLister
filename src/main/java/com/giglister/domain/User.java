@@ -72,6 +72,17 @@ public class User {
     @Builder.Default
     private boolean platformAdmin = false;
 
+    /** Set when an admin creates this account with a temporary password (see
+     * AdminService.createUser) - cleared the moment the user successfully changes their
+     * password (see AuthService.changePassword), same login is still allowed either way.
+     * Deliberately nullable at the DB level, unlike platformAdmin/emailVerified above: with
+     * `ddl-auto: update` and no migration tool, Hibernate adds this column via a plain
+     * ALTER TABLE ADD COLUMN against a table that may already have live rows - a NOT NULL
+     * column there fails immediately (existing rows have nothing to backfill it with).
+     * A NULL here reads back as the primitive boolean's default, false, which is exactly
+     * the right value for every account that existed before this field did. */
+    private boolean mustChangePassword;
+
     @Column(nullable = false)
     private Instant createdAt;
 

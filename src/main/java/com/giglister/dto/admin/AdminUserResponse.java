@@ -4,6 +4,7 @@ public record AdminUserResponse(
         Long id,
         String email,
         String username,
-        boolean platformAdmin
+        boolean platformAdmin,
+        boolean mustChangePassword
 ) {
 }

@@ -16,12 +16,14 @@ public class AppUserPrincipal implements UserDetails {
     private final String email;
     private final String passwordHash;
     private final boolean platformAdmin;
+    private final boolean mustChangePassword;
 
     public AppUserPrincipal(User user) {
         this.id = user.getId();
         this.email = user.getEmail();
         this.passwordHash = user.getPasswordHash();
         this.platformAdmin = user.isPlatformAdmin();
+        this.mustChangePassword = user.isMustChangePassword();
     }
 
     @Override

@@ -6,6 +6,8 @@ import com.giglister.domain.enums.EntityStatus;
 import com.giglister.domain.enums.EventStatus;
 import com.giglister.domain.enums.SubmissionStatus;
 import com.giglister.dto.admin.AdminBandListItem;
+import com.giglister.dto.admin.AdminCreateUserRequest;
+import com.giglister.dto.admin.AdminCreateUserResponse;
 import com.giglister.dto.admin.AdminDashboardResponse;
 import com.giglister.dto.admin.AdminEventListItem;
 import com.giglister.dto.admin.AdminEventSeriesListItem;
@@ -27,6 +29,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -81,6 +85,11 @@ public class AdminController {
     @GetMapping("/users")
     public List<AdminUserResponse> users(@RequestParam(required = false) String q) {
         return adminService.listUsers(q);
+    }
+
+    @PostMapping("/users")
+    public ResponseEntity<AdminCreateUserResponse> createUser(@Valid @RequestBody AdminCreateUserRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.createUser(request));
     }
 
     @PostMapping("/users/{id}/promote")

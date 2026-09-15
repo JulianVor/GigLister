@@ -55,6 +55,23 @@ export async function mergeEntitiesAction(
   }
 }
 
+export async function createUserAction(input: {
+  email: string;
+  username: string;
+}): Promise<ActionResult<{ id: number; email: string; username: string; temporaryPassword: string }>> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    const user = await api.createAdminUser(input, token);
+    revalidatePath("/admin/users");
+    return { ok: true, data: user };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
 export async function promoteUserAction(userId: number): Promise<ActionResult> {
   const token = await getToken();
   if (!token) return { ok: false, error: "Bitte zuerst einloggen." };

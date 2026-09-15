@@ -131,6 +131,10 @@ public class AuthService {
             throw new BadRequestException("Das aktuelle Passwort ist falsch.");
         }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
+        // Whatever password they came in with (including an admin-issued temporary one)
+        // has now been replaced by one only they know - satisfies mustChangePassword
+        // regardless of whether it was set.
+        user.setMustChangePassword(false);
         userRepository.save(user);
     }
 

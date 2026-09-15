@@ -2,6 +2,7 @@ package com.giglister.config;
 
 import com.giglister.security.GptSkillAuthFilter;
 import com.giglister.security.JwtAuthFilter;
+import com.giglister.security.MustChangePasswordFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +29,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final GptSkillAuthFilter gptSkillAuthFilter;
+    private final MustChangePasswordFilter mustChangePasswordFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -70,7 +72,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(gptSkillAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(gptSkillAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(mustChangePasswordFilter, JwtAuthFilter.class);
 
         return http.build();
     }
