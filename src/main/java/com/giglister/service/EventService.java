@@ -209,10 +209,10 @@ public class EventService {
     }
 
     public Page<Event> listUpcoming(String city, Double centerLat, Double centerLon, Integer radiusKm,
-                                     LocalDate from, LocalDate to, String genre, Pageable pageable) {
+                                     LocalDate from, LocalDate to, List<String> genres, Pageable pageable) {
         List<Event> filtered = filterByLocationRadius(upcomingByDate(from, to), city, centerLat, centerLon, radiusKm);
-        if (genre != null && !genre.isBlank()) {
-            filtered = filterByGenre(filtered, genre);
+        if (genres != null && !genres.isEmpty()) {
+            filtered = filterByGenres(filtered, genres);
         }
         int pageStart = (int) pageable.getOffset();
         if (pageStart >= filtered.size()) {
@@ -249,9 +249,14 @@ public class EventService {
                 .anyMatch(genres -> GenreTaxonomy.matches(genres, genre));
     }
 
-    private List<Event> filterByGenre(List<Event> events, String genre) {
+    /** OR, not AND: an event matching any one of the selected genres is included, not just
+     * ones matching all of them - several genres broaden the search rather than narrowing
+     * it further, since a concert can't realistically be expected to be all of them at once. */
+    private List<Event> filterByGenres(List<Event> events, List<String> genres) {
         Map<Long, List<String>> genresByBandId = genresByBandId(events);
-        return events.stream().filter(e -> eventMatchesGenre(e, genre, genresByBandId)).toList();
+        return events.stream()
+                .filter(e -> genres.stream().anyMatch(g -> eventMatchesGenre(e, g, genresByBandId)))
+                .toList();
     }
 
     /** Only ever returns base genres with at least one matching upcoming event under the same

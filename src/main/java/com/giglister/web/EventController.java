@@ -42,8 +42,22 @@ public class EventController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return eventService.listUpcoming(city, lat, lon, radiusKm, from, to, genre, PageRequest.of(page, size))
+        return eventService.listUpcoming(city, lat, lon, radiusKm, from, to, splitGenres(genre), PageRequest.of(page, size))
                 .map(eventService::toResponse);
+    }
+
+    /** `genre` is comma-separated (e.g. "Punk,Stoner") when more than one is selected - the
+     * frontend's GenreFilter lets several be picked at once, which broadens the search
+     * (OR, see EventService.filterByGenres) rather than narrowing it to only concerts
+     * matching every one of them. */
+    private List<String> splitGenres(String genre) {
+        if (genre == null || genre.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(genre.split(","))
+                .map(String::trim)
+                .filter(g -> !g.isEmpty())
+                .toList();
     }
 
     @GetMapping("/genres")

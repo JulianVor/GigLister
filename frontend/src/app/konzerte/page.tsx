@@ -18,6 +18,7 @@ export default async function KonzerteePage({
   const prefs = await getLocationPrefs();
   const { from, to, active } = resolveDateRange(params);
   const page = params.page ? Math.max(0, Number(params.page) - 1) : 0;
+  const selectedGenres = params.genre ? params.genre.split(",").filter(Boolean) : [];
   const locationFilter = {
     city: prefs.city ?? undefined,
     lat: prefs.lat ?? undefined,
@@ -58,15 +59,15 @@ export default async function KonzerteePage({
       <div className="mt-3">
         <GenreFilter
           options={genreOptions}
-          active={params.genre}
+          active={selectedGenres}
           carryParams={{ range: params.range, from: params.from, to: params.to }}
         />
       </div>
 
       {result.content.length === 0 ? (
         <EmptyState>
-          {params.genre
-            ? `Für diesen Zeitraum sind keine ${params.genre}-Konzerte gelistet.`
+          {selectedGenres.length > 0
+            ? `Für diesen Zeitraum sind keine Konzerte in den Genres ${selectedGenres.join(", ")} gelistet.`
             : "Für diesen Zeitraum sind keine Konzerte gelistet."}
         </EmptyState>
       ) : (
