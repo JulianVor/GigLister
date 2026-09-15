@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The single account type in GigLister. Differences between users are expressed
@@ -55,6 +57,16 @@ public class User {
     private Double homeLongitude;
 
     private Integer radiusKm;
+
+    /** Base genres (see GenreTaxonomy) the user explicitly picked in their settings - feeds
+     * the "Das könnte dich interessieren" recommendations on Entdecken, in addition to
+     * genres implicitly derived from followed bands. Eager for the same reason as
+     * Band.genres - DTO mapping happens outside the transaction. */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_preferred_genre", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "genre")
+    @Builder.Default
+    private List<String> preferredGenres = new ArrayList<>();
 
     @Column(nullable = false)
     @Builder.Default

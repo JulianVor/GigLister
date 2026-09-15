@@ -162,6 +162,7 @@ export interface MeResponse {
   homeLatitude: number | null;
   homeLongitude: number | null;
   radiusKm: number | null;
+  preferredGenres: string[];
   platformAdmin: boolean;
   savedEvents: EventSummary[];
   followedBands: { id: number; name: string; nextEventDate: string | null }[];
@@ -266,6 +267,7 @@ export interface DiscoverResponse {
   newEvents: EventSummary[];
   locationsWithUpcomingShows: LocationListItem[];
   bandsPlayingSoon: BandResponse[];
+  recommendedForYou: EventSummary[];
 }
 
 export interface EntityRef {

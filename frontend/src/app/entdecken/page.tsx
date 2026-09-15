@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { discover } from "@/lib/api";
 import { getLocationPrefs } from "@/lib/location-prefs";
+import { getSession, getToken } from "@/lib/session";
 import { EventCard } from "@/components/EventCard";
 import { LocationTeaser } from "@/components/LocationTeaser";
 import { EmptyState } from "@/components/EmptyState";
@@ -8,17 +9,33 @@ import { StatusBadge } from "@/components/StatusBadge";
 
 export default async function EntdeckenPage() {
   const prefs = await getLocationPrefs();
-  const data = await discover({
-    city: prefs.city ?? undefined,
-    lat: prefs.lat ?? undefined,
-    lon: prefs.lon ?? undefined,
-    radiusKm: prefs.radiusKm ?? undefined,
-  });
+  const [session, token] = await Promise.all([getSession(), getToken()]);
+  const data = await discover(
+    {
+      city: prefs.city ?? undefined,
+      lat: prefs.lat ?? undefined,
+      lon: prefs.lon ?? undefined,
+      radiusKm: prefs.radiusKm ?? undefined,
+    },
+    token
+  );
 
   return (
     <div>
       <h1 className="font-display text-3xl">Entdecken</h1>
-      <p className="mt-1 font-meta text-sm text-muted">Keine Algorithmen — nur, was gerade da ist.</p>
+      <p className="mt-1 font-meta text-sm text-muted">
+        {session
+          ? "Kuratiert aus dem, was du magst — plus, was gerade da ist."
+          : "Kuratiert aus dem, was gerade da ist — für Vorschläge nach Geschmack einloggen."}
+      </p>
+
+      {data.recommendedForYou.length > 0 && (
+        <Section title={session ? "Das könnte dich interessieren" : "Beliebt in deiner Nähe"}>
+          {data.recommendedForYou.map((e) => (
+            <EventCard key={e.id} event={e} />
+          ))}
+        </Section>
+      )}
 
       <Section title="Heute in deiner Nähe">
         {data.todayNearby.length === 0 ? (

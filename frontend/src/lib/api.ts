@@ -371,8 +371,14 @@ export function search(q: string, type?: string) {
   return apiFetch<SearchResults>(`/api/search${toQuery({ q, type })}`);
 }
 
-export function discover(params: { city?: string; lat?: number; lon?: number; radiusKm?: number }) {
-  return apiFetch<DiscoverResponse>(`/api/discover${toQuery(params)}`);
+export function discover(params: { city?: string; lat?: number; lon?: number; radiusKm?: number }, token?: string) {
+  return apiFetch<DiscoverResponse>(`/api/discover${toQuery(params)}`, { token });
+}
+
+/** The full canonical base-genre list (see GenreTaxonomy) for the profile's genre picker -
+ * unlike getGenreFilters this isn't narrowed to genres with an upcoming event. */
+export function getGenres() {
+  return apiFetch<string[]>("/api/genres");
 }
 
 // --- Me ---
@@ -382,7 +388,14 @@ export function getMe(token: string) {
 }
 
 export function updateProfile(
-  data: { username?: string; homeCity?: string; homeLatitude?: number; homeLongitude?: number; radiusKm?: number },
+  data: {
+    username?: string;
+    homeCity?: string;
+    homeLatitude?: number;
+    homeLongitude?: number;
+    radiusKm?: number;
+    preferredGenres?: string[];
+  },
   token: string
 ) {
   return apiFetch<MeResponse>("/api/me", { method: "PUT", body: data, token });

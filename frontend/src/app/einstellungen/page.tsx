@@ -1,11 +1,15 @@
 import { redirect } from "next/navigation";
+import { getGenres } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { ProfileLocationForm } from "@/components/ProfileLocationForm";
+import { GenrePreferenceForm } from "@/components/GenrePreferenceForm";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 
 export default async function EinstellungenPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const allGenres = await getGenres();
 
   return (
     <div>
@@ -20,6 +24,11 @@ export default async function EinstellungenPage() {
           Wird bei der nächsten Anmeldung automatisch als &quot;Standort wählen&quot; übernommen.
         </p>
         <ProfileLocationForm homeCity={session.homeCity} radiusKm={session.radiusKm} />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Genres</h2>
+        <GenrePreferenceForm allGenres={allGenres} initialSelected={session.preferredGenres} />
       </section>
 
       <section className="mt-10">

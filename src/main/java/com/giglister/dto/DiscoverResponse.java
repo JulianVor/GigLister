@@ -11,6 +11,9 @@ public record DiscoverResponse(
         List<EventSummary> thisWeekend,
         List<EventSummary> newEvents,
         List<LocationListItem> locationsWithUpcomingShows,
-        List<BandResponse> bandsPlayingSoon
+        List<BandResponse> bandsPlayingSoon,
+        /** Rule-based, not a real ML recommender - see DiscoverService.recommendedForYou. Empty
+         * for a logged-out visitor, or a logged-in one with no signal AND no fallback data. */
+        List<EventSummary> recommendedForYou
 ) {
 }

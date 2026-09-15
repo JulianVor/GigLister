@@ -23,9 +23,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -81,6 +83,17 @@ public class UserService {
         if (request.radiusKm() != null) {
             user.setRadiusKm(request.radiusKm());
         }
+        if (request.preferredGenres() != null) {
+            // Only ever store canonical base genres - anything else can't ever match the
+            // substring check GenreTaxonomy/recommendation scoring do against it anyway.
+            // Must be a mutable list (not Stream.toList()'s immutable one) - Hibernate
+            // manages this field as a persistent collection and clears/repopulates it in
+            // place on merge, which throws UnsupportedOperationException on an immutable one.
+            user.setPreferredGenres(request.preferredGenres().stream()
+                    .filter(GenreTaxonomy.BASE_GENRES::contains)
+                    .distinct()
+                    .collect(Collectors.toCollection(ArrayList::new)));
+        }
         return userRepository.save(user);
     }
 
@@ -115,7 +128,7 @@ public class UserService {
 
         return new MeResponse(user.getId(), user.getEmail(), user.getUsername(), user.getHomeCity(),
                 user.getHomeLatitude(), user.getHomeLongitude(),
-                user.getRadiusKm(), user.isPlatformAdmin(), saved, followedBands, managed);
+                user.getRadiusKm(), user.getPreferredGenres(), user.isPlatformAdmin(), saved, followedBands, managed);
     }
 
     private List<Long> myManagedBandIds(Long userId) {

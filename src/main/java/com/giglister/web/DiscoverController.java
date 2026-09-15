@@ -1,6 +1,7 @@
 package com.giglister.web;
 
 import com.giglister.dto.DiscoverResponse;
+import com.giglister.security.CurrentUser;
 import com.giglister.service.DiscoverService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,7 @@ public class DiscoverController {
             @RequestParam(required = false) Double lon,
             @RequestParam(required = false) Integer radiusKm
     ) {
-        return discoverService.discover(city, lat, lon, radiusKm);
+        var user = CurrentUser.getOrNull();
+        return discoverService.discover(city, lat, lon, radiusKm, user == null ? null : user.getId());
     }
 }

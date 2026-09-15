@@ -11,6 +11,7 @@ export async function updateProfileAction(input: {
   homeLatitude?: number;
   homeLongitude?: number;
   radiusKm?: number;
+  preferredGenres?: string[];
 }): Promise<ActionResult> {
   const token = await getToken();
   if (!token) return { ok: false, error: "Bitte zuerst einloggen." };

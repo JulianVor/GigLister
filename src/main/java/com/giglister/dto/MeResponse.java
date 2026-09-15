@@ -14,6 +14,7 @@ public record MeResponse(
         Double homeLatitude,
         Double homeLongitude,
         Integer radiusKm,
+        List<String> preferredGenres,
         boolean platformAdmin,
         List<EventSummary> savedEvents,
         List<ManagedFollowedBand> followedBands,
