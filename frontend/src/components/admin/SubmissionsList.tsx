@@ -172,6 +172,14 @@ function SubmissionItem({
               <span className="border border-line px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-muted">
                 {SUBMISSION_TYPE_LABELS[submission.type]}
               </span>
+              {submission.targetEntityId != null && (
+                <span
+                  className="border border-accent px-2 py-0.5 font-meta text-xs uppercase tracking-wide text-accent"
+                  title="Ergänzt eine bestehende, unvollständige Band/Location statt eine neue anzulegen"
+                >
+                  Ergänzung zu #{submission.targetEntityId}
+                </span>
+              )}
               <span className="font-meta text-xs text-muted">
                 {new Date(submission.submittedAt).toLocaleString("de-DE")}
               </span>
@@ -203,7 +211,11 @@ function SubmissionItem({
               <p className="mt-2 font-meta text-sm text-muted">Grund: „{submission.rejectionReason}“</p>
             )}
             {submission.status === "APPROVED" && submission.resultEntityId && (
-              <p className="mt-2 font-meta text-sm text-muted">Angelegt als ID {submission.resultEntityId}</p>
+              <p className="mt-2 font-meta text-sm text-muted">
+                {submission.targetEntityId != null
+                  ? `Übernommen bei ID ${submission.resultEntityId}`
+                  : `Angelegt als ID ${submission.resultEntityId}`}
+              </p>
             )}
           </div>
         </div>

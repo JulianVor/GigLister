@@ -13,9 +13,10 @@ import java.time.Instant;
 
 /**
  * A proposal from an external source (the GPT-skill integration) to create a
- * Band/Location/Event - never creates anything by itself. A platform admin
- * reviews it and either approves (which runs the normal create flow) or
- * rejects it; nothing exists in the live data until approved.
+ * Band/Location/Event, or (see targetEntityId) to enrich an existing STUB/DRAFT
+ * Band/Location - never changes anything by itself. A platform admin reviews it
+ * and either approves (which runs the normal create/patch flow) or rejects it;
+ * nothing changes in the live data until approved.
  */
 @Entity
 @Table(name = "submission")
@@ -48,6 +49,13 @@ public class Submission {
 
     /** External URL to fetch and store only once approved - never downloaded before then. */
     private String imageUrl;
+
+    /** Null: propose a brand-new Band/Location/Event (the original, only behavior). Set (BAND
+     * or LOCATION only): this is instead an enrichment for an existing STUB/DRAFT entity -
+     * on approval its non-null payload fields are patched onto that entity (never replacing
+     * ones the payload left out), and it's bumped to PUBLISHED once the result looks complete
+     * (see BandService/LocationService#isComplete). */
+    private Long targetEntityId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -22,8 +22,9 @@ import java.util.List;
  * secret (GIGLISTER_GPT_SKILL_TOKEN) instead of a real user account - there
  * is exactly one external caller, not many, so a full API-token/user system
  * would be over-engineering. This identity is only ever authorized for
- * POST /api/submissions (see SecurityConfig): it can propose content, never
- * create anything directly.
+ * POST /api/submissions and GET /api/gpt/** (see SecurityConfig): it can
+ * look up incomplete entities and propose content/enrichments, never
+ * create or change anything directly.
  */
 @Component
 public class GptSkillAuthFilter extends OncePerRequestFilter {

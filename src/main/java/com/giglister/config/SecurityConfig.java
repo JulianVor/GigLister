@@ -62,8 +62,11 @@ public class SecurityConfig {
                                 "/api/search/**", "/api/discover/**", "/api/genres/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // The GPT-skill integration: can only ever propose a submission, never
-                        // create a Band/Location/Event directly (see GptSkillAuthFilter).
+                        // create/change a Band/Location/Event directly (see GptSkillAuthFilter).
+                        // /api/gpt/** is read-only (find STUB/DRAFT entities to enrich); the
+                        // actual enrichment still only ever goes in as a Submission below.
                         .requestMatchers(HttpMethod.POST, "/api/submissions").hasRole("GPT_SKILL")
+                        .requestMatchers(HttpMethod.GET, "/api/gpt/**").hasRole("GPT_SKILL")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

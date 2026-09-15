@@ -46,10 +46,18 @@ public class SubmissionService {
 
     @Transactional
     public Submission submit(SubmissionCreateRequest request) {
+        if (request.targetEntityId() != null) {
+            switch (request.type()) {
+                case BAND -> bandService.getOrThrow(request.targetEntityId());
+                case LOCATION -> locationService.getOrThrow(request.targetEntityId());
+                case EVENT -> throw new BadRequestException("targetEntityId wird nur für BAND/LOCATION unterstützt");
+            }
+        }
         Submission submission = Submission.builder()
                 .type(request.type())
                 .payload(request.payload().toString())
                 .imageUrl(blankToNull(request.imageUrl()))
+                .targetEntityId(request.targetEntityId())
                 .status(SubmissionStatus.PENDING)
                 .build();
         return submissionRepository.save(submission);
@@ -94,8 +102,12 @@ public class SubmissionService {
                 : null;
 
         Long resultId = switch (submission.getType()) {
-            case BAND -> approveBand(submission, adminUserId, localImageUrl);
-            case LOCATION -> approveLocation(submission, adminUserId, localImageUrl);
+            case BAND -> submission.getTargetEntityId() != null
+                    ? approveBandEnrichment(submission, localImageUrl)
+                    : approveBand(submission, adminUserId, localImageUrl);
+            case LOCATION -> submission.getTargetEntityId() != null
+                    ? approveLocationEnrichment(submission, localImageUrl)
+                    : approveLocation(submission, adminUserId, localImageUrl);
             case EVENT -> approveEvent(submission, adminUserId, localImageUrl);
         };
 
@@ -132,6 +144,18 @@ public class SubmissionService {
         if (imageUrl != null) {
             location = locationService.setTitleImage(location.getId(), imageUrl);
         }
+        return location.getId();
+    }
+
+    private Long approveBandEnrichment(Submission submission, String imageUrl) {
+        var band = bandService.applyEnrichment(submission.getTargetEntityId(),
+                parsePayload(submission, BandCreateRequest.class), imageUrl);
+        return band.getId();
+    }
+
+    private Long approveLocationEnrichment(Submission submission, String imageUrl) {
+        var location = locationService.applyEnrichment(submission.getTargetEntityId(),
+                parsePayload(submission, LocationCreateRequest.class), imageUrl);
         return location.getId();
     }
 
@@ -174,7 +198,8 @@ public class SubmissionService {
         return new SubmissionResponse(
                 submission.getId(), submission.getType(), payloadAsJson(submission), submission.getImageUrl(),
                 submission.getStatus(), submission.getSubmittedAt(), submission.getReviewedBy(),
-                submission.getReviewedAt(), submission.getRejectionReason(), submission.getResultEntityId()
+                submission.getReviewedAt(), submission.getRejectionReason(), submission.getResultEntityId(),
+                submission.getTargetEntityId()
         );
     }
 

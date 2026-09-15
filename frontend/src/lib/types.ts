@@ -310,4 +310,7 @@ export interface SubmissionResponse {
   reviewedAt: string | null;
   rejectionReason: string | null;
   resultEntityId: number | null;
+  /** Set (BAND/LOCATION only) when this isn't a proposal for a new entity, but an
+   * enrichment for this existing STUB/DRAFT one. */
+  targetEntityId: number | null;
 }

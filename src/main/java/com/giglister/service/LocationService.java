@@ -158,6 +158,63 @@ public class LocationService {
         return locationRepository.save(location);
     }
 
+    /** Applies a GPT-skill submission's enrichment payload to an existing STUB/DRAFT location -
+     * only the fields it actually filled in are patched, everything else (including
+     * `name`/`city`, deliberately never touched here - it's just how the target was
+     * identified) keeps its current value, unlike update()'s full replace. Bumps the
+     * location to PUBLISHED the moment the result looks complete (see isComplete), same as
+     * a human admin approving a submission today publishes it - never downgrades an
+     * already-PUBLISHED or ARCHIVED location. */
+    @Transactional
+    public Location applyEnrichment(Long id, LocationCreateRequest request, String imageUrl) {
+        Location location = getOrThrow(id);
+        if (request.address() != null) {
+            location.setAddress(request.address());
+        }
+        if (request.postalCode() != null) {
+            location.setPostalCode(request.postalCode());
+        }
+        if (request.country() != null) {
+            location.setCountry(request.country());
+        }
+        if (request.website() != null) {
+            location.setWebsite(request.website());
+        }
+        if (request.logoUrl() != null) {
+            location.setLogoUrl(request.logoUrl());
+        }
+        if (imageUrl != null) {
+            location.setTitleImageUrl(imageUrl);
+        } else if (request.titleImageUrl() != null) {
+            location.setTitleImageUrl(request.titleImageUrl());
+        }
+        if (request.latitude() != null && request.longitude() != null) {
+            location.setLatitude(request.latitude());
+            location.setLongitude(request.longitude());
+        } else if (location.getLatitude() == null) {
+            geocodeAddress(location.getName(), location.getCity(), location.getAddress(), location.getPostalCode())
+                    .ifPresent(coords -> {
+                        location.setLatitude(coords.latitude());
+                        location.setLongitude(coords.longitude());
+                    });
+        }
+        if ((location.getStatus() == EntityStatus.STUB || location.getStatus() == EntityStatus.DRAFT) && isComplete(location)) {
+            location.setStatus(EntityStatus.PUBLISHED);
+        }
+        return locationRepository.save(location);
+    }
+
+    /** What "vollständig" means for a location enrichment to auto-publish it - deliberately
+     * not coordinates/images, which resolve on their own (geocoding) or a GPT skill can
+     * rarely source reliably. */
+    private boolean isComplete(Location location) {
+        return notBlank(location.getAddress()) && notBlank(location.getPostalCode());
+    }
+
+    private boolean notBlank(String s) {
+        return s != null && !s.isBlank();
+    }
+
     public record BackfillResult(int attempted, int resolved) {
     }
 

@@ -95,6 +95,55 @@ public class BandService {
         return bandRepository.save(band);
     }
 
+    /** Applies a GPT-skill submission's enrichment payload to an existing STUB/DRAFT band -
+     * only the fields it actually filled in are patched, everything else (including
+     * `name`, deliberately never touched here - it's just how the target was identified)
+     * keeps its current value, unlike update()'s full replace. Bumps the band to PUBLISHED
+     * the moment the result looks complete (see isComplete), same as a human admin
+     * approving a submission today publishes it - never downgrades an already-PUBLISHED
+     * or ARCHIVED band. */
+    @Transactional
+    public Band applyEnrichment(Long id, BandCreateRequest request, String imageUrl) {
+        Band band = getOrThrow(id);
+        if (request.city() != null) {
+            band.setCity(request.city());
+        }
+        if (request.country() != null) {
+            band.setCountry(request.country());
+        }
+        if (request.shortDescription() != null) {
+            band.setShortDescription(request.shortDescription());
+        }
+        if (request.website() != null) {
+            band.setWebsite(request.website());
+        }
+        if (request.logoUrl() != null) {
+            band.setLogoUrl(request.logoUrl());
+        }
+        if (imageUrl != null) {
+            band.setTitleImageUrl(imageUrl);
+        } else if (request.titleImageUrl() != null) {
+            band.setTitleImageUrl(request.titleImageUrl());
+        }
+        if (request.genres() != null && !request.genres().isEmpty()) {
+            band.setGenres(new ArrayList<>(request.genres()));
+        }
+        if ((band.getStatus() == EntityStatus.STUB || band.getStatus() == EntityStatus.DRAFT) && isComplete(band)) {
+            band.setStatus(EntityStatus.PUBLISHED);
+        }
+        return bandRepository.save(band);
+    }
+
+    /** What "vollständig" means for a band enrichment to auto-publish it - deliberately not
+     * the images, which a GPT skill can rarely source reliably. */
+    private boolean isComplete(Band band) {
+        return notBlank(band.getCity()) && notBlank(band.getShortDescription()) && !band.getGenres().isEmpty();
+    }
+
+    private boolean notBlank(String s) {
+        return s != null && !s.isBlank();
+    }
+
     @Transactional
     public Band updateStatus(Long id, EntityStatus status, Long userId, boolean platformAdmin) {
         permissionService.require(userId, platformAdmin, EntityType.BAND, id, PermissionLevel.MANAGE);
