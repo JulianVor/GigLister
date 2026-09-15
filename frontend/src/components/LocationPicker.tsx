@@ -1,12 +1,24 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { CITY_COOKIE, LAT_COOKIE, LON_COOKIE, RADIUS_COOKIE } from "@/lib/location-cookies";
 import { geocodeCity } from "@/lib/geocode";
 
 const RADII = [10, 25, 50];
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+/** The header's right-hand controls wrap onto their own row on narrow screens, and land
+ * flush against the LEFT edge there (a lone flex item on a `justify-between` line has
+ * nothing to space itself against) - nowhere near this button's desktop position on the
+ * right. A plain `absolute right-0` dropdown anchored to the button's own tightly-fitted
+ * wrapper therefore comes out far enough left of the button to run off the left edge of
+ * the viewport. Since the button can land anywhere from flush-left to flush-right
+ * depending on viewport width and login state (more/fewer sibling controls), a fixed
+ * Tailwind breakpoint can't reliably tell "wrapped" from "not" - so this measures the
+ * button's actual position after opening and clamps the panel to stay fully on-screen. */
+const PANEL_WIDTH = 256;
+const VIEWPORT_MARGIN = 16;
 
 export function LocationPicker({
   city,
@@ -18,12 +30,23 @@ export function LocationPicker({
   usingDeviceLocation: boolean;
 }) {
   const router = useRouter();
+  const anchorRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [panelStyle, setPanelStyle] = useState<{ top: number; left: number; width: number } | null>(null);
   const [cityInput, setCityInput] = useState(city ?? "");
   const [radiusInput, setRadiusInput] = useState(radiusKm ?? 25);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
   const [geocoding, setGeocoding] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current) return;
+    const rect = anchorRef.current.getBoundingClientRect();
+    const width = Math.min(PANEL_WIDTH, window.innerWidth - VIEWPORT_MARGIN * 2);
+    const maxLeft = window.innerWidth - width - VIEWPORT_MARGIN;
+    const left = Math.min(Math.max(rect.right - width, VIEWPORT_MARGIN), Math.max(maxLeft, VIEWPORT_MARGIN));
+    setPanelStyle({ top: rect.bottom + 8, left, width });
+  }, [open]);
 
   function setCookie(name: string, value: string) {
     document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=${COOKIE_MAX_AGE}`;
@@ -87,7 +110,7 @@ export function LocationPicker({
       : "Standort wählen";
 
   return (
-    <div className="relative">
+    <div ref={anchorRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -96,13 +119,14 @@ export function LocationPicker({
         {label} <span aria-hidden>▾</span>
       </button>
 
-      {open && (
+      {open && panelStyle && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             void applyCity(cityInput, radiusInput);
           }}
-          className="absolute right-0 z-20 mt-2 w-64 space-y-3 border border-line bg-surface p-4 shadow-lg"
+          style={{ top: panelStyle.top, left: panelStyle.left, width: panelStyle.width }}
+          className="fixed z-20 space-y-3 border border-line bg-surface p-4 shadow-lg"
         >
           <div>
             <label className="font-meta text-xs uppercase tracking-wide text-muted">Konzerte rund um</label>
