@@ -38,7 +38,10 @@ class StubVisibilityIntegrationTest {
 
     @Test
     void stubBandAndLocationAreHiddenFromAnonymousButReachableByAnyLoggedInUser() throws Exception {
-        String creatorToken = register("creator@example.com", "password123", "Creator");
+        // A brand-new band/location combo goes through the review queue for a regular user
+        // (see EventSubmissionRoutingIntegrationTest) - this test is about the resulting
+        // stub's own visibility rules once it exists, so the creator here is a platform admin.
+        String creatorToken = registerAsAdmin("creator@example.com", "password123", "Creator");
         String bystanderToken = register("bystander@example.com", "password123", "Bystander");
 
         Map<String, Object> eventRequest = Map.of(
@@ -52,7 +55,7 @@ class StubVisibilityIntegrationTest {
                         .content(objectMapper.writeValueAsString(eventRequest)))
                 .andExpect(status().isCreated())
                 .andReturn();
-        var body = objectMapper.readTree(createResult.getResponse().getContentAsString());
+        var body = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("event");
         long bandId = body.get("bands").get(0).get("id").asLong();
         long locationId = body.get("location").get("id").asLong();
 
@@ -75,6 +78,16 @@ class StubVisibilityIntegrationTest {
         mockMvc.perform(get("/api/locations/" + locationId).header("Authorization", "Bearer " + bystanderToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unclaimed").value(true));
+    }
+
+    /** Promotes directly via the repository rather than the bootstrap-email/first-user
+     * mechanism, since only one account can ever claim that within a shared test context. */
+    private String registerAsAdmin(String email, String password, String username) throws Exception {
+        String token = register(email, password, username);
+        var user = userRepository.findByEmailIgnoreCase(email).orElseThrow();
+        user.setPlatformAdmin(true);
+        userRepository.save(user);
+        return token;
     }
 
     private String register(String email, String password, String username) throws Exception {

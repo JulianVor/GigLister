@@ -20,8 +20,8 @@ export default async function AdminSubmissionsPage({
     <div>
       <h1 className="font-display text-3xl">Vorschläge</h1>
       <p className="mt-1 font-meta text-sm text-muted">
-        Von der ChatGPT-Anbindung eingereichte Bands, Orte und Konzerte — nichts davon existiert, bis du es
-        freigibst.
+        Bands, Orte und Konzerte von der ChatGPT-Anbindung sowie Konzerte, die Nutzer ohne direkte
+        Veröffentlichungsrechte eingereicht haben — nichts davon existiert, bis du es freigibst.
       </p>
 
       <div className="mt-6">

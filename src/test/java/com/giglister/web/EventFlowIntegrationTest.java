@@ -37,7 +37,11 @@ class EventFlowIntegrationTest {
 
     @Test
     void registerAndCreateEventWithNewBandAndLocationStubs() throws Exception {
-        String token = register("anna@example.com", "password123", "Anna");
+        // A brand-new band/location combo (never referenced before, so nothing to already
+        // hold a permission on) always goes through the review queue for a regular user -
+        // see EventSubmissionRoutingIntegrationTest. This test is about the direct-create
+        // path once approved/allowed, so the actor here is a platform admin.
+        String token = registerAsAdmin("anna@example.com", "password123", "Anna");
 
         Map<String, Object> eventRequest = Map.of(
                 "date", LocalDate.now().plusDays(7).toString(),
@@ -51,13 +55,15 @@ class EventFlowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(eventRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.location.name").value("Hafenklang"))
-                .andExpect(jsonPath("$.bands[0].name").value("HOME"))
-                .andExpect(jsonPath("$.bands[0].linkable").value(false))
+                .andExpect(jsonPath("$.published").value(true))
+                .andExpect(jsonPath("$.event.location.name").value("Hafenklang"))
+                .andExpect(jsonPath("$.event.bands[0].name").value("HOME"))
+                .andExpect(jsonPath("$.event.bands[0].linkable").value(false))
                 .andReturn();
 
-        String eventId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
-        long locationId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("location").get("id").asLong();
+        var createdEvent = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("event");
+        String eventId = createdEvent.get("id").asText();
+        long locationId = createdEvent.get("location").get("id").asLong();
 
         // The stub location's address/postal code aren't part of the event response's
         // (deliberately minimal) LocationSummary, so confirm they actually landed on
@@ -90,7 +96,11 @@ class EventFlowIntegrationTest {
 
     @Test
     void creatingAnEventWithANewLocationRequiresAStreetAddressAndPostalCode() throws Exception {
-        String token = register("bjoern@example.com", "password123", "Bjoern");
+        // This validation lives in EventService.create(), only reached on the direct-create
+        // path (a regular user's proposal is stored as raw, unvalidated JSON until an admin
+        // approves it - see EventSubmissionRoutingIntegrationTest) - so the actor here needs
+        // direct create rights.
+        String token = registerAsAdmin("bjoern@example.com", "password123", "Bjoern");
 
         Map<String, Object> withoutAddress = Map.of(
                 "date", LocalDate.now().plusDays(7).toString(),
@@ -136,6 +146,16 @@ class EventFlowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(withExistingLocation)))
                 .andExpect(status().isCreated());
+    }
+
+    /** Promotes directly via the repository rather than the bootstrap-email/first-user
+     * mechanism, since only one account can ever claim that within a shared test context. */
+    private String registerAsAdmin(String email, String password, String username) throws Exception {
+        String token = register(email, password, username);
+        var user = userRepository.findByEmailIgnoreCase(email).orElseThrow();
+        user.setPlatformAdmin(true);
+        userRepository.save(user);
+        return token;
     }
 
     /** Registers and immediately confirms the email (looking the token up directly,

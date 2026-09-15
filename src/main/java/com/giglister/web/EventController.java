@@ -1,14 +1,21 @@
 package com.giglister.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giglister.domain.Event;
+import com.giglister.domain.Submission;
+import com.giglister.domain.enums.SubmissionType;
 import com.giglister.dto.CalendarDayCount;
 import com.giglister.dto.GenreFilterOption;
 import com.giglister.dto.event.EventCreateRequest;
+import com.giglister.dto.event.EventCreateResult;
 import com.giglister.dto.event.EventResponse;
 import com.giglister.dto.event.EventStatusUpdateRequest;
 import com.giglister.dto.event.EventUpdateRequest;
+import com.giglister.dto.submission.SubmissionCreateRequest;
+import com.giglister.security.AppUserPrincipal;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.EventService;
+import com.giglister.service.SubmissionService;
 import com.giglister.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +36,8 @@ public class EventController {
 
     private final EventService eventService;
     private final UserService userService;
+    private final SubmissionService submissionService;
+    private final ObjectMapper objectMapper;
 
     @GetMapping
     public Page<EventResponse> list(
@@ -90,10 +99,25 @@ public class EventController {
         return eventService.toResponse(eventService.getOrThrow(id));
     }
 
+    /**
+     * Publishes immediately for anyone with direct create rights (platform admin, or EDIT+ on
+     * the location or a referenced band - see EventService.canCreateDirectly); otherwise the
+     * request is routed into the review queue as a PENDING Submission instead, exactly like a
+     * GPT-skill proposal, and only goes live once a platform admin approves it.
+     */
     @PostMapping
-    public ResponseEntity<EventResponse> create(@Valid @RequestBody EventCreateRequest request) {
-        Event event = eventService.create(request, CurrentUser.requireId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(eventService.toResponse(event));
+    public ResponseEntity<EventCreateResult> create(@Valid @RequestBody EventCreateRequest request) {
+        AppUserPrincipal user = CurrentUser.require();
+        if (eventService.canCreateDirectly(request, user.getId(), user.isPlatformAdmin())) {
+            Event event = eventService.create(request, user.getId());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new EventCreateResult(true, eventService.toResponse(event), null));
+        }
+        SubmissionCreateRequest submissionRequest = new SubmissionCreateRequest(
+                SubmissionType.EVENT, objectMapper.valueToTree(request), null, null);
+        Submission submission = submissionService.submit(submissionRequest, user.getId());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new EventCreateResult(false, null, submissionService.toResponse(submission)));
     }
 
     @PutMapping("/{id}")

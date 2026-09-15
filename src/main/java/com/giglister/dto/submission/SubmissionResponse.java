@@ -17,6 +17,8 @@ public record SubmissionResponse(
         Instant reviewedAt,
         String rejectionReason,
         Long resultEntityId,
-        Long targetEntityId
+        Long targetEntityId,
+        Long submittedBy,
+        String submittedByUsername
 ) {
 }

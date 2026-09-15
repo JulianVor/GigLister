@@ -7,15 +7,25 @@ import { getToken } from "@/lib/session";
 import type { EventInput } from "@/lib/api";
 import type { ActionResult } from "@/lib/action-result";
 
-export async function createEventAction(input: EventInput): Promise<ActionResult<{ id: number }>> {
+/** result.published: true means the event went live immediately (data.id is its id);
+ * false means it has no direct create rights and was routed into the review queue
+ * instead (see api.createEvent) - the caller should point the user at "Meine Vorschläge"
+ * (Verwaltung) rather than at an event page that doesn't exist yet. */
+export async function createEventAction(
+  input: EventInput
+): Promise<ActionResult<{ published: true; id: number } | { published: false }>> {
   const token = await getToken();
   if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
 
   try {
-    const event = await api.createEvent(input, token);
+    const result = await api.createEvent(input, token);
     revalidatePath("/konzerte");
     revalidatePath("/");
-    return { ok: true, data: { id: event.id } };
+    if (result.published && result.event) {
+      return { ok: true, data: { published: true, id: result.event.id } };
+    }
+    revalidatePath("/verwaltung");
+    return { ok: true, data: { published: false } };
   } catch (err) {
     if (err instanceof api.ApiError) return { ok: false, error: err.message };
     throw err;

@@ -182,6 +182,7 @@ function SubmissionItem({
               )}
               <span className="font-meta text-xs text-muted">
                 {new Date(submission.submittedAt).toLocaleString("de-DE")}
+                {submission.submittedByUsername && ` · von ${submission.submittedByUsername}`}
               </span>
             </div>
 

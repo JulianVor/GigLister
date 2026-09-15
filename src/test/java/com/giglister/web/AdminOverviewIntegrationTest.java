@@ -51,14 +51,17 @@ class AdminOverviewIntegrationTest {
                 .andExpect(status().isCreated());
 
         // Creating an event with a brand-new band/location produces STUBs - exactly the
-        // "still needs completing" data the admin overview needs to surface.
+        // "still needs completing" data the admin overview needs to surface. Created by the
+        // admin (a regular user proposing an entirely new band+location combo has no direct
+        // create rights over either - see EventSubmissionRoutingIntegrationTest - which isn't
+        // what this test is about).
         Map<String, Object> eventRequest = Map.of(
                 "date", LocalDate.now().plusDays(3).toString(),
                 "location", Map.of("name", "Stub Venue", "city", "Bremen", "address", "Teststraße 1", "postalCode", "28195"),
                 "bands", java.util.List.of(Map.of("name", "Stub Band", "city", "Bremen"))
         );
         mockMvc.perform(post("/api/events")
-                        .header("Authorization", "Bearer " + userToken)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(eventRequest)))
                 .andExpect(status().isCreated());

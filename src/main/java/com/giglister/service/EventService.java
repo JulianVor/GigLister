@@ -192,6 +192,25 @@ public class EventService {
         eventRepository.delete(event);
     }
 
+    /** Platform admin, or EDIT+ on the location or any *existing* (referenced by id) band in
+     * the line-up - mirrors requireEditRights's "who may touch this event" rule, just applied
+     * before the event exists, to decide whether EventController.create() publishes it
+     * directly or routes it into the Submission review queue instead. A brand-new band/
+     * location proposed only by name (no id yet) never grants this - there's nothing to hold
+     * a permission on. */
+    public boolean canCreateDirectly(EventCreateRequest request, Long userId, boolean platformAdmin) {
+        if (platformAdmin) {
+            return true;
+        }
+        if (request.location().isExisting()
+                && permissionService.has(userId, false, EntityType.LOCATION, request.location().id(), PermissionLevel.EDIT)) {
+            return true;
+        }
+        return request.bands().stream()
+                .filter(EntityRef::isExisting)
+                .anyMatch(ref -> permissionService.has(userId, false, EntityType.BAND, ref.id(), PermissionLevel.EDIT));
+    }
+
     /** Creator, platform admin, or anyone with EDIT+ on the location or any of the line-up's bands. */
     public void requireEditRights(Event event, Long userId, boolean platformAdmin) {
         if (platformAdmin || event.getCreatedBy().equals(userId)) {

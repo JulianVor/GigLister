@@ -10,4 +10,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Submission> findByStatusOrderBySubmittedAtDesc(SubmissionStatus status);
 
     List<Submission> findAllByOrderBySubmittedAtDesc();
+
+    List<Submission> findBySubmittedByOrderBySubmittedAtDesc(Long submittedBy);
 }

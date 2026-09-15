@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession, getToken } from "@/lib/session";
-import { getMyBands, getMyEvents } from "@/lib/api";
+import { getMyBands, getMyEvents, getMySubmissions } from "@/lib/api";
 import { EventCard } from "@/components/EventCard";
 import { StatusBadge } from "@/components/StatusBadge";
-import type { BandResponse, EventSummary } from "@/lib/types";
+import { SUBMISSION_STATUS_LABELS } from "@/lib/status-labels";
+import type { BandResponse, EventSummary, SubmissionResponse } from "@/lib/types";
 
 /**
  * What's left of the old "Mein GigLister" once its consumer-facing content (Gemerkt,
@@ -16,9 +17,9 @@ export default async function VerwaltungPage() {
   if (!session) redirect("/login");
 
   const token = await getToken();
-  const [myBands, myEvents]: [BandResponse[], EventSummary[]] = token
-    ? await Promise.all([getMyBands(token), getMyEvents(token)])
-    : [[], []];
+  const [myBands, myEvents, mySubmissions]: [BandResponse[], EventSummary[], SubmissionResponse[]] = token
+    ? await Promise.all([getMyBands(token), getMyEvents(token), getMySubmissions(token)])
+    : [[], [], []];
 
   const myLocations = session.managedEntities.filter((e) => e.entityType === "LOCATION");
   const nothingManaged = myBands.length === 0 && myLocations.length === 0;
@@ -92,6 +93,21 @@ export default async function VerwaltungPage() {
         </section>
       )}
 
+      {mySubmissions.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Vorschläge</h2>
+          <p className="mt-1 font-meta text-xs text-muted">
+            Konzerte, die du eingereicht hast, weil du keine der ausgewählten Bands oder die Location verwaltest -
+            wir prüfen sie, bevor sie veröffentlicht werden.
+          </p>
+          <div className="mt-2 divide-y divide-line border-y border-line">
+            {mySubmissions.map((s) => (
+              <SubmissionSummary key={s.id} submission={s} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {myLocations.length > 0 && (
         <section className="mt-10">
           <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Meine Orte</h2>
@@ -108,6 +124,41 @@ export default async function VerwaltungPage() {
             ))}
           </div>
         </section>
+      )}
+    </div>
+  );
+}
+
+/** Renders an EVENT submission's payload (the only type a user can propose themselves
+ * today - see createEvent) as a plain summary line, with a status badge and, once
+ * decided, the reason/link to what came of it. No edit/approve actions here - those are
+ * admin-only (see admin/submissions). */
+function SubmissionSummary({ submission }: { submission: SubmissionResponse }) {
+  const payload = submission.payload as {
+    title?: string;
+    date?: string;
+    location?: { name?: string };
+    bands?: { name?: string }[];
+  };
+  const label = payload.title || payload.bands?.map((b) => b.name).filter(Boolean).join(", ") || "Konzert";
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 py-3">
+      <div>
+        <div className="font-display text-lg">{label}</div>
+        <div className="font-meta text-sm text-muted">
+          {[payload.date, payload.location?.name].filter(Boolean).join(" · ")}
+        </div>
+        {submission.status === "REJECTED" && submission.rejectionReason && (
+          <p className="mt-1 font-meta text-xs text-muted">Grund: „{submission.rejectionReason}“</p>
+        )}
+      </div>
+      {submission.status === "APPROVED" && submission.resultEntityId ? (
+        <Link href={`/konzerte/${submission.resultEntityId}`} className="font-meta text-sm text-accent hover:underline">
+          {SUBMISSION_STATUS_LABELS[submission.status]} →
+        </Link>
+      ) : (
+        <span className="font-meta text-sm text-muted">{SUBMISSION_STATUS_LABELS[submission.status]}</span>
       )}
     </div>
   );

@@ -6,9 +6,11 @@ import com.giglister.dto.MeResponse;
 import com.giglister.dto.ProfileUpdateRequest;
 import com.giglister.dto.band.BandResponse;
 import com.giglister.dto.common.EventSummary;
+import com.giglister.dto.submission.SubmissionResponse;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.AuthService;
 import com.giglister.service.PushNotificationService;
+import com.giglister.service.SubmissionService;
 import com.giglister.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class MeController {
     private final UserService userService;
     private final PushNotificationService pushNotificationService;
     private final AuthService authService;
+    private final SubmissionService submissionService;
 
     @GetMapping
     public MeResponse me() {
@@ -46,6 +49,14 @@ public class MeController {
     @GetMapping("/events")
     public List<EventSummary> myEvents() {
         return userService.myBandEvents(CurrentUser.requireId());
+    }
+
+    /** "Meine Vorschläge": events this user proposed via POST /api/events without direct
+     * create rights, awaiting (or already decided by) a platform admin - see
+     * EventController.create/SubmissionService.mine. */
+    @GetMapping("/submissions")
+    public List<SubmissionResponse> mySubmissions() {
+        return submissionService.mine(CurrentUser.requireId()).stream().map(submissionService::toResponse).toList();
     }
 
     /** Registers (or reassigns, if already registered to a different account) this

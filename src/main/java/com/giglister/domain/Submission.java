@@ -57,6 +57,13 @@ public class Submission {
      * (see BandService/LocationService#isComplete). */
     private Long targetEntityId;
 
+    /** Null for the GPT-skill integration (it has no giglister account of its own, so the
+     * approving admin is attributed as the result entity's creator - see SubmissionService).
+     * Set when a logged-in user without direct create rights submitted this themselves (see
+     * EventController.create) - on approval THEY become the result entity's creator, not the
+     * approving admin, so they keep normal edit/delete rights over what they proposed. */
+    private Long submittedBy;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

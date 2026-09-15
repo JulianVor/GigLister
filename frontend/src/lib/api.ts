@@ -18,6 +18,7 @@ import type {
   EntityMerge,
   EntityRef,
   EntityType,
+  EventCreateResult,
   EventResponse,
   EventSeriesResponse,
   EventSeriesSummary,
@@ -202,8 +203,12 @@ export interface EventInput {
   eventSeriesId?: number;
 }
 
+/** Publishes immediately (result.event set) for a platform admin or anyone with EDIT+ on
+ * the location or a referenced band - otherwise the proposal is routed into the review
+ * queue instead (result.submission set) and only goes live once a platform admin
+ * approves it - see EventCreateResult. */
 export function createEvent(data: EventInput, token: string) {
-  return apiFetch<EventResponse>("/api/events", { method: "POST", body: data, token });
+  return apiFetch<EventCreateResult>("/api/events", { method: "POST", body: data, token });
 }
 
 export function updateEvent(id: number, data: EventInput, token: string) {
@@ -432,6 +437,12 @@ export function getMyBands(token: string) {
 /** "Meine Veranstaltungen": upcoming events across all of the user's bands, band-übergreifend. */
 export function getMyEvents(token: string) {
   return apiFetch<EventSummary[]>("/api/me/events", { token });
+}
+
+/** "Meine Vorschläge": events this user proposed via createEvent without direct create
+ * rights, awaiting (or already decided by) a platform admin. */
+export function getMySubmissions(token: string) {
+  return apiFetch<SubmissionResponse[]>("/api/me/submissions", { token });
 }
 
 // --- Admin ---

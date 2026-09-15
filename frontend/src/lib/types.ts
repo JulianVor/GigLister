@@ -326,4 +326,17 @@ export interface SubmissionResponse {
   /** Set (BAND/LOCATION only) when this isn't a proposal for a new entity, but an
    * enrichment for this existing STUB/DRAFT one. */
   targetEntityId: number | null;
+  /** Null for a GPT-skill proposal - set when a logged-in user submitted this themselves
+   * (see EventInput/createEvent) because they had no direct create rights. */
+  submittedBy: number | null;
+  submittedByUsername: string | null;
+}
+
+/** POST /api/events's response: either it published immediately (event set) because the
+ * caller has direct create rights, or it was routed into the review queue instead
+ * (submission set) for a platform admin to approve or reject - see createEvent. */
+export interface EventCreateResult {
+  published: boolean;
+  event: EventResponse | null;
+  submission: SubmissionResponse | null;
 }

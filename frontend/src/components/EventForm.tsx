@@ -71,12 +71,22 @@ export function EventForm({
     };
 
     startTransition(async () => {
-      const result = eventId ? await updateEventAction(eventId, input) : await createEventAction(input);
+      if (eventId) {
+        const result = await updateEventAction(eventId, input);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        router.push(`/konzerte/${result.data.id}`);
+        return;
+      }
+
+      const result = await createEventAction(input);
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      router.push(`/konzerte/${result.data.id}`);
+      router.push(result.data.published ? `/konzerte/${result.data.id}` : "/verwaltung");
     });
   }
 
@@ -233,6 +243,13 @@ export function EventForm({
       </div>
 
       {error && <p className="font-meta text-sm text-accent">{error}</p>}
+
+      {!eventId && (
+        <p className="font-meta text-xs text-muted">
+          Verwaltest du eine der ausgewählten Bands oder die Location, wird dein Konzert sofort veröffentlicht.
+          Andernfalls prüfen wir deinen Vorschlag zuerst.
+        </p>
+      )}
 
       <button
         type="submit"

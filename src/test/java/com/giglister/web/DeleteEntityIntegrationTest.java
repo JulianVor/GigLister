@@ -39,7 +39,10 @@ class DeleteEntityIntegrationTest {
 
     @Test
     void bandAndLocationCannotBeDeletedWhileAnEventReferencesThemButCanAfterItsGone() throws Exception {
-        String token = register("promoter@example.com", "password123", "Promoter");
+        // A brand-new band/location combo goes through the review queue for a regular user
+        // (see EventSubmissionRoutingIntegrationTest) - this test is about delete guards on
+        // an actually-published event, so the actor here is a platform admin.
+        String token = registerAsAdmin("promoter@example.com", "password123", "Promoter");
 
         Map<String, Object> eventRequest = Map.of(
                 "date", LocalDate.now().plusDays(7).toString(),
@@ -52,7 +55,7 @@ class DeleteEntityIntegrationTest {
                         .content(objectMapper.writeValueAsString(eventRequest)))
                 .andExpect(status().isCreated())
                 .andReturn();
-        var eventJson = objectMapper.readTree(createResult.getResponse().getContentAsString());
+        var eventJson = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("event");
         long eventId = eventJson.get("id").asLong();
         long locationId = eventJson.get("location").get("id").asLong();
         long bandId = eventJson.get("bands").get(0).get("id").asLong();
@@ -125,6 +128,16 @@ class DeleteEntityIntegrationTest {
 
         mockMvc.perform(delete("/api/bands/" + bandId).header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isNoContent());
+    }
+
+    /** Promotes directly via the repository rather than the bootstrap-email/first-user
+     * mechanism, since only one account can ever claim that within a shared test context. */
+    private String registerAsAdmin(String email, String password, String username) throws Exception {
+        String token = register(email, password, username);
+        var user = userRepository.findByEmailIgnoreCase(email).orElseThrow();
+        user.setPlatformAdmin(true);
+        userRepository.save(user);
+        return token;
     }
 
     private String register(String email, String password, String username) throws Exception {
