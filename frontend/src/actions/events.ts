@@ -46,6 +46,25 @@ export async function cancelEventAction(id: number): Promise<ActionResult> {
     await api.updateEventStatus(id, "CANCELLED", token);
     revalidatePath(`/konzerte/${id}`);
     revalidatePath("/konzerte");
+    revalidatePath("/entdecken");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+/** Undoes an accidental cancellation - back to PUBLISHED, the status every event is
+ * created with (see EventService.create). */
+export async function reactivateEventAction(id: number): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.updateEventStatus(id, "PUBLISHED", token);
+    revalidatePath(`/konzerte/${id}`);
+    revalidatePath("/konzerte");
+    revalidatePath("/entdecken");
     return { ok: true, data: undefined };
   } catch (err) {
     if (err instanceof api.ApiError) return { ok: false, error: err.message };

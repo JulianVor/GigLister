@@ -7,6 +7,7 @@ import { dayAndMonth, fullDateLabel, formatTime, weekdayShort } from "@/lib/form
 import { eventLineupLabel } from "@/lib/event-display";
 import { LineUp } from "@/components/LineUp";
 import { SaveEventButton } from "@/components/SaveEventButton";
+import { CancelEventButton } from "@/components/CancelEventButton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EventCard, eventPhotoContent } from "@/components/EventCard";
 
@@ -102,6 +103,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             Bearbeiten
           </Link>
         )}
+        {canEdit && <CancelEventButton eventId={event.id} status={event.status} />}
       </div>
 
       {event.description && <p className="mt-8 whitespace-pre-wrap leading-relaxed">{event.description}</p>}
