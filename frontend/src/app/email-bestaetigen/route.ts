@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await verifyEmail(token);
-    const response = NextResponse.redirect(new URL("/mein-giglister", base));
+    const response = NextResponse.redirect(new URL("/", base));
     response.cookies.set(TOKEN_COOKIE, res.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

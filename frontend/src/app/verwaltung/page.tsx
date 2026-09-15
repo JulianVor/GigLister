@@ -3,11 +3,15 @@ import { redirect } from "next/navigation";
 import { getSession, getToken } from "@/lib/session";
 import { getMyBands, getMyEvents } from "@/lib/api";
 import { EventCard } from "@/components/EventCard";
-import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { BandResponse, EventSummary } from "@/lib/types";
 
-export default async function MeinGigListerPage() {
+/**
+ * What's left of the old "Mein GigLister" once its consumer-facing content (Gemerkt,
+ * Gefolgte Bands) moved to the homepage feed - just the creator/manager side: bands,
+ * locations and events this account actually has EDIT/MANAGE rights on.
+ */
+export default async function VerwaltungPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
@@ -17,12 +21,13 @@ export default async function MeinGigListerPage() {
     : [[], []];
 
   const myLocations = session.managedEntities.filter((e) => e.entityType === "LOCATION");
+  const nothingManaged = myBands.length === 0 && myLocations.length === 0;
 
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl">Mein GigLister</h1>
+          <h1 className="font-display text-3xl">Verwaltung</h1>
           <p className="mt-1 font-meta text-sm text-muted">
             {session.username} · {session.email}
           </p>
@@ -32,34 +37,19 @@ export default async function MeinGigListerPage() {
         </Link>
       </div>
 
-      <section className="mt-10">
-        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Gemerkt</h2>
-        <div className="mt-2">
-          {session.savedEvents.length === 0 ? (
-            <EmptyState>Noch keine Konzerte gemerkt.</EmptyState>
-          ) : (
-            session.savedEvents.map((e) => <EventCard key={e.id} event={e} />)
-          )}
-        </div>
-      </section>
-
-      <section className="mt-10">
-        <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Gefolgte Bands</h2>
-        <div className="mt-2 divide-y divide-line border-y border-line">
-          {session.followedBands.length === 0 ? (
-            <EmptyState>Noch keinen Bands gefolgt.</EmptyState>
-          ) : (
-            session.followedBands.map((band) => (
-              <Link key={band.id} href={`/bands/${band.id}`} className="flex items-center justify-between gap-4 py-3 hover:text-accent">
-                <span className="font-display text-lg">{band.name}</span>
-                <span className="font-meta text-sm text-muted">
-                  {band.nextEventDate ? `Nächstes Konzert ${band.nextEventDate}` : "Kein kommendes Konzert"}
-                </span>
-              </Link>
-            ))
-          )}
-        </div>
-      </section>
+      {nothingManaged && (
+        <p className="mt-6 border border-line bg-surface p-4 font-meta text-sm text-muted">
+          Du verwaltest noch keine Band oder Location. Lege eine{" "}
+          <Link href="/bands/neu" className="text-accent hover:underline">
+            Band
+          </Link>{" "}
+          oder einen{" "}
+          <Link href="/orte/neu" className="text-accent hover:underline">
+            Ort
+          </Link>{" "}
+          an, oder beanspruche eine bestehende über deren Seite.
+        </p>
+      )}
 
       {myBands.length > 0 && (
         <section className="mt-10">

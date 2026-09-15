@@ -74,7 +74,7 @@ export async function toggleFollowBandAction(bandId: number, follow: boolean): P
     } else {
       await api.unfollowBand(bandId, token);
     }
-    revalidatePath("/mein-giglister");
+    revalidatePath("/");
     revalidatePath(`/bands/${bandId}`);
     return { ok: true, data: undefined };
   } catch (err) {

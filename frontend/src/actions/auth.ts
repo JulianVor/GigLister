@@ -51,7 +51,7 @@ export async function loginAction(_prevState: AuthFormState, formData: FormData)
     throw err;
   }
 
-  redirect("/mein-giglister");
+  redirect("/");
 }
 
 export async function registerAction(_prevState: RegisterFormState, formData: FormData): Promise<RegisterFormState> {
@@ -126,7 +126,7 @@ export async function resetPasswordAction(
     throw err;
   }
 
-  redirect("/mein-giglister");
+  redirect("/");
 }
 
 export async function logoutAction() {

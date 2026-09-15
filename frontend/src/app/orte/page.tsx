@@ -1,9 +1,9 @@
 import { getEvents, getLocations } from "@/lib/api";
 import { getLocationPrefs } from "@/lib/location-prefs";
 import { resolveDateRange } from "@/lib/date-range";
+import { buildMapLocations } from "@/lib/map";
 import { DateNav } from "@/components/DateNav";
 import { ConcertMapClient } from "@/components/ConcertMapClient";
-import type { MapLocation } from "@/components/ConcertMap";
 import { EventListByDay } from "@/components/EventListByDay";
 import { LocationTeaser } from "@/components/LocationTeaser";
 import { EmptyState } from "@/components/EmptyState";
@@ -28,18 +28,6 @@ export default async function OrtePage({
     const page = await getEvents({ ...center, radiusKm, from, to, size: 200 });
     const events = page.content;
 
-    const byLocation = new Map<number, MapLocation>();
-    for (const event of events) {
-      const loc = event.location;
-      if (loc.latitude == null || loc.longitude == null) continue;
-      let entry = byLocation.get(loc.id);
-      if (!entry) {
-        entry = { id: loc.id, name: loc.name, city: loc.city, latitude: loc.latitude, longitude: loc.longitude, events: [] };
-        byLocation.set(loc.id, entry);
-      }
-      entry.events.push({ id: event.id, date: event.date, startTime: event.startTime });
-    }
-
     return (
       <div>
         <h1 className="font-display text-3xl">Konzerte in deiner Nähe</h1>
@@ -53,7 +41,7 @@ export default async function OrtePage({
         </div>
 
         <div className="mt-6">
-          <ConcertMapClient center={center} radiusKm={radiusKm} locations={Array.from(byLocation.values())} />
+          <ConcertMapClient center={center} radiusKm={radiusKm} locations={buildMapLocations(events)} />
         </div>
 
         <div className="mt-8">

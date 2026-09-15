@@ -14,7 +14,6 @@ export async function createEventAction(input: EventInput): Promise<ActionResult
   try {
     const event = await api.createEvent(input, token);
     revalidatePath("/konzerte");
-    revalidatePath("/entdecken");
     revalidatePath("/");
     return { ok: true, data: { id: event.id } };
   } catch (err) {
@@ -46,7 +45,7 @@ export async function cancelEventAction(id: number): Promise<ActionResult> {
     await api.updateEventStatus(id, "CANCELLED", token);
     revalidatePath(`/konzerte/${id}`);
     revalidatePath("/konzerte");
-    revalidatePath("/entdecken");
+    revalidatePath("/");
     return { ok: true, data: undefined };
   } catch (err) {
     if (err instanceof api.ApiError) return { ok: false, error: err.message };
@@ -64,7 +63,7 @@ export async function reactivateEventAction(id: number): Promise<ActionResult> {
     await api.updateEventStatus(id, "PUBLISHED", token);
     revalidatePath(`/konzerte/${id}`);
     revalidatePath("/konzerte");
-    revalidatePath("/entdecken");
+    revalidatePath("/");
     return { ok: true, data: undefined };
   } catch (err) {
     if (err instanceof api.ApiError) return { ok: false, error: err.message };
@@ -79,7 +78,7 @@ export async function deleteEventAction(id: number): Promise<ActionResult> {
   try {
     await api.deleteEvent(id, token);
     revalidatePath("/konzerte");
-    revalidatePath("/entdecken");
+    revalidatePath("/");
     revalidatePath("/admin/events");
     return { ok: true, data: undefined };
   } catch (err) {
@@ -98,7 +97,7 @@ export async function toggleSaveEventAction(eventId: number, save: boolean): Pro
     } else {
       await api.unsaveEvent(eventId, token);
     }
-    revalidatePath("/mein-giglister");
+    revalidatePath("/");
     return { ok: true, data: undefined };
   } catch (err) {
     if (err instanceof api.ApiError) return { ok: false, error: err.message };
