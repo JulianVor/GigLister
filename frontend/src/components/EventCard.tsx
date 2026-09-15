@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { EventSummary } from "@/lib/types";
 import { dayAndMonth, formatTime, weekdayShort } from "@/lib/format";
-import { eventLineupLabel } from "@/lib/event-display";
+import { eventLineupLabel, eventListLabel } from "@/lib/event-display";
 import { entityColor } from "@/lib/entityColor";
 
 interface BandPhoto {
@@ -87,8 +87,11 @@ export function eventPhotoContent(
 }
 
 /** An image-forward post-style card (photo up top, a floating date pill, details below) -
- * self-spaced (`mb-4`) so every list of these just stacks without callers adding gaps. */
-export function EventCard({ event }: { event: EventSummary }) {
+ * self-spaced (`mb-4`) so every list of these just stacks without callers adding gaps.
+ * `hideSeriesPrefix` is only for SeriesTimetable's own fallback (a day within a Reihe with
+ * just one concert) - everywhere else the "<Reihe> - " prefix is what tells a listing that
+ * this concert belongs to a series in the first place. */
+export function EventCard({ event, hideSeriesPrefix = false }: { event: EventSummary; hideSeriesPrefix?: boolean }) {
   const time = formatTime(event.startTime);
   const content = eventPhotoContent(event) ?? (
     <ColorCollage
@@ -109,16 +112,11 @@ export function EventCard({ event }: { event: EventSummary }) {
 
       <div className="p-4">
         <div className="truncate font-display text-xl group-hover:text-accent sm:text-2xl">
-          {eventLineupLabel(event)}
+          {hideSeriesPrefix ? eventLineupLabel(event) : eventListLabel(event)}
         </div>
         <div className="mt-1 font-meta text-sm text-muted">
           {event.location.name} · {event.location.city}
         </div>
-        {event.eventSeries && (
-          <div className="mt-1 font-meta text-xs uppercase tracking-wide text-accent">
-            Teil von {event.eventSeries.name}
-          </div>
-        )}
       </div>
     </Link>
   );

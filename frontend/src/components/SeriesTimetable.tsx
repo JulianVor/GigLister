@@ -22,7 +22,11 @@ export function SeriesTimetable({ events }: { events: EventSummary[] }) {
           <h2 className="mb-1 mt-8 font-meta text-sm uppercase tracking-wide text-muted first:mt-0">
             {fullDateLabel(date)}
           </h2>
-          {dayEvents.length > 1 ? <Timetable events={dayEvents} /> : <EventCard event={dayEvents[0]} />}
+          {dayEvents.length > 1 ? (
+            <Timetable events={dayEvents} />
+          ) : (
+            <EventCard event={dayEvents[0]} hideSeriesPrefix />
+          )}
         </div>
       ))}
     </div>
