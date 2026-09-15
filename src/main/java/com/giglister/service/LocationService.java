@@ -71,7 +71,6 @@ public class LocationService {
         }
         List<Location> filtered = locationRepository.findByStatus(EntityStatus.PUBLISHED, Pageable.unpaged())
                 .getContent().stream()
-                .filter(l -> city == null || city.isBlank() || city.equalsIgnoreCase(l.getCity()))
                 .filter(l -> geoService.withinRadius(l.getLatitude(), l.getLongitude(), centerLat, centerLon, radiusKm))
                 .toList();
         int start = (int) pageable.getOffset();

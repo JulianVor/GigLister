@@ -228,16 +228,24 @@ public class EventService {
         return (s == null || s.isBlank()) ? null : s;
     }
 
+    /** A real coordinate radius takes precedence over the plain city-name match once given
+     * (see LocationService.listPublished) - not ANDed with it, since a typed city's geocoded
+     * center commonly differs from the exact city string a venue was entered under (e.g.
+     * "Hamburg-Altona" vs. the searched "Hamburg"), which would otherwise wrongly hide
+     * genuinely nearby events. Locations without coordinates still show up (see
+     * GeoService.withinRadius), so STUBs are never hidden. */
     public List<Event> filterByLocationRadius(List<Event> events, String city, Double centerLat, Double centerLon, Integer radiusKm) {
-        if ((city == null || city.isBlank()) && radiusKm == null) {
+        boolean hasRadius = centerLat != null && centerLon != null && radiusKm != null;
+        boolean hasCity = city != null && !city.isBlank();
+        if (!hasRadius && !hasCity) {
             return events;
         }
         return events.stream().filter(e -> {
             Location loc = locationService.getOrThrow(e.getLocationId());
-            boolean cityMatches = city == null || city.isBlank() || city.equalsIgnoreCase(loc.getCity());
-            boolean withinRadius = radiusKm == null
-                    || geoService.withinRadius(loc.getLatitude(), loc.getLongitude(), centerLat, centerLon, radiusKm);
-            return cityMatches && withinRadius;
+            if (hasRadius) {
+                return geoService.withinRadius(loc.getLatitude(), loc.getLongitude(), centerLat, centerLon, radiusKm);
+            }
+            return city.equalsIgnoreCase(loc.getCity());
         }).toList();
     }
 

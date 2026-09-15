@@ -63,10 +63,31 @@ class LocationRadiusSearchIntegrationTest {
                 .andExpect(jsonPath("$.content[*].name", org.hamcrest.Matchers.hasItem("Hafenklang")))
                 .andExpect(jsonPath("$.content[*].name", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("SO36"))));
 
-        // Without any location filter, both PUBLISHED locations show up.
+        // Without any location filter, both PUBLISHED locations show up (alongside whatever
+        // other test methods in this shared-context class may have already published).
         mockMvc.perform(get("/api/locations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2));
+                .andExpect(jsonPath("$.content[*].name", org.hamcrest.Matchers.hasItem("Hafenklang")))
+                .andExpect(jsonPath("$.content[*].name", org.hamcrest.Matchers.hasItem("SO36")));
+    }
+
+    /** Same precedence rule as EventService.filterByLocationRadius: a real coordinate
+     * radius overrides a mismatched city string instead of ANDing with it, since a typed
+     * city's geocoded center commonly differs from the exact city string a venue was
+     * entered under. */
+    @Test
+    void aRealCoordinateRadiusOverridesAMismatchedCityStringInsteadOfAndingWithIt() throws Exception {
+        String token = register("radiususer2@example.com", "password123", "RadiusUser2");
+
+        createAndPublishLocation(token, "Molotow", "Hamburg", 53.546, 9.965);
+        createAndPublishLocation(token, "Fabrik", "Hamburg-Altona", 53.545, 9.935);
+        createAndPublishLocation(token, "SO36", "Hamburg", 52.501, 13.426);
+
+        mockMvc.perform(get("/api/locations").param("city", "Hamburg").param("lat", "53.55").param("lon", "9.99").param("radiusKm", "25"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].name", org.hamcrest.Matchers.hasItem("Molotow")))
+                .andExpect(jsonPath("$.content[*].name", org.hamcrest.Matchers.hasItem("Fabrik")))
+                .andExpect(jsonPath("$.content[*].name", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("SO36"))));
     }
 
     private void createAndPublishLocation(String token, String name, String city, double lat, double lon) throws Exception {

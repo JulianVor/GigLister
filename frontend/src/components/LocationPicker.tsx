@@ -77,6 +77,16 @@ export function LocationPicker({
     router.refresh();
   }
 
+  function resetLocation() {
+    clearCookie(CITY_COOKIE);
+    clearCookie(LAT_COOKIE);
+    clearCookie(LON_COOKIE);
+    clearCookie(RADIUS_COOKIE);
+    setCityInput("");
+    setOpen(false);
+    router.refresh();
+  }
+
   function useDeviceLocation() {
     if (!navigator.geolocation) {
       setLocateError("Dieses Gerät unterstützt keine Standortermittlung.");
@@ -171,6 +181,15 @@ export function LocationPicker({
             {locating ? "Standort wird ermittelt …" : "Standort verwenden"}
           </button>
           {locateError && <p className="font-meta text-xs text-accent">{locateError}</p>}
+          {(city || usingDeviceLocation) && (
+            <button
+              type="button"
+              onClick={resetLocation}
+              className="w-full font-meta text-sm text-muted hover:text-accent"
+            >
+              Standort zurücksetzen
+            </button>
+          )}
         </form>
       )}
     </div>

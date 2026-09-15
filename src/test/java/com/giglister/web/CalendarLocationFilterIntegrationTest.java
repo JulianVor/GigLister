@@ -61,6 +61,34 @@ class CalendarLocationFilterIntegrationTest {
                 .andExpect(jsonPath("$[?(@.date == '" + day + "')].count").value(1));
     }
 
+    /**
+     * A typed "Standort" (e.g. "Hamburg") geocodes to real coordinates and is sent
+     * alongside the plain city string - a venue entered under a differently-spelled but
+     * still-nearby city (a district name, a typo, different capitalization/whitespace)
+     * must not be hidden just because that exact string doesn't match what was typed. The
+     * geocoded radius is the authoritative filter once given (see EventService.
+     * filterByLocationRadius); the city string is only a fallback for when no radius could
+     * be resolved at all.
+     */
+    @Test
+    void aRealCoordinateRadiusOverridesAMismatchedCityStringInsteadOfAndingWithIt() throws Exception {
+        String token = register("radiususer@example.com", "password123", "RadiusUser");
+
+        LocalDate day = LocalDate.now().withDayOfMonth(20);
+        // Same city string as what's searched for below.
+        createPublishedEvent(token, day, "Molotow", "Hamburg", 53.546, 9.965, "Exact Match Band");
+        // A real, nearby (within 25km) Hamburg venue, but entered under a different city string.
+        createPublishedEvent(token, day, "Fabrik", "Hamburg-Altona", 53.545, 9.935, "Different City String Band");
+        // Genuinely far away - must still be excluded by the radius regardless of its city string.
+        createPublishedEvent(token, day, "SO36", "Hamburg", 52.501, 13.426, "Wrong City Despite Matching String");
+
+        mockMvc.perform(get("/api/events").param("city", "Hamburg").param("lat", "53.55").param("lon", "9.99").param("radiusKm", "25"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].location.name", org.hamcrest.Matchers.hasItem("Molotow")))
+                .andExpect(jsonPath("$.content[*].location.name", org.hamcrest.Matchers.hasItem("Fabrik")))
+                .andExpect(jsonPath("$.content[*].location.name", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("SO36"))));
+    }
+
     private void createPublishedEvent(String token, LocalDate date, String locationName, String city,
                                        double lat, double lon, String bandName) throws Exception {
         var locResult = mockMvc.perform(post("/api/locations")
