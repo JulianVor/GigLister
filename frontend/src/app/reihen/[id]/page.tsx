@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ApiError, getEventSeries } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { canManageEntity } from "@/lib/permissions";
-import { EventListByDay } from "@/components/EventListByDay";
+import { SeriesTimetable } from "@/components/SeriesTimetable";
 import { EmptyState } from "@/components/EmptyState";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 
@@ -54,7 +54,7 @@ export default async function EventSeriesDetailPage({ params }: { params: Promis
         {series.events.length === 0 ? (
           <EmptyState>Noch keine Konzerte dieser Reihe zugeordnet.</EmptyState>
         ) : (
-          <EventListByDay events={series.events} />
+          <SeriesTimetable events={series.events} />
         )}
       </div>
     </div>
