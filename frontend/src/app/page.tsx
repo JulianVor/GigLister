@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NextConcertsList } from "@/components/NextConcertsList";
 import { FollowedBandsRow } from "@/components/FollowedBandsRow";
+import { GenrePromptDialog } from "@/components/GenrePromptDialog";
 import type { EventSummary } from "@/lib/types";
 
 /**
@@ -20,8 +21,13 @@ import type { EventSummary } from "@/lib/types";
  * logged-in-only "Gemerkt"/"Gefolgte Bands" that used to be buried in Mein GigLister
  * (now "Verwaltung", left with just the creator tools - see that page).
  */
-export default async function HomePage() {
-  const [prefs, session, token] = await Promise.all([getLocationPrefs(), getSession(), getToken()]);
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ genrePrompt?: string }> }) {
+  const [prefs, session, token, { genrePrompt }] = await Promise.all([
+    getLocationPrefs(),
+    getSession(),
+    getToken(),
+    searchParams,
+  ]);
   const today = todayISO();
   const hasLocation = prefs.lat != null && prefs.lon != null;
 
@@ -48,6 +54,8 @@ export default async function HomePage() {
 
   return (
     <div>
+      {session && genrePrompt === "1" && <GenrePromptDialog />}
+
       <h1 className="font-display text-4xl leading-tight sm:text-5xl">
         {session ? `Hallo ${session.username}` : "Konzerte in deiner Nähe"}
       </h1>

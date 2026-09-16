@@ -26,7 +26,7 @@ export default async function EinstellungenPage() {
         <ProfileLocationForm homeCity={session.homeCity} radiusKm={session.radiusKm} />
       </section>
 
-      <section className="mt-10">
+      <section id="genres" className="mt-10 scroll-mt-4">
         <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Genres</h2>
         <GenrePreferenceForm allGenres={allGenres} initialSelected={session.preferredGenres} />
       </section>

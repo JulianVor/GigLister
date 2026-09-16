@@ -37,6 +37,7 @@ export async function loginAction(_prevState: AuthFormState, formData: FormData)
     return { error: "Bitte Nutzername und Passwort angeben." };
   }
 
+  let genreless = false;
   try {
     const res = await apiLogin({ username, password });
     await setSessionCookie(res.token);
@@ -44,6 +45,7 @@ export async function loginAction(_prevState: AuthFormState, formData: FormData)
     // from whatever they already saved on their profile.
     const me = await getMe(res.token);
     await applyHomeLocationCookies(me);
+    genreless = me.preferredGenres.length === 0;
   } catch (err) {
     if (err instanceof ApiError) {
       return { error: err.status === 401 ? "Nutzername oder Passwort ist falsch." : err.message };
@@ -51,7 +53,11 @@ export async function loginAction(_prevState: AuthFormState, formData: FormData)
     throw err;
   }
 
-  redirect("/");
+  // Nudges a genre-less profile towards GenrePreferenceForm right after logging in (see
+  // GenrePromptDialog) - a one-time query param the homepage reads once and then strips,
+  // same pattern as the festival page's own `?filter=saved` link. redirect() throws, so it
+  // has to run outside the try/catch above (see next/navigation's own redirect docs).
+  redirect(genreless ? "/?genrePrompt=1" : "/");
 }
 
 export async function registerAction(_prevState: RegisterFormState, formData: FormData): Promise<RegisterFormState> {
