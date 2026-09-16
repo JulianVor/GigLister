@@ -5,10 +5,20 @@ import { formatTime } from "@/lib/format";
 import { EntityPlaceholder } from "./EntityPlaceholder";
 import { StatusBadge } from "./StatusBadge";
 
+/** Bands with their own start time come first, chronologically - the same "timed ones
+ * sorted, then the rest" split SeriesTimetable's explodeEvent already uses for a Festival's
+ * running order. Bands without one keep their original (line-up/position) order and stay
+ * grouped at the end, since there's nothing to sort them by. */
+function sortByStartTime(bands: BandSummary[]): BandSummary[] {
+  const timed = bands.filter((b) => b.startTime).sort((a, b) => a.startTime!.localeCompare(b.startTime!));
+  const untimed = bands.filter((b) => !b.startTime);
+  return [...timed, ...untimed];
+}
+
 export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; loggedIn: boolean; session: MeResponse | null }) {
   return (
     <div className="divide-y divide-line border-y border-line">
-      {bands.map((band) => {
+      {sortByStartTime(bands).map((band) => {
         const content = (
           <div className="flex items-center gap-4 py-3">
             {band.logoUrl ? (
