@@ -53,8 +53,15 @@ export default async function HomePage() {
       </h1>
 
       <section className="mt-8">
+        {/* Mobile (1 column) reads top-to-bottom in `order`: next concerts, then followed
+            bands, then the map - both text lists before the heavier map, matching how
+            quickly a visitor actually wants to see "what's coming up for me" here. Desktop
+            (md:grid-cols-2) keeps concerts and map side by side with followed bands below,
+            spanning both columns - `order` reshuffles CSS Grid's auto-placement, so the same
+            three blocks just need different `order`/`md:order` per breakpoint, no separate
+            markup. */}
         <div className="grid gap-6 md:grid-cols-2">
-          <div>
+          <div className="order-1">
             <div className="flex items-baseline justify-between">
               <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Deine nächsten Konzerte</h2>
               <Link href="/konzerte" className="font-meta text-sm text-accent hover:underline">
@@ -66,7 +73,20 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div>
+          {session && (
+            <div className="order-2 md:order-3 md:col-span-2">
+              <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Gefolgte Bands</h2>
+              <div className="mt-2">
+                {session.followedBands.length === 0 ? (
+                  <EmptyState>Noch keinen Bands gefolgt.</EmptyState>
+                ) : (
+                  <FollowedBandsRow bands={session.followedBands} />
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="order-3 md:order-2">
             <div className="flex items-baseline justify-between">
               <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Heute in deiner Nähe</h2>
               <Link href="/orte" className="font-meta text-sm text-accent hover:underline">
@@ -104,16 +124,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {session && (
-        <Section title="Gefolgte Bands">
-          {session.followedBands.length === 0 ? (
-            <EmptyState>Noch keinen Bands gefolgt.</EmptyState>
-          ) : (
-            <FollowedBandsRow bands={session.followedBands} />
-          )}
-        </Section>
-      )}
 
       {data.recommendedForYou.length > 0 && (
         <Section title={session ? "Das könnte dich interessieren" : "Beliebt in deiner Nähe"}>
