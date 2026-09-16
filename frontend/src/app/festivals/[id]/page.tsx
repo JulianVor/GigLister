@@ -5,6 +5,7 @@ import { ApiError, getEventSeries } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { canManageEntity } from "@/lib/permissions";
 import { FESTIVAL_EVENTS_FILTER_COOKIE } from "@/lib/festival-cookies";
+import { narrowToSavedActs } from "@/lib/event-display";
 import { SeriesTimetable } from "@/components/SeriesTimetable";
 import { FestivalEventsFilter } from "@/components/FestivalEventsFilter";
 import { EmptyState } from "@/components/EmptyState";
@@ -38,13 +39,7 @@ export default async function EventSeriesDetailPage({ params }: { params: Promis
     filter === "SAVED"
       ? series.events
           .filter((e) => savedIds.has(e.id))
-          .map((e) => {
-            const savedActBandIds = savedActBandIdsByEvent.get(e.id);
-            // No individual acts saved for this event - it was merkt as a whole, so its
-            // full line-up still shows, same as the ALL view would for it.
-            if (!savedActBandIds || savedActBandIds.size === 0) return e;
-            return { ...e, bands: e.bands.filter((b) => savedActBandIds.has(b.id)) };
-          })
+          .map((e) => narrowToSavedActs(e, savedActBandIdsByEvent.get(e.id)))
       : series.events;
 
   return (

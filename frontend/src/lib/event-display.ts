@@ -1,4 +1,4 @@
-import type { BandSummary, EventSeriesSummary } from "./types";
+import type { BandSummary, EventSeriesSummary, EventSummary } from "./types";
 
 /** "HOME + Band B + Band C", or the event's own title when it has one (festivals etc.). */
 export function eventLineupLabel(event: { title: string | null; bands: BandSummary[] }): string {
@@ -19,4 +19,14 @@ export function eventListLabel(event: {
 }): string {
   const label = eventLineupLabel(event);
   return event.eventSeries ? `${event.eventSeries.name} - ${label}` : label;
+}
+
+/** Narrows a saved festival concert down to just the acts actually gemerkt within it (see
+ * UserService.saveAct), so anywhere it's later labeled (eventLineupLabel/eventListLabel)
+ * reads "<Festival> - Act 1 + Act 2", not the concert's whole line-up. A no-op (the full
+ * line-up stays) when nothing was saved act-by-act for this event - it was merkt as a
+ * whole, so its full bill is exactly what should show. */
+export function narrowToSavedActs(event: EventSummary, savedActBandIds: Set<number> | undefined): EventSummary {
+  if (!savedActBandIds || savedActBandIds.size === 0) return event;
+  return { ...event, bands: event.bands.filter((b) => savedActBandIds.has(b.id)) };
 }

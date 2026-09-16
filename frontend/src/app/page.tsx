@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NextConcertsList } from "@/components/NextConcertsList";
 import { FollowedBandsRow } from "@/components/FollowedBandsRow";
+import { narrowToSavedActs } from "@/lib/event-display";
 
 /**
  * The feed every visitor lands on - merges what used to be split across three places:
@@ -39,11 +40,23 @@ export default async function HomePage() {
       : Promise.resolve(null),
   ]);
 
+  // Per event, the specific festival acts merkt within it (if any) - see
+  // UserService.saveAct. One entry per SAVED CONCERT either way (never one row per act);
+  // narrowToSavedActs only changes what that entry's own title lists.
+  const savedActBandIdsByEvent = new Map<number, Set<number>>();
+  for (const act of session?.savedActs ?? []) {
+    if (!savedActBandIdsByEvent.has(act.eventId)) savedActBandIdsByEvent.set(act.eventId, new Set());
+    savedActBandIdsByEvent.get(act.eventId)!.add(act.bandId);
+  }
+
   // Only ever the ones still ahead of you - a past saved concert has nothing left to
   // remind you of, so it's dropped here rather than cluttering the one list meant to
   // answer "what's coming up for me". savedEvents is already date-ascending
   // (UserService.toMeResponse), so filtering keeps that order.
-  const upcomingSaved = session?.savedEvents.filter((e) => e.date >= today) ?? [];
+  const upcomingSaved =
+    session?.savedEvents
+      .filter((e) => e.date >= today)
+      .map((e) => narrowToSavedActs(e, savedActBandIdsByEvent.get(e.id))) ?? [];
 
   return (
     <div>
