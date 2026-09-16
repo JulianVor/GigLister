@@ -24,13 +24,7 @@ export default async function HomePage() {
   const today = todayISO();
   const hasLocation = prefs.lat != null && prefs.lon != null;
 
-  const upcomingParams = hasLocation
-    ? { lat: prefs.lat!, lon: prefs.lon!, radiusKm: prefs.radiusKm ?? 25, from: today, size: 20 }
-    : prefs.city
-      ? { city: prefs.city, from: today, size: 20 }
-      : { from: today, size: 20 };
-
-  const [data, todayPage, upcomingPage] = await Promise.all([
+  const [data, todayPage] = await Promise.all([
     discover(
       {
         city: prefs.city ?? undefined,
@@ -43,8 +37,13 @@ export default async function HomePage() {
     hasLocation
       ? getEvents({ lat: prefs.lat!, lon: prefs.lon!, radiusKm: prefs.radiusKm ?? 25, from: today, to: today, size: 200 })
       : Promise.resolve(null),
-    getEvents(upcomingParams, token),
   ]);
+
+  // Only ever the ones still ahead of you - a past saved concert has nothing left to
+  // remind you of, so it's dropped here rather than cluttering the one list meant to
+  // answer "what's coming up for me". savedEvents is already date-ascending
+  // (UserService.toMeResponse), so filtering keeps that order.
+  const upcomingSaved = session?.savedEvents.filter((e) => e.date >= today) ?? [];
 
   return (
     <div>
@@ -62,14 +61,25 @@ export default async function HomePage() {
             markup. */}
         <div className="grid gap-6 md:grid-cols-2">
           <div className="order-1">
-            <div className="flex items-baseline justify-between">
-              <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Deine nächsten Konzerte</h2>
-              <Link href="/konzerte" className="font-meta text-sm text-accent hover:underline">
-                Alle ansehen →
-              </Link>
-            </div>
+            <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Deine nächsten Konzerte</h2>
             <div className="mt-2">
-              <NextConcertsList events={upcomingPage.content} />
+              {!session ? (
+                <EmptyState>
+                  <Link href="/login" className="text-accent hover:underline">
+                    Melde dich an
+                  </Link>
+                  , um Konzerte zu merken und hier wiederzufinden.
+                </EmptyState>
+              ) : upcomingSaved.length === 0 ? (
+                <EmptyState>
+                  Noch keine Konzerte gemerkt.{" "}
+                  <Link href="/konzerte" className="text-accent hover:underline">
+                    Konzerte entdecken →
+                  </Link>
+                </EmptyState>
+              ) : (
+                <NextConcertsList events={upcomingSaved} />
+              )}
             </div>
           </div>
 
@@ -130,16 +140,6 @@ export default async function HomePage() {
           {data.recommendedForYou.map((e) => (
             <EventCard key={e.id} event={e} />
           ))}
-        </Section>
-      )}
-
-      {session && (
-        <Section title="Gemerkt">
-          {session.savedEvents.length === 0 ? (
-            <EmptyState>Noch keine Konzerte gemerkt.</EmptyState>
-          ) : (
-            session.savedEvents.map((e) => <EventCard key={e.id} event={e} />)
-          )}
         </Section>
       )}
 
