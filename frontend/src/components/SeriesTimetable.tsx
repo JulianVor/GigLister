@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useState } from "react";
-import type { EventSummary, LocationSummary, TimetableStyle } from "@/lib/types";
+import type { BandSummary, EventSummary, LocationSummary, TimetableStyle } from "@/lib/types";
 import { fullDateLabel, formatTime, isSameDate, sortableMinutes } from "@/lib/format";
 import { eventLineupLabel } from "@/lib/event-display";
 import { entityColor } from "@/lib/entityColor";
@@ -89,10 +89,24 @@ interface SlotRow {
  * event's own time - e.g. a headliner going on later than the rest of the bill. Every row
  * keeps a reference to its own event, so its Location (not the band) can drive color and
  * grid placement - one location keeps one color across the whole night, whoever's playing. */
+/** A row's genre is only ever well-defined when it stands for exactly one band - several
+ * bands sharing a row have no single genre to show. */
+function soleGenre(bands: BandSummary[]): string | null {
+  return bands.length === 1 ? (bands[0].genres[0] ?? null) : null;
+}
+
 function explodeEvent(event: EventSummary): SlotRow[] {
   const timedBands = event.bands.filter((b) => b.startTime);
   if (timedBands.length === 0) {
-    return [{ key: `e${event.id}`, time: event.startTime, label: eventLineupLabel(event), genre: null, event }];
+    return [
+      {
+        key: `e${event.id}`,
+        time: event.startTime,
+        label: eventLineupLabel(event),
+        genre: soleGenre(event.bands),
+        event,
+      },
+    ];
   }
   const rows: SlotRow[] = timedBands.map((b) => ({
     key: `e${event.id}-b${b.id}`,
@@ -107,7 +121,7 @@ function explodeEvent(event: EventSummary): SlotRow[] {
       key: `e${event.id}-rest`,
       time: event.startTime,
       label: remaining.map((b) => b.name).join(" + "),
-      genre: null,
+      genre: soleGenre(remaining),
       event,
     });
   }
