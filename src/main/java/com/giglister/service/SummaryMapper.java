@@ -85,7 +85,7 @@ public class SummaryMapper {
             return null;
         }
         return eventSeriesRepository.findById(eventSeriesId)
-                .map(s -> new EventSeriesSummary(s.getId(), s.getName(), s.getTitleImageUrl()))
+                .map(s -> new EventSeriesSummary(s.getId(), s.getName(), s.getTitleImageUrl(), s.getTicketUrl()))
                 .orElse(null);
     }
 }

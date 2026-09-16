@@ -33,6 +33,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const saved = session?.savedEvents.some((e) => e.id === event.id) ?? false;
   const canEdit = canEditEvent(session, event);
   const photo = eventPhotoContent(event, { showLabels: false, requireBandPhoto: true });
+  // A festival's own shared ticket link, where set, is the one sensible ticket page for
+  // every concert in it - overrides this event's own (which the edit form still shows and
+  // saves as-is; this only changes what visitors are sent to from here).
+  const ticketUrl = event.eventSeries?.ticketUrl || event.ticketUrl;
 
   return (
     <div className="max-w-2xl">
@@ -79,9 +83,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        {event.ticketUrl && (
+        {ticketUrl && (
           <a
-            href={event.ticketUrl}
+            href={ticketUrl}
             target="_blank"
             rel="noreferrer noopener"
             className="border border-fg bg-fg px-5 py-2 font-meta text-sm text-bg hover:bg-accent hover:border-accent hover:text-accent-fg"

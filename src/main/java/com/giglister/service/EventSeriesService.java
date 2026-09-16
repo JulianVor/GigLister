@@ -38,7 +38,7 @@ public class EventSeriesService {
     public List<EventSeriesSummary> list() {
         return eventSeriesRepository.findAll().stream()
                 .sorted(Comparator.comparing(EventSeries::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(s -> new EventSeriesSummary(s.getId(), s.getName(), s.getTitleImageUrl()))
+                .map(s -> new EventSeriesSummary(s.getId(), s.getName(), s.getTitleImageUrl(), s.getTicketUrl()))
                 .toList();
     }
 

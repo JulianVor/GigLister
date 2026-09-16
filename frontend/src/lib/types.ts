@@ -50,6 +50,7 @@ export interface EventSeriesSummary {
   id: number;
   name: string;
   titleImageUrl: string | null;
+  ticketUrl: string | null;
 }
 
 export interface EventSummary {
