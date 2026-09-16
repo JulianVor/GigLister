@@ -29,6 +29,9 @@ export interface BandSummary {
   titleImageUrl: string | null;
   linkable: boolean;
   genres: string[];
+  /** This band's own start time within the event it's listed under (HH:mm:ss), distinct
+   * from the event's own overall startTime - null means it shares the event's time. */
+  startTime: string | null;
 }
 
 export interface LocationSummary {
@@ -289,6 +292,10 @@ export interface EntityRef {
   city?: string;
   address?: string;
   postalCode?: string;
+  /** Only meaningful when this ref is one of an event's `bands` - this band's own start
+   * time within the show (HH:mm), distinct from the event's overall startTime. Ignored
+   * for `location`. */
+  startTime?: string;
 }
 
 export interface EntityMerge {

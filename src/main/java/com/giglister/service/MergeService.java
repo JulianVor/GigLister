@@ -18,8 +18,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
@@ -64,10 +62,7 @@ public class MergeService {
 
         List<Event> events = eventRepository.findByBandId(sourceId);
         for (Event event : events) {
-            LinkedHashSet<Long> ids = new LinkedHashSet<>(event.getBandIds());
-            ids.remove(sourceId);
-            ids.add(targetId);
-            event.setBandIds(new ArrayList<>(ids));
+            event.replaceBandInLineup(sourceId, targetId);
             eventRepository.save(event);
         }
 

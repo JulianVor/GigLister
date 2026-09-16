@@ -21,6 +21,9 @@ export interface EntityPickerValue {
   city: string;
   address?: string;
   postalCode?: string;
+  /** Only meaningful for a BAND picker used as one of an event's lineup rows - the
+   * band's own start time (HH:mm), untouched by this component itself; see EventForm. */
+  startTime?: string;
 }
 
 /**
@@ -144,6 +147,12 @@ export function EntityPicker({
 
 export function toEntityRef(v: EntityPickerValue) {
   return v.id
-    ? { id: v.id }
-    : { name: v.name, city: v.city || undefined, address: v.address || undefined, postalCode: v.postalCode || undefined };
+    ? { id: v.id, startTime: v.startTime || undefined }
+    : {
+        name: v.name,
+        city: v.city || undefined,
+        address: v.address || undefined,
+        postalCode: v.postalCode || undefined,
+        startTime: v.startTime || undefined,
+      };
 }

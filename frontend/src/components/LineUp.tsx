@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { BandSummary, MeResponse } from "@/lib/types";
 import { canManageEntity } from "@/lib/permissions";
+import { formatTime } from "@/lib/format";
 import { EntityPlaceholder } from "./EntityPlaceholder";
 import { StatusBadge } from "./StatusBadge";
 
@@ -20,7 +21,14 @@ export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; log
               <EntityPlaceholder name={band.name} className="h-12 w-12 flex-none" textClassName="text-xl" />
             )}
             <div>
-              <div className="font-display text-base">{band.name}</div>
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-base">{band.name}</span>
+                {/* Only shown when this band goes on at a different time than the event's
+                    own overall startTime - the common case needs no per-band repeat. */}
+                {band.startTime && (
+                  <span className="font-meta text-xs tabular-nums text-muted">{formatTime(band.startTime)}</span>
+                )}
+              </div>
               {/* City is rarely useful here - this site is for local gigs, so almost every
                   band already plays in or near the city the event itself is in. Genres
                   tell a visitor something they don't already know. */}

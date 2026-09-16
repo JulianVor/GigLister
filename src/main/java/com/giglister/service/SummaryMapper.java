@@ -1,6 +1,7 @@
 package com.giglister.service;
 
 import com.giglister.domain.Band;
+import com.giglister.domain.BandLineupEntry;
 import com.giglister.domain.Event;
 import com.giglister.domain.EventSeries;
 import com.giglister.domain.Location;
@@ -16,6 +17,7 @@ import com.giglister.repository.LocationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -32,15 +34,27 @@ public class SummaryMapper {
     private final EventSeriesRepository eventSeriesRepository;
 
     public BandSummary bandSummary(Band band) {
+        return bandSummary(band, null);
+    }
+
+    private BandSummary bandSummary(Band band, LocalTime startTime) {
         return new BandSummary(band.getId(), band.getName(), band.getCity(), band.getStatus(),
                 band.getLogoUrl(), band.getTitleImageUrl(), band.getStatus() == EntityStatus.PUBLISHED,
-                band.getGenres());
+                band.getGenres(), startTime);
     }
 
     public BandSummary bandSummary(Long bandId) {
         Band band = bandRepository.findById(bandId)
                 .orElseThrow(() -> new NotFoundException("Band " + bandId + " not found"));
-        return bandSummary(band);
+        return bandSummary(band, null);
+    }
+
+    /** Like bandSummary(Long), but also carries this specific event's own per-band start
+     * time (see BandLineupEntry) through onto the response. */
+    public BandSummary bandSummary(BandLineupEntry entry) {
+        Band band = bandRepository.findById(entry.getBandId())
+                .orElseThrow(() -> new NotFoundException("Band " + entry.getBandId() + " not found"));
+        return bandSummary(band, entry.getStartTime());
     }
 
     public LocationSummary locationSummary(Location location) {
@@ -56,7 +70,7 @@ public class SummaryMapper {
     }
 
     public EventSummary eventSummary(Event event) {
-        List<BandSummary> bands = event.getBandIds().stream().map(this::bandSummary).toList();
+        List<BandSummary> bands = event.getBandLineup().stream().map(this::bandSummary).toList();
         return new EventSummary(event.getId(), event.getTitle(), event.getDate(), event.getStartTime(),
                 locationSummary(event.getLocationId()), bands, event.getTitleImageUrl(),
                 event.getBandImageDisplay(), event.getStatus(), eventSeriesSummary(event.getEventSeriesId()));

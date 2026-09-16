@@ -1,6 +1,7 @@
 package com.giglister.service;
 
 import com.giglister.domain.Band;
+import com.giglister.domain.BandLineupEntry;
 import com.giglister.domain.Event;
 import com.giglister.domain.Location;
 import com.giglister.domain.User;
@@ -95,16 +96,16 @@ public class EventService {
     @Transactional
     public Event create(EventCreateRequest request, Long createdBy) {
         Long locationId = resolveLocation(request.location());
-        List<Long> bandIds = new ArrayList<>();
+        List<BandLineupEntry> bandLineup = new ArrayList<>();
         for (EntityRef ref : request.bands()) {
-            bandIds.add(resolveBand(ref));
+            bandLineup.add(new BandLineupEntry(resolveBand(ref), ref.startTime()));
         }
         Event event = Event.builder()
                 .title(blankToNull(request.title()))
                 .date(request.date())
                 .startTime(request.startTime())
                 .locationId(locationId)
-                .bandIds(bandIds)
+                .bandLineup(bandLineup)
                 .description(request.description())
                 .ticketUrl(request.ticketUrl())
                 .titleImageUrl(request.titleImageUrl())
@@ -155,15 +156,15 @@ public class EventService {
         requireEditRights(event, userId, platformAdmin);
 
         Long locationId = resolveLocation(request.location());
-        List<Long> bandIds = new ArrayList<>();
+        List<BandLineupEntry> bandLineup = new ArrayList<>();
         for (EntityRef ref : request.bands()) {
-            bandIds.add(resolveBand(ref));
+            bandLineup.add(new BandLineupEntry(resolveBand(ref), ref.startTime()));
         }
         event.setTitle(blankToNull(request.title()));
         event.setDate(request.date());
         event.setStartTime(request.startTime());
         event.setLocationId(locationId);
-        event.setBandIds(bandIds);
+        event.setBandLineup(bandLineup);
         event.setDescription(request.description());
         event.setTicketUrl(request.ticketUrl());
         event.setTitleImageUrl(request.titleImageUrl());
@@ -336,7 +337,7 @@ public class EventService {
     }
 
     public EventResponse toResponse(Event event) {
-        var bands = event.getBandIds().stream().map(summaryMapper::bandSummary).toList();
+        var bands = event.getBandLineup().stream().map(summaryMapper::bandSummary).toList();
         return new EventResponse(
                 event.getId(), event.getTitle(), event.getDate(), event.getStartTime(),
                 summaryMapper.locationSummary(event.getLocationId()), bands, event.getDescription(),

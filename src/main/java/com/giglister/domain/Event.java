@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -50,10 +51,34 @@ public class Event {
     // LazyInitializationException.
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "event_band", joinColumns = @JoinColumn(name = "event_id"))
-    @Column(name = "band_id", nullable = false)
     @OrderColumn(name = "position")
     @Builder.Default
-    private List<Long> bandIds = new ArrayList<>();
+    private List<BandLineupEntry> bandLineup = new ArrayList<>();
+
+    /** Convenience over bandLineup for callers that only need "which bands, in order" -
+     * permission checks, genre filtering, notifications, admin listings, search... -
+     * without caring about each band's own optional start time. */
+    public List<Long> getBandIds() {
+        return bandLineup.stream().map(BandLineupEntry::getBandId).toList();
+    }
+
+    /** Swaps every lineup entry for oldBandId to newBandId (used when merging two Bands
+     * into one) - keeps that entry's position and its own start time, since the same slot
+     * is now just filled by a different (merged) band identity. Also dedupes by band id
+     * afterward, keeping the first entry, in case the target band was already elsewhere
+     * in the lineup. */
+    public void replaceBandInLineup(Long oldBandId, Long newBandId) {
+        for (BandLineupEntry entry : bandLineup) {
+            if (entry.getBandId().equals(oldBandId)) {
+                entry.setBandId(newBandId);
+            }
+        }
+        LinkedHashMap<Long, BandLineupEntry> deduped = new LinkedHashMap<>();
+        for (BandLineupEntry entry : bandLineup) {
+            deduped.putIfAbsent(entry.getBandId(), entry);
+        }
+        bandLineup = new ArrayList<>(deduped.values());
+    }
 
     @Column(length = 4000)
     private String description;

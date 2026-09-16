@@ -35,7 +35,7 @@ export function EventForm({
   );
   const [bands, setBands] = useState<EntityPickerValue[]>(
     initial && initial.bands.length > 0
-      ? initial.bands.map((b) => ({ id: b.id, name: b.name, city: b.city ?? "" }))
+      ? initial.bands.map((b) => ({ id: b.id, name: b.name, city: b.city ?? "", startTime: b.startTime?.slice(0, 5) }))
       : [emptyBand()]
   );
   const [ticketUrl, setTicketUrl] = useState(initial?.ticketUrl ?? "");
@@ -132,6 +132,41 @@ export function EventForm({
               value={band}
               onChange={(v) => setBands((prev) => prev.map((b, idx) => (idx === i ? v : b)))}
             />
+            <div className="mt-2">
+              {band.startTime !== undefined ? (
+                <div className="flex items-center gap-2">
+                  <label className="font-meta text-xs uppercase tracking-wide text-muted" htmlFor={`band-start-${i}`}>
+                    Startzeit dieser Band
+                  </label>
+                  <input
+                    id={`band-start-${i}`}
+                    type="time"
+                    value={band.startTime}
+                    onChange={(e) =>
+                      setBands((prev) => prev.map((b, idx) => (idx === i ? { ...b, startTime: e.target.value } : b)))
+                    }
+                    className="border border-line bg-bg px-2 py-1 text-sm outline-none focus:border-accent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setBands((prev) => prev.map((b, idx) => (idx === i ? { ...b, startTime: undefined } : b)))
+                    }
+                    className="font-meta text-xs text-muted hover:text-accent"
+                  >
+                    Entfernen
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setBands((prev) => prev.map((b, idx) => (idx === i ? { ...b, startTime: "" } : b)))}
+                  className="font-meta text-xs text-accent hover:underline"
+                >
+                  + Startzeit hinzufügen
+                </button>
+              )}
+            </div>
             {bands.length > 1 && (
               <button
                 type="button"

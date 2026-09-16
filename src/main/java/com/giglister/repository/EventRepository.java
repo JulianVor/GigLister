@@ -31,14 +31,14 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     List<Event> findByEventSeriesIdOrderByDateAscStartTimeAsc(Long eventSeriesId);
 
-    @Query("select e from Event e where e.status = :status and :bandId member of e.bandIds and e.date >= :from order by e.date asc, e.startTime asc")
+    @Query("select e from Event e join e.bandLineup bl where e.status = :status and bl.bandId = :bandId and e.date >= :from order by e.date asc, e.startTime asc")
     List<Event> findUpcomingForBand(@Param("bandId") Long bandId, @Param("status") EventStatus status, @Param("from") LocalDate from);
 
-    @Query("select e from Event e where :bandId member of e.bandIds")
+    @Query("select e from Event e join e.bandLineup bl where bl.bandId = :bandId")
     List<Event> findByBandId(@Param("bandId") Long bandId);
 
     /** Cross-band: every upcoming event featuring any of the given bands, deduplicated. */
-    @Query("select distinct e from Event e join e.bandIds b where b in :bandIds and e.status = :status and e.date >= :from order by e.date asc, e.startTime asc")
+    @Query("select distinct e from Event e join e.bandLineup bl where bl.bandId in :bandIds and e.status = :status and e.date >= :from order by e.date asc, e.startTime asc")
     List<Event> findUpcomingForAnyBand(@Param("bandIds") List<Long> bandIds, @Param("status") EventStatus status, @Param("from") LocalDate from);
 
     @Query("select e from Event e where e.status = :status and e.date between :from and :to and lower(coalesce(e.title, '')) like lower(concat('%', :q, '%'))")
