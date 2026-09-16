@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { demoteUserAction, promoteUserAction } from "@/actions/admin";
@@ -27,10 +28,10 @@ export function UsersList({ users, currentUserId }: { users: AdminUserResponse[]
         return (
           <li key={user.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
             <div>
-              <div className="font-display text-lg">
+              <Link href={`/admin/users/${user.id}`} className="font-display text-lg hover:text-accent">
                 {user.username}
                 {isSelf && <span className="ml-2 font-meta text-xs text-muted">(du)</span>}
-              </div>
+              </Link>
               <div className="font-meta text-sm text-muted">{user.email}</div>
             </div>
             <div className="flex items-center gap-3">

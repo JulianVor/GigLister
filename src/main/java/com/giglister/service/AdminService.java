@@ -20,6 +20,7 @@ import com.giglister.dto.admin.AdminLocationListItem;
 import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.DuplicatePair;
 import com.giglister.domain.DismissedDuplicate;
+import com.giglister.dto.MeResponse;
 import com.giglister.exception.BadRequestException;
 import com.giglister.exception.ConflictException;
 import com.giglister.exception.NotFoundException;
@@ -58,6 +59,7 @@ public class AdminService {
     private final SubmissionRepository submissionRepository;
     private final EventSeriesRepository eventSeriesRepository;
     private final DismissedDuplicateRepository dismissedDuplicateRepository;
+    private final UserService userService;
     private final PasswordEncoder passwordEncoder;
 
     private static final List<EntityStatus> NEEDS_ATTENTION = List.of(EntityStatus.STUB, EntityStatus.DRAFT);
@@ -157,6 +159,15 @@ public class AdminService {
                 .sorted(Comparator.comparing(User::getEmail))
                 .map(this::toAdminUserResponse)
                 .toList();
+    }
+
+    /** "Details ansehen" on a user from the admin's side - same shape as MeResponse (gemerkte
+     * Konzerte, gemerkte Acts, gefolgte Bands, verwaltete Bands/Orte) since that's exactly
+     * what an admin needs to see about someone else's account too, not a separate view. */
+    public MeResponse userDetail(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User " + userId + " not found"));
+        return userService.toMeResponse(user);
     }
 
     @Transactional

@@ -17,6 +17,7 @@ import com.giglister.dto.admin.ClaimResponse;
 import com.giglister.dto.admin.DuplicatePair;
 import com.giglister.dto.admin.MergeRequest;
 import com.giglister.dto.admin.RejectDuplicateRequest;
+import com.giglister.dto.MeResponse;
 import com.giglister.dto.submission.RejectSubmissionRequest;
 import com.giglister.dto.submission.SubmissionResponse;
 import com.giglister.dto.submission.SubmissionUpdateRequest;
@@ -96,6 +97,12 @@ public class AdminController {
     @GetMapping("/users")
     public List<AdminUserResponse> users(@RequestParam(required = false) String q) {
         return adminService.listUsers(q);
+    }
+
+    /** "Details ansehen" - see AdminService.userDetail. */
+    @GetMapping("/users/{id}")
+    public MeResponse userDetail(@PathVariable Long id) {
+        return adminService.userDetail(id);
     }
 
     @PostMapping("/users")

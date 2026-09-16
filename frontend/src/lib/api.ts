@@ -491,6 +491,13 @@ export function getAdminUsers(query: string | undefined, token: string) {
   return apiFetch<AdminUserResponse[]>(`/api/admin/users${toQuery({ q: query })}`, { token });
 }
 
+/** "Details ansehen" - same MeResponse shape a user gets about themselves under Mein
+ * GigLister (gemerkte Konzerte, gefolgte Bands, ...), just for the admin looking at
+ * someone else's account. See AdminService.userDetail. */
+export function getAdminUserDetail(id: number, token: string) {
+  return apiFetch<MeResponse>(`/api/admin/users/${id}`, { token });
+}
+
 /** No password in the request - the backend generates a temporary one and hands it back
  * once, in the response, for the admin to pass along to the new user themselves. */
 export function createAdminUser(data: { email: string; username: string }, token: string) {
