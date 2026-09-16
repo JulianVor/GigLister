@@ -89,7 +89,11 @@ export default async function EventSeriesDetailPage({ params }: { params: Promis
               : "Noch keine Konzerte diesem Festival zugeordnet."}
           </EmptyState>
         ) : (
-          <SeriesTimetable events={visibleEvents} style={series.timetableStyle} />
+          // Gemerkte Konzerte is already narrowed down to just the acts you picked out -
+          // comparing them across a grid of locations is exactly the job Grid stops being
+          // useful for once the picture is this selective, so this view always reads as a
+          // plain list, whatever the festival's own timetableStyle is set to.
+          <SeriesTimetable events={visibleEvents} style={filter === "SAVED" ? "LIST" : series.timetableStyle} />
         )}
       </div>
     </div>
