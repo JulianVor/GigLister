@@ -54,7 +54,7 @@ export default async function EventSeriesDetailPage({ params }: { params: Promis
         {series.events.length === 0 ? (
           <EmptyState>Noch keine Konzerte diesem Festival zugeordnet.</EmptyState>
         ) : (
-          <SeriesTimetable events={series.events} />
+          <SeriesTimetable events={series.events} style={series.timetableStyle} />
         )}
       </div>
     </div>

@@ -8,6 +8,7 @@ import com.giglister.domain.enums.EventStatus;
 import com.giglister.domain.enums.PermissionLevel;
 import com.giglister.domain.enums.SubmissionStatus;
 import com.giglister.domain.enums.SubmissionType;
+import com.giglister.domain.enums.TimetableStyle;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -63,6 +64,7 @@ public class EnumCheckConstraintSync implements ApplicationRunner {
                 new Spec("location", "status", values(EntityStatus.class)),
                 new Spec("event", "status", values(EventStatus.class)),
                 new Spec("event", "band_image_display", values(BandImageDisplay.class)),
+                new Spec("event_series", "timetable_style", values(TimetableStyle.class)),
                 new Spec("submission", "type", values(SubmissionType.class)),
                 new Spec("submission", "status", values(SubmissionStatus.class))
         );

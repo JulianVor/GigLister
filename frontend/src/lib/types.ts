@@ -6,6 +6,7 @@ export type EntityType = "BAND" | "LOCATION" | "EVENT_SERIES";
 export type PermissionLevel = "EDIT" | "MANAGE";
 export type ClaimStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type BandImageDisplay = "LOGO" | "PHOTO";
+export type TimetableStyle = "LIST" | "GRID";
 
 export interface GenreFilterOption {
   genre: string;
@@ -86,6 +87,7 @@ export interface EventSeriesResponse {
   description: string | null;
   titleImageUrl: string | null;
   ticketUrl: string | null;
+  timetableStyle: TimetableStyle;
   events: EventSummary[];
 }
 

@@ -37,6 +37,7 @@ import type {
   SearchResults,
   SubmissionResponse,
   SubmissionStatus,
+  TimetableStyle,
   UsernameAvailabilityResponse,
 } from "./types";
 
@@ -375,6 +376,7 @@ export interface EventSeriesInput {
   description?: string;
   titleImageUrl?: string;
   ticketUrl?: string;
+  timetableStyle?: TimetableStyle;
 }
 
 export function createEventSeries(data: EventSeriesInput, token: string) {

@@ -1,4 +1,4 @@
-import type { BandImageDisplay, EntityStatus, EventStatus, SubmissionStatus, SubmissionType } from "./types";
+import type { BandImageDisplay, EntityStatus, EventStatus, SubmissionStatus, SubmissionType, TimetableStyle } from "./types";
 
 /** User-facing German labels — chosen to say what the status actually means,
  * not just repeat the technical enum name (e.g. "Unvollständig" instead of "Stub"). */
@@ -37,4 +37,14 @@ export const SUBMISSION_TYPE_LABELS: Record<SubmissionType, string> = {
 export const BAND_IMAGE_DISPLAY_LABELS: Record<BandImageDisplay, string> = {
   LOGO: "Logo",
   PHOTO: "Bandfoto",
+};
+
+export const TIMETABLE_STYLE_LABELS: Record<TimetableStyle, string> = {
+  LIST: "Liste",
+  GRID: "Raster",
+};
+
+export const TIMETABLE_STYLE_HINTS: Record<TimetableStyle, string> = {
+  LIST: "Chronologische Liste — passt für wenige Locations",
+  GRID: "Locations als Spalten, Zeit als Zeilen — passt für viele gleichzeitige Locations",
 };

@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createEventSeriesAction, updateEventSeriesAction } from "@/actions/eventSeries";
 import { ImageUploadField } from "@/components/ImageUploadField";
-import type { EventSeriesResponse } from "@/lib/types";
+import { TIMETABLE_STYLE_HINTS, TIMETABLE_STYLE_LABELS } from "@/lib/status-labels";
+import type { EventSeriesResponse, TimetableStyle } from "@/lib/types";
+
+const TIMETABLE_STYLE_OPTIONS: TimetableStyle[] = ["LIST", "GRID"];
 
 export function EventSeriesForm({ series }: { series?: EventSeriesResponse }) {
   const router = useRouter();
@@ -15,6 +18,7 @@ export function EventSeriesForm({ series }: { series?: EventSeriesResponse }) {
   const [description, setDescription] = useState(series?.description ?? "");
   const [titleImageUrl, setTitleImageUrl] = useState(series?.titleImageUrl ?? "");
   const [ticketUrl, setTicketUrl] = useState(series?.ticketUrl ?? "");
+  const [timetableStyle, setTimetableStyle] = useState<TimetableStyle>(series?.timetableStyle ?? "LIST");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,6 +29,7 @@ export function EventSeriesForm({ series }: { series?: EventSeriesResponse }) {
       description: description || undefined,
       titleImageUrl: titleImageUrl || undefined,
       ticketUrl: ticketUrl || undefined,
+      timetableStyle,
     };
 
     startTransition(async () => {
@@ -63,6 +68,26 @@ export function EventSeriesForm({ series }: { series?: EventSeriesResponse }) {
       <Field label="Titelbild">
         <ImageUploadField value={titleImageUrl} onChange={setTitleImageUrl} aspect="video" />
       </Field>
+
+      <div>
+        <span className="font-meta text-sm text-muted">Timetable-Ansicht</span>
+        <div className="mt-1 flex gap-2">
+          {TIMETABLE_STYLE_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setTimetableStyle(option)}
+              aria-pressed={timetableStyle === option}
+              className={`border px-3 py-1.5 font-meta text-sm ${
+                timetableStyle === option ? "border-accent bg-accent text-accent-fg" : "border-line hover:border-fg"
+              }`}
+            >
+              {TIMETABLE_STYLE_LABELS[option]}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 font-meta text-xs text-muted">{TIMETABLE_STYLE_HINTS[timetableStyle]}</p>
+      </div>
 
       {error && <p className="font-meta text-sm text-accent">{error}</p>}
 

@@ -1,5 +1,6 @@
 package com.giglister.dto.eventseries;
 
+import com.giglister.domain.enums.TimetableStyle;
 import com.giglister.dto.common.EventSummary;
 
 import java.util.List;
@@ -10,6 +11,7 @@ public record EventSeriesResponse(
         String description,
         String titleImageUrl,
         String ticketUrl,
+        TimetableStyle timetableStyle,
         /** Every Event referencing this series, date-ascending - what the series' own
          * page actually lists. */
         List<EventSummary> events

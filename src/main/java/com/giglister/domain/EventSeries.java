@@ -1,5 +1,6 @@
 package com.giglister.domain;
 
+import com.giglister.domain.enums.TimetableStyle;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,6 +45,20 @@ public class EventSeries {
      * realistic - this doesn't replace an Event's own link, just adds one at the series
      * level for whichever a given series actually uses). */
     private String ticketUrl;
+
+    /** Whether this series' Timetable renders as a flat time-sorted list or as a
+     * locations-as-columns grid - the creator's own call, since it depends on how many
+     * simultaneous locations the series actually has (see TimetableStyle). Deliberately
+     * nullable at the DB level for the same reason as Event.bandImageDisplay: ddl-auto:
+     * update adds this column via a plain ALTER TABLE against a table that may already
+     * have rows. getTimetableStyle() below is the single place that treats null as LIST. */
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private TimetableStyle timetableStyle = TimetableStyle.LIST;
+
+    public TimetableStyle getTimetableStyle() {
+        return timetableStyle != null ? timetableStyle : TimetableStyle.LIST;
+    }
 
     @Column(nullable = false)
     private Long createdBy;

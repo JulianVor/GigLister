@@ -3,6 +3,7 @@ package com.giglister.service;
 import com.giglister.domain.EventSeries;
 import com.giglister.domain.enums.EntityType;
 import com.giglister.domain.enums.PermissionLevel;
+import com.giglister.domain.enums.TimetableStyle;
 import com.giglister.dto.common.EventSeriesSummary;
 import com.giglister.dto.eventseries.EventSeriesCreateRequest;
 import com.giglister.dto.eventseries.EventSeriesResponse;
@@ -48,6 +49,7 @@ public class EventSeriesService {
                 .description(request.description())
                 .titleImageUrl(request.titleImageUrl())
                 .ticketUrl(request.ticketUrl())
+                .timetableStyle(request.timetableStyle() != null ? request.timetableStyle() : TimetableStyle.LIST)
                 .createdBy(createdBy)
                 .build();
         series = eventSeriesRepository.save(series);
@@ -63,6 +65,7 @@ public class EventSeriesService {
         series.setDescription(request.description());
         series.setTitleImageUrl(request.titleImageUrl());
         series.setTicketUrl(request.ticketUrl());
+        series.setTimetableStyle(request.timetableStyle() != null ? request.timetableStyle() : TimetableStyle.LIST);
         return eventSeriesRepository.save(series);
     }
 
@@ -71,6 +74,6 @@ public class EventSeriesService {
                 .map(summaryMapper::eventSummary)
                 .toList();
         return new EventSeriesResponse(series.getId(), series.getName(), series.getDescription(),
-                series.getTitleImageUrl(), series.getTicketUrl(), events);
+                series.getTitleImageUrl(), series.getTicketUrl(), series.getTimetableStyle(), events);
     }
 }
