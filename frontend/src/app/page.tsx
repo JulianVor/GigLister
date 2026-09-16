@@ -9,6 +9,7 @@ import { EventCard } from "@/components/EventCard";
 import { LocationTeaser } from "@/components/LocationTeaser";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
+import { NextConcertsList } from "@/components/NextConcertsList";
 
 /**
  * The feed every visitor lands on - merges what used to be split across three places:
@@ -22,7 +23,13 @@ export default async function HomePage() {
   const today = todayISO();
   const hasLocation = prefs.lat != null && prefs.lon != null;
 
-  const [data, todayPage] = await Promise.all([
+  const upcomingParams = hasLocation
+    ? { lat: prefs.lat!, lon: prefs.lon!, radiusKm: prefs.radiusKm ?? 25, from: today, size: 20 }
+    : prefs.city
+      ? { city: prefs.city, from: today, size: 20 }
+      : { from: today, size: 20 };
+
+  const [data, todayPage, upcomingPage] = await Promise.all([
     discover(
       {
         city: prefs.city ?? undefined,
@@ -35,6 +42,7 @@ export default async function HomePage() {
     hasLocation
       ? getEvents({ lat: prefs.lat!, lon: prefs.lon!, radiusKm: prefs.radiusKm ?? 25, from: today, to: today, size: 200 })
       : Promise.resolve(null),
+    getEvents(upcomingParams, token),
   ]);
 
   return (
@@ -44,40 +52,56 @@ export default async function HomePage() {
       </h1>
 
       <section className="mt-8">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Heute in deiner Nähe</h2>
-          <Link href="/orte" className="font-meta text-sm text-accent hover:underline">
-            Karte & weitere Tage →
-          </Link>
-        </div>
-        <div className="mt-2">
-          {hasLocation && todayPage ? (
-            <>
-              <ConcertMapClient
-                center={{ lat: prefs.lat!, lon: prefs.lon! }}
-                radiusKm={prefs.radiusKm ?? 25}
-                locations={buildMapLocations(todayPage.content)}
-              />
-              {todayPage.content.length === 0 && (
-                <p className="mt-2 font-meta text-sm text-muted">Heute ist nichts in deiner Nähe gelistet.</p>
-              )}
-            </>
-          ) : data.todayNearby.length === 0 ? (
-            <EmptyState>
-              Heute ist nichts gelistet.{" "}
-              <Link href="/konzerte?range=weekend" className="text-accent hover:underline">
-                Konzerte am Wochenende ansehen →
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Deine nächsten Konzerte</h2>
+              <Link href="/konzerte" className="font-meta text-sm text-accent hover:underline">
+                Alle ansehen →
               </Link>
-            </EmptyState>
-          ) : (
-            data.todayNearby.map((e) => <EventCard key={e.id} event={e} />)
-          )}
+            </div>
+            <div className="mt-2">
+              <NextConcertsList events={upcomingPage.content} />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Heute in deiner Nähe</h2>
+              <Link href="/orte" className="font-meta text-sm text-accent hover:underline">
+                Karte & weitere Tage →
+              </Link>
+            </div>
+            <div className="mt-2">
+              {hasLocation && todayPage ? (
+                <>
+                  <ConcertMapClient
+                    center={{ lat: prefs.lat!, lon: prefs.lon! }}
+                    radiusKm={prefs.radiusKm ?? 25}
+                    locations={buildMapLocations(todayPage.content)}
+                  />
+                  {todayPage.content.length === 0 && (
+                    <p className="mt-2 font-meta text-sm text-muted">Heute ist nichts in deiner Nähe gelistet.</p>
+                  )}
+                </>
+              ) : data.todayNearby.length === 0 ? (
+                <EmptyState>
+                  Heute ist nichts gelistet.{" "}
+                  <Link href="/konzerte?range=weekend" className="text-accent hover:underline">
+                    Konzerte am Wochenende ansehen →
+                  </Link>
+                </EmptyState>
+              ) : (
+                data.todayNearby.map((e) => <EventCard key={e.id} event={e} />)
+              )}
+            </div>
+            {!hasLocation && (
+              <p className="mt-2 font-meta text-xs text-muted">
+                Wähle oben rechts einen Standort, um das auf einer Karte zu sehen.
+              </p>
+            )}
+          </div>
         </div>
-        {!hasLocation && (
-          <p className="mt-2 font-meta text-xs text-muted">
-            Wähle oben rechts einen Standort, um das auf einer Karte zu sehen.
-          </p>
-        )}
       </section>
 
       {data.recommendedForYou.length > 0 && (
