@@ -86,7 +86,9 @@ export default async function EventSeriesDetailPage({
 
       <div id="konzerte" className="mt-10 flex items-baseline justify-between scroll-mt-4">
         <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Konzerte dieses Festivals</h2>
-        {session && series.events.length > 0 && <FestivalEventsFilter activeFilter={filter} />}
+        {session && series.events.length > 0 && (
+          <FestivalEventsFilter activeFilter={filter} clearFilterParam={filterParam === "saved"} />
+        )}
       </div>
       <div className="mt-2">
         {visibleEvents.length === 0 ? (
