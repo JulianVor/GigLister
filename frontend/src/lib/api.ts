@@ -516,11 +516,28 @@ export function getAdminBands(
   return apiFetch<Page<AdminBandListItem>>(`/api/admin/bands${toQuery(params)}`, { token });
 }
 
+/** "Alle auf Vollständigkeit setzen" - sweeps every STUB/DRAFT band and publishes any that
+ * already clear BandService's isComplete bar. See BandService.publishAllComplete. */
+export function publishCompleteBands(token: string) {
+  return apiFetch<{ checked: number; published: number }>("/api/admin/bands/publish-complete", {
+    method: "POST",
+    token,
+  });
+}
+
 export function getAdminLocations(
   params: { status?: EntityStatus; q?: string; sort?: string; page?: number; size?: number },
   token: string
 ) {
   return apiFetch<Page<AdminLocationListItem>>(`/api/admin/locations${toQuery(params)}`, { token });
+}
+
+/** Same idea as publishCompleteBands, for locations - see LocationService.publishAllComplete. */
+export function publishCompleteLocations(token: string) {
+  return apiFetch<{ checked: number; published: number }>("/api/admin/locations/publish-complete", {
+    method: "POST",
+    token,
+  });
 }
 
 export function getAdminEventSeries(params: { q?: string; page?: number; size?: number }, token: string) {

@@ -5,6 +5,7 @@ import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
 import { CompletenessBadge } from "@/components/admin/CompletenessBadge";
 import { CompletenessSort } from "@/components/admin/CompletenessSort";
+import { PublishCompleteButton } from "@/components/admin/PublishCompleteButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ENTITY_STATUS_HINTS, ENTITY_STATUS_LABELS } from "@/lib/status-labels";
 import type { EntityStatus } from "@/lib/types";
@@ -44,6 +45,16 @@ export default async function AdminBandsPage({
         </div>
         <AdminSearchForm action="/admin/bands" query={q} placeholder="Suche nach Name …" hidden={{ status, sort }} />
       </div>
+
+      {(status === "STUB" || status === "DRAFT") && (
+        <div className="mt-4">
+          <PublishCompleteButton entityType="band" />
+          <p className="mt-1 font-meta text-xs text-muted">
+            Veröffentlicht jeden Stub/Entwurf, der schon vollständig genug ist - z. B. weil er nachträglich per
+            Bearbeiten ergänzt wurde, ohne dass sich der Status geändert hat.
+          </p>
+        </div>
+      )}
 
       <p className="mt-4 font-meta text-xs text-muted">{page.totalElements} Bands</p>
 

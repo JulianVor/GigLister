@@ -21,6 +21,7 @@ import com.giglister.dto.submission.SubmissionResponse;
 import com.giglister.dto.submission.SubmissionUpdateRequest;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.AdminService;
+import com.giglister.service.BandService;
 import com.giglister.service.ClaimService;
 import com.giglister.service.LocationService;
 import com.giglister.service.MergeService;
@@ -49,6 +50,7 @@ public class AdminController {
     private final MergeService mergeService;
     private final SubmissionService submissionService;
     private final LocationService locationService;
+    private final BandService bandService;
 
     @GetMapping("/dashboard")
     public AdminDashboardResponse dashboard() {
@@ -115,6 +117,12 @@ public class AdminController {
         return adminService.listAdminBands(status, q, sort, PageRequest.of(page, size));
     }
 
+    /** "Alle auf Vollständigkeit setzen" on the Bands overview - see BandService.publishAllComplete. */
+    @PostMapping("/bands/publish-complete")
+    public BandService.PublishCompleteResult publishCompleteBands() {
+        return bandService.publishAllComplete();
+    }
+
     /** One-off backfill for locations saved before geocoding existed - see
      * LocationService.backfillMissingCoordinates. Synchronous and rate-limited
      * (~1/sec), so this can take a while on a large backlog; fine for the admin
@@ -122,6 +130,12 @@ public class AdminController {
     @PostMapping("/locations/geocode-missing")
     public LocationService.BackfillResult geocodeMissingLocations() {
         return locationService.backfillMissingCoordinates();
+    }
+
+    /** "Alle auf Vollständigkeit setzen" on the Orte overview - see LocationService.publishAllComplete. */
+    @PostMapping("/locations/publish-complete")
+    public LocationService.PublishCompleteResult publishCompleteLocations() {
+        return locationService.publishAllComplete();
     }
 
     @GetMapping("/locations")

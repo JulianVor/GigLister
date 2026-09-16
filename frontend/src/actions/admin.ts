@@ -114,6 +114,36 @@ export async function geocodeMissingLocationsAction(): Promise<ActionResult<{ at
   }
 }
 
+export async function publishCompleteBandsAction(): Promise<ActionResult<{ checked: number; published: number }>> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    const result = await api.publishCompleteBands(token);
+    revalidatePath("/admin/bands");
+    revalidatePath("/admin");
+    return { ok: true, data: result };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+export async function publishCompleteLocationsAction(): Promise<ActionResult<{ checked: number; published: number }>> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    const result = await api.publishCompleteLocations(token);
+    revalidatePath("/admin/locations");
+    revalidatePath("/admin");
+    return { ok: true, data: result };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
 export async function updateSubmissionAction(
   id: number,
   payload: Record<string, unknown>,

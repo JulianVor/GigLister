@@ -4,6 +4,7 @@ import { getToken } from "@/lib/session";
 import { StatusFilter } from "@/components/admin/StatusFilter";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
 import { GeocodeMissingButton } from "@/components/admin/GeocodeMissingButton";
+import { PublishCompleteButton } from "@/components/admin/PublishCompleteButton";
 import { CompletenessBadge } from "@/components/admin/CompletenessBadge";
 import { CompletenessSort } from "@/components/admin/CompletenessSort";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -53,6 +54,16 @@ export default async function AdminLocationsPage({
           sie einmalig für ältere Orte nach.
         </p>
       </div>
+
+      {(status === "STUB" || status === "DRAFT") && (
+        <div className="mt-4">
+          <PublishCompleteButton entityType="location" />
+          <p className="mt-1 font-meta text-xs text-muted">
+            Veröffentlicht jeden Stub/Entwurf, der schon vollständig genug ist - z. B. weil er nachträglich per
+            Bearbeiten ergänzt wurde, ohne dass sich der Status geändert hat.
+          </p>
+        </div>
+      )}
 
       <p className="mt-4 font-meta text-xs text-muted">{page.totalElements} Orte</p>
 

@@ -165,6 +165,29 @@ public class BandService {
         return s != null && !s.isBlank();
     }
 
+    /** Admin bulk action ("Alle auf Vollständigkeit setzen" on the Bands overview) - sweeps
+     * every STUB/DRAFT band and publishes any that already clear the same isComplete bar
+     * applyEnrichment/createFromAutomatedProposal use. The one gap that check doesn't cover
+     * on its own: update() never re-checks completeness, so a band a person filled in
+     * completely by hand through a normal edit otherwise just sits at its original status
+     * forever, with no path to PUBLISHED short of an admin clicking updateStatus one by one. */
+    @Transactional
+    public PublishCompleteResult publishAllComplete() {
+        List<Band> candidates = bandRepository.findByStatusIn(List.of(EntityStatus.STUB, EntityStatus.DRAFT));
+        int published = 0;
+        for (Band band : candidates) {
+            if (isComplete(band)) {
+                band.setStatus(EntityStatus.PUBLISHED);
+                bandRepository.save(band);
+                published++;
+            }
+        }
+        return new PublishCompleteResult(candidates.size(), published);
+    }
+
+    public record PublishCompleteResult(int checked, int published) {
+    }
+
     @Transactional
     public Band updateStatus(Long id, EntityStatus status, Long userId, boolean platformAdmin) {
         permissionService.require(userId, platformAdmin, EntityType.BAND, id, PermissionLevel.MANAGE);
