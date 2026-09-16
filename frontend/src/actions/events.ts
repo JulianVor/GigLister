@@ -114,3 +114,25 @@ export async function toggleSaveEventAction(eventId: number, save: boolean): Pro
     throw err;
   }
 }
+
+/** Saving an act also saves its whole event server-side (see UserService.saveAct) - the
+ * homepage's saved-concerts list picks that up on its own next render, same as a plain
+ * whole-event save, so this only needs to revalidate "/" like toggleSaveEventAction does. */
+export async function toggleSaveActAction(eventId: number, bandId: number, save: boolean): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) redirect("/login");
+
+  try {
+    if (save) {
+      await api.saveAct(eventId, bandId, token);
+    } else {
+      await api.unsaveAct(eventId, bandId, token);
+    }
+    revalidatePath("/");
+    revalidatePath(`/konzerte/${eventId}`);
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}

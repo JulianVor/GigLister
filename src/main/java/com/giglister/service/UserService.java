@@ -3,6 +3,7 @@ package com.giglister.service;
 import com.giglister.domain.Band;
 import com.giglister.domain.EntityPermission;
 import com.giglister.domain.Event;
+import com.giglister.domain.SavedAct;
 import com.giglister.domain.SavedEvent;
 import com.giglister.domain.User;
 import com.giglister.domain.enums.EntityType;
@@ -11,11 +12,13 @@ import com.giglister.dto.MeResponse;
 import com.giglister.dto.ProfileUpdateRequest;
 import com.giglister.dto.band.BandResponse;
 import com.giglister.dto.common.EventSummary;
+import com.giglister.exception.BadRequestException;
 import com.giglister.exception.ConflictException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandFollowRepository;
 import com.giglister.repository.EntityPermissionRepository;
 import com.giglister.repository.EventRepository;
+import com.giglister.repository.SavedActRepository;
 import com.giglister.repository.SavedEventRepository;
 import com.giglister.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +38,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final SavedEventRepository savedEventRepository;
+    private final SavedActRepository savedActRepository;
     private final BandFollowRepository bandFollowRepository;
     private final EntityPermissionRepository entityPermissionRepository;
     private final EventRepository eventRepository;
@@ -58,6 +62,35 @@ public class UserService {
     @Transactional
     public void unsaveEvent(Long userId, Long eventId) {
         savedEventRepository.deleteByUserIdAndEventId(userId, eventId);
+    }
+
+    /** Merken for a single band within a festival concert - only meaningful when the band
+     * actually has its own start time in that concert's line-up (otherwise there's nothing
+     * to single out from the rest of the bill). Also saves the whole Event, so a concert
+     * you've picked even one act out of still shows up everywhere a saved event does. */
+    @Transactional
+    public void saveAct(Long userId, Long eventId, Long bandId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event " + eventId + " not found"));
+        if (event.getEventSeriesId() == null) {
+            throw new BadRequestException("Only concerts that are part of a festival have individual acts to merken");
+        }
+        boolean bandHasOwnStartTime = event.getBandLineup().stream()
+                .anyMatch(entry -> entry.getBandId().equals(bandId) && entry.getStartTime() != null);
+        if (!bandHasOwnStartTime) {
+            throw new BadRequestException("This band has no own start time in this concert");
+        }
+        if (!savedActRepository.existsByUserIdAndEventIdAndBandId(userId, eventId, bandId)) {
+            savedActRepository.save(SavedAct.builder().userId(userId).eventId(eventId).bandId(bandId).build());
+        }
+        saveEvent(userId, eventId);
+    }
+
+    /** Only removes this one act - the whole concert (and any other act saved within it)
+     * stays saved, since saving is one-directional (act -> whole event, never the reverse). */
+    @Transactional
+    public void unsaveAct(Long userId, Long eventId, Long bandId) {
+        savedActRepository.deleteByUserIdAndEventIdAndBandId(userId, eventId, bandId);
     }
 
     @Transactional
@@ -107,6 +140,10 @@ public class UserService {
                 .map(summaryMapper::eventSummary)
                 .toList();
 
+        List<MeResponse.SavedAct> savedActs = savedActRepository.findByUserId(user.getId()).stream()
+                .map(a -> new MeResponse.SavedAct(a.getEventId(), a.getBandId()))
+                .toList();
+
         List<MeResponse.ManagedFollowedBand> followedBands = bandFollowRepository.findByUserId(user.getId()).stream()
                 .map(f -> {
                     Band band = bandService.getOrThrow(f.getBandId());
@@ -129,7 +166,7 @@ public class UserService {
         return new MeResponse(user.getId(), user.getEmail(), user.getUsername(), user.getHomeCity(),
                 user.getHomeLatitude(), user.getHomeLongitude(),
                 user.getRadiusKm(), user.getPreferredGenres(), user.isPlatformAdmin(), user.isMustChangePassword(),
-                saved, followedBands, managed);
+                saved, savedActs, followedBands, managed);
     }
 
     private List<Long> myManagedBandIds(Long userId) {

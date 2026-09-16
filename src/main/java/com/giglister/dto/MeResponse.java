@@ -21,9 +21,17 @@ public record MeResponse(
          * this is set (see RequirePasswordChange). */
         boolean mustChangePassword,
         List<EventSummary> savedEvents,
+        /** Individual festival acts (band-within-event) this user has gemerkt - see
+         * UserService.saveAct. Every one of these implies its eventId is also in
+         * savedEvents; the reverse isn't true (a plain whole-event save has no entries
+         * here). */
+        List<SavedAct> savedActs,
         List<ManagedFollowedBand> followedBands,
         List<ManagedEntity> managedEntities
 ) {
+    public record SavedAct(Long eventId, Long bandId) {
+    }
+
     public record ManagedFollowedBand(Long id, String name, String logoUrl, String nextEventDate) {
     }
 

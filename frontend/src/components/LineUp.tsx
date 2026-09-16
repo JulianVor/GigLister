@@ -4,6 +4,7 @@ import { canManageEntity } from "@/lib/permissions";
 import { formatTime } from "@/lib/format";
 import { EntityPlaceholder } from "./EntityPlaceholder";
 import { StatusBadge } from "./StatusBadge";
+import { SaveActButton } from "./SaveActButton";
 
 /** Bands with their own start time come first, chronologically - the same "timed ones
  * sorted, then the rest" split SeriesTimetable's explodeEvent already uses for a Festival's
@@ -15,12 +16,34 @@ function sortByStartTime(bands: BandSummary[]): BandSummary[] {
   return [...timed, ...untimed];
 }
 
-export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; loggedIn: boolean; session: MeResponse | null }) {
+export function LineUp({
+  bands,
+  loggedIn,
+  session,
+  eventId,
+  partOfFestival = false,
+}: {
+  bands: BandSummary[];
+  loggedIn: boolean;
+  session: MeResponse | null;
+  /** Needed to save/unsave an individual act - omit on contexts with no per-band saving
+   * (a band's own profile page reuses LineUp-shaped markup nowhere, so this is always
+   * given in practice, but stays optional rather than forcing every caller to pass a
+   * meaningless id). */
+  eventId?: number;
+  /** Only a festival concert has individual acts worth picking out from the rest of the
+   * bill - see UserService.saveAct. */
+  partOfFestival?: boolean;
+}) {
+  const savedActBandIds = new Set(
+    (eventId != null ? session?.savedActs.filter((a) => a.eventId === eventId) : [])?.map((a) => a.bandId) ?? []
+  );
+
   return (
     <div className="divide-y divide-line border-y border-line">
       {sortByStartTime(bands).map((band) => {
-        const content = (
-          <div className="flex items-center gap-4 py-3">
+        const rowContent = (
+          <>
             {band.logoUrl ? (
               // A logo isn't meant to be cropped - object-cover in a bordered box was
               // cutting into the artwork and boxing it in a border that fights with the
@@ -30,7 +53,7 @@ export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; log
             ) : (
               <EntityPlaceholder name={band.name} className="h-12 w-12 flex-none" textClassName="text-xl" />
             )}
-            <div>
+            <div className="min-w-0">
               <div className="flex items-baseline gap-2">
                 <span className="font-display text-base">{band.name}</span>
                 {/* Only shown when this band goes on at a different time than the event's
@@ -47,18 +70,31 @@ export function LineUp({ bands, loggedIn, session }: { bands: BandSummary[]; log
             {/* Unvollständig/Entwurf is only meaningful to an admin or this band's own manager - a
                 random visitor doesn't need to see internal workflow state. */}
             {canManageEntity(session, "BAND", band.id) && <StatusBadge status={band.status} />}
-          </div>
+          </>
         );
 
         // PUBLISHED bands are linkable for everyone; a STUB/DRAFT band has no
         // real public profile yet, but a logged-in user can still reach it -
         // otherwise nobody could ever discover and claim it.
-        return band.linkable || loggedIn ? (
-          <Link key={band.id} href={`/bands/${band.id}`} className="block hover:text-accent">
-            {content}
-          </Link>
-        ) : (
-          <div key={band.id}>{content}</div>
+        const linkable = band.linkable || loggedIn;
+
+        return (
+          <div key={band.id} className="flex items-center gap-4 py-3">
+            {linkable ? (
+              <Link href={`/bands/${band.id}`} className="flex min-w-0 flex-1 items-center gap-4 hover:text-accent">
+                {rowContent}
+              </Link>
+            ) : (
+              <div className="flex min-w-0 flex-1 items-center gap-4">{rowContent}</div>
+            )}
+            {/* A save-act button here would sit INSIDE the Link above if it were part of
+                rowContent - nested interactive elements, and a click would both toggle the
+                save and navigate. Kept as this row's own sibling instead, not nested in
+                either branch above. */}
+            {loggedIn && partOfFestival && eventId != null && band.startTime && (
+              <SaveActButton eventId={eventId} bandId={band.id} initiallySaved={savedActBandIds.has(band.id)} />
+            )}
+          </div>
         );
       })}
     </div>

@@ -30,7 +30,11 @@ export function SeriesTimetable({ events, style = "LIST" }: { events: EventSumma
             {fullDateLabel(date)}
           </h2>
           {dayEvents.length > 1 || dayEvents.some(hasAnyBandTime) ? (
-            style === "GRID" ? (
+            // Grid only earns its keep once something actually overlaps - with nothing
+            // simultaneous to compare across locations, it's just a sparse grid where a
+            // plain chronological list reads better, whatever the festival's own
+            // timetableStyle setting says.
+            style === "GRID" && hasOverlap(dayEvents) ? (
               <GridTimetable events={dayEvents} />
             ) : (
               <Timetable events={dayEvents} />
@@ -46,6 +50,13 @@ export function SeriesTimetable({ events, style = "LIST" }: { events: EventSumma
 
 function hasAnyBandTime(event: EventSummary): boolean {
   return event.bands.some((b) => b.startTime);
+}
+
+/** Whether any two acts across this set of events actually start at the same time - the
+ * one thing GridTimetable is for (comparing simultaneous acts across locations). Same
+ * explode+group as the timetables themselves use, just to answer yes/no. */
+function hasOverlap(events: EventSummary[]): boolean {
+  return groupByTime(events.flatMap(explodeEvent)).some((slot) => slot.rows.length > 1);
 }
 
 function groupByDay(events: EventSummary[]): { date: string; events: EventSummary[] }[] {
@@ -65,6 +76,9 @@ interface SlotRow {
   key: string;
   time: string | null;
   label: string;
+  /** Only set for a row that's a single band (a timed one) - a multi-band row (the event's
+   * own whole-line-up row, or the grouped "remaining" one) has no one genre to show. */
+  genre: string | null;
   event: EventSummary;
 }
 
@@ -78,12 +92,13 @@ interface SlotRow {
 function explodeEvent(event: EventSummary): SlotRow[] {
   const timedBands = event.bands.filter((b) => b.startTime);
   if (timedBands.length === 0) {
-    return [{ key: `e${event.id}`, time: event.startTime, label: eventLineupLabel(event), event }];
+    return [{ key: `e${event.id}`, time: event.startTime, label: eventLineupLabel(event), genre: null, event }];
   }
   const rows: SlotRow[] = timedBands.map((b) => ({
     key: `e${event.id}-b${b.id}`,
     time: b.startTime,
     label: b.name,
+    genre: b.genres[0] ?? null,
     event,
   }));
   const remaining = event.bands.filter((b) => !b.startTime);
@@ -92,6 +107,7 @@ function explodeEvent(event: EventSummary): SlotRow[] {
       key: `e${event.id}-rest`,
       time: event.startTime,
       label: remaining.map((b) => b.name).join(" + "),
+      genre: null,
       event,
     });
   }
@@ -163,11 +179,14 @@ function Timetable({ events }: { events: EventSummary[] }) {
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-display text-lg leading-tight">{row.label}</span>
-                    <span
-                      className="mt-0.5 inline-block px-1.5 py-0.5 font-meta text-xs font-semibold text-accent-fg"
-                      style={{ backgroundColor: entityColor(row.event.location.name) }}
-                    >
-                      {row.event.location.name}
+                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className="inline-block px-1.5 py-0.5 font-meta text-xs font-semibold text-accent-fg"
+                        style={{ backgroundColor: entityColor(row.event.location.name) }}
+                      >
+                        {row.event.location.name}
+                      </span>
+                      {row.genre && <span className="font-meta text-xs text-muted">{row.genre}</span>}
                     </span>
                   </span>
                 </Link>
@@ -225,6 +244,11 @@ function GridTimetable({ events }: { events: EventSummary[] }) {
                       style={{ backgroundColor: entityColor(loc.name) }}
                     >
                       <span className="block truncate font-display text-[13px] leading-tight">{row.label}</span>
+                      {row.genre && (
+                        <span className="block truncate font-meta text-[10px] uppercase tracking-wide text-white/80">
+                          {row.genre}
+                        </span>
+                      )}
                     </Link>
                   ))}
                 </div>

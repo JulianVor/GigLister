@@ -172,6 +172,9 @@ export interface MeResponse {
   platformAdmin: boolean;
   mustChangePassword: boolean;
   savedEvents: EventSummary[];
+  /** Individual festival acts (band-within-event) gemerkt - every one implies its eventId
+   * is also in savedEvents (see UserService.saveAct), the reverse isn't true. */
+  savedActs: { eventId: number; bandId: number }[];
   followedBands: { id: number; name: string; logoUrl: string | null; nextEventDate: string | null }[];
   managedEntities: {
     entityType: EntityType;

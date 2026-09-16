@@ -152,4 +152,16 @@ public class EventController {
     public void unsave(@PathVariable Long id) {
         userService.unsaveEvent(CurrentUser.requireId(), id);
     }
+
+    @PostMapping("/{id}/bands/{bandId}/save")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void saveAct(@PathVariable Long id, @PathVariable Long bandId) {
+        userService.saveAct(CurrentUser.requireId(), id, bandId);
+    }
+
+    @DeleteMapping("/{id}/bands/{bandId}/save")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unsaveAct(@PathVariable Long id, @PathVariable Long bandId) {
+        userService.unsaveAct(CurrentUser.requireId(), id, bandId);
+    }
 }

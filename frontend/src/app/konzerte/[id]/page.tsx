@@ -112,7 +112,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
       <h2 className="mt-10 font-meta text-sm uppercase tracking-wide text-muted">Line-up</h2>
       <div className="mt-2">
-        <LineUp bands={event.bands} loggedIn={!!session} session={session} />
+        <LineUp
+          bands={event.bands}
+          loggedIn={!!session}
+          session={session}
+          eventId={event.id}
+          partOfFestival={!!event.eventSeries}
+        />
       </div>
 
       <h2 className="mt-10 font-meta text-sm uppercase tracking-wide text-muted">Ort</h2>

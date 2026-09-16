@@ -232,6 +232,14 @@ export function unsaveEvent(id: number, token: string) {
   return apiFetch<void>(`/api/events/${id}/save`, { method: "DELETE", token });
 }
 
+export function saveAct(eventId: number, bandId: number, token: string) {
+  return apiFetch<void>(`/api/events/${eventId}/bands/${bandId}/save`, { method: "POST", token });
+}
+
+export function unsaveAct(eventId: number, bandId: number, token: string) {
+  return apiFetch<void>(`/api/events/${eventId}/bands/${bandId}/save`, { method: "DELETE", token });
+}
+
 // --- Bands ---
 
 export function getBands(params: { city?: string; page?: number; size?: number }) {

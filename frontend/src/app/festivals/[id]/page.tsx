@@ -27,7 +27,25 @@ export default async function EventSeriesDetailPage({ params }: { params: Promis
   // every concert on the page out from under them.
   const filter = session && cookieStore.get(FESTIVAL_EVENTS_FILTER_COOKIE)?.value === "SAVED" ? "SAVED" : "ALL";
   const savedIds = new Set(session?.savedEvents.map((e) => e.id) ?? []);
-  const visibleEvents = filter === "SAVED" ? series.events.filter((e) => savedIds.has(e.id)) : series.events;
+  // Per event, the specific acts merkt within it (if any) - an event reached that path
+  // (see UserService.saveAct) rather than a plain whole-event save.
+  const savedActBandIdsByEvent = new Map<number, Set<number>>();
+  for (const act of session?.savedActs ?? []) {
+    if (!savedActBandIdsByEvent.has(act.eventId)) savedActBandIdsByEvent.set(act.eventId, new Set());
+    savedActBandIdsByEvent.get(act.eventId)!.add(act.bandId);
+  }
+  const visibleEvents =
+    filter === "SAVED"
+      ? series.events
+          .filter((e) => savedIds.has(e.id))
+          .map((e) => {
+            const savedActBandIds = savedActBandIdsByEvent.get(e.id);
+            // No individual acts saved for this event - it was merkt as a whole, so its
+            // full line-up still shows, same as the ALL view would for it.
+            if (!savedActBandIds || savedActBandIds.size === 0) return e;
+            return { ...e, bands: e.bands.filter((b) => savedActBandIds.has(b.id)) };
+          })
+      : series.events;
 
   return (
     <div className="max-w-2xl">
