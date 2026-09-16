@@ -159,7 +159,10 @@ export function LocationPicker({
             void applyCity(cityInput, radiusInput);
           }}
           style={{ top: panelStyle.top, left: panelStyle.left, width: panelStyle.width }}
-          className="fixed z-20 space-y-3 border border-line bg-surface p-4 shadow-lg"
+          // Leaflet's own panes/controls (see ConcertMap) go up to z-index 1000 without
+          // creating their own stacking context, so anything meant to float above a map
+          // anywhere on the page - not just Tailwind's z-50 default max - has to clear that.
+          className="fixed z-[1010] space-y-3 border border-line bg-surface p-4 shadow-lg"
         >
           <div>
             <label className="font-meta text-xs uppercase tracking-wide text-muted">Konzerte rund um</label>

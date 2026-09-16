@@ -35,7 +35,10 @@ export function GenrePromptDialog() {
     <div
       role="presentation"
       onClick={() => setOpen(false)}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 p-4"
+      // Above LocationPicker/UserMenu's own z-[1010] floor (itself set to clear Leaflet's
+      // panes/controls, which reach z-index 1000 with no stacking context of their own) -
+      // this sits over the whole header, not just the map, so it needs to win that too.
+      className="fixed inset-0 z-[1100] flex items-center justify-center bg-fg/40 p-4"
     >
       <div
         role="dialog"

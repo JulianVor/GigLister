@@ -21,7 +21,9 @@ export function UserMenu({ username, isAdmin }: { username: string; isAdmin: boo
       </button>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-2 min-w-[11rem] border border-line bg-surface py-1 shadow-lg">
+        // Same z-index floor as LocationPicker's own panel - Leaflet's panes/controls
+        // (see ConcertMap) reach z-index 1000 without a stacking context of their own.
+        <div className="absolute right-0 z-[1010] mt-2 min-w-[11rem] border border-line bg-surface py-1 shadow-lg">
           <Link
             href="/verwaltung"
             onClick={() => setOpen(false)}
