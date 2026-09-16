@@ -481,6 +481,12 @@ export function mergeEntities(data: { entityType: EntityType; sourceEntityId: nu
   return apiFetch<EntityMerge>("/api/admin/merge", { method: "POST", body: data, token });
 }
 
+/** "Kein Duplikat" - the pair stays as two separate entities, just stops being suggested
+ * again (unlike mergeEntities, which folds one into the other). See AdminService.rejectDuplicate. */
+export function rejectDuplicate(data: { entityType: EntityType; firstId: number; secondId: number }, token: string) {
+  return apiFetch<void>("/api/admin/duplicates/reject", { method: "POST", body: data, token });
+}
+
 export function getAdminUsers(query: string | undefined, token: string) {
   return apiFetch<AdminUserResponse[]>(`/api/admin/users${toQuery({ q: query })}`, { token });
 }

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { mergeEntitiesAction } from "@/actions/admin";
+import { mergeEntitiesAction, rejectDuplicateAction } from "@/actions/admin";
 import type { DuplicatePair } from "@/lib/types";
 
 export function DuplicatesList({ pairs }: { pairs: DuplicatePair[] }) {
@@ -14,6 +14,14 @@ export function DuplicatesList({ pairs }: { pairs: DuplicatePair[] }) {
       keep === "first" ? [pair.secondId, pair.firstId] : [pair.firstId, pair.secondId];
     startTransition(async () => {
       await mergeEntitiesAction(pair.entityType, sourceId, targetId);
+      router.refresh();
+    });
+  }
+
+  /** Confirms both stay as separate entities - the pair just stops being suggested again. */
+  function reject(pair: DuplicatePair) {
+    startTransition(async () => {
+      await rejectDuplicateAction(pair.entityType, pair.firstId, pair.secondId);
       router.refresh();
     });
   }
@@ -54,6 +62,14 @@ export function DuplicatesList({ pairs }: { pairs: DuplicatePair[] }) {
               className="border border-line px-3 py-1.5 font-meta text-xs hover:border-fg"
             >
               #{pair.secondId} behalten, #{pair.firstId} zusammenführen
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => reject(pair)}
+              className="border border-line px-3 py-1.5 font-meta text-xs text-muted hover:border-fg hover:text-fg"
+            >
+              Kein Duplikat
             </button>
           </div>
         </li>

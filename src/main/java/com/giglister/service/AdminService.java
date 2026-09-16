@@ -19,11 +19,13 @@ import com.giglister.dto.admin.AdminEventSeriesListItem;
 import com.giglister.dto.admin.AdminLocationListItem;
 import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.DuplicatePair;
+import com.giglister.domain.DismissedDuplicate;
 import com.giglister.exception.BadRequestException;
 import com.giglister.exception.ConflictException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandRepository;
 import com.giglister.repository.ClaimRepository;
+import com.giglister.repository.DismissedDuplicateRepository;
 import com.giglister.repository.EventRepository;
 import com.giglister.repository.EventSeriesRepository;
 import com.giglister.repository.LocationRepository;
@@ -40,7 +42,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +57,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final SubmissionRepository submissionRepository;
     private final EventSeriesRepository eventSeriesRepository;
+    private final DismissedDuplicateRepository dismissedDuplicateRepository;
     private final PasswordEncoder passwordEncoder;
 
     private static final List<EntityStatus> NEEDS_ATTENTION = List.of(EntityStatus.STUB, EntityStatus.DRAFT);
@@ -74,16 +79,20 @@ public class AdminService {
                 possibleDuplicates, pendingSubmissions);
     }
 
-    /** Cheap O(n^2) pairwise scan over non-archived bands/locations - fine for V1's data volume. */
+    /** Cheap O(n^2) pairwise scan over non-archived bands/locations - fine for V1's data volume.
+     * Skips any pair an admin already dismissed as "kein Duplikat" (see rejectDuplicate) -
+     * without that, the same false-positive pair would keep resurfacing on every call. */
     public List<DuplicatePair> possibleDuplicates() {
         List<DuplicatePair> result = new ArrayList<>();
+        Set<String> dismissedBands = dismissedKeys(EntityType.BAND);
         List<Band> bands = bandRepository.findByStatusIn(
                 List.of(EntityStatus.STUB, EntityStatus.DRAFT, EntityStatus.PUBLISHED));
         for (int i = 0; i < bands.size(); i++) {
             for (int j = i + 1; j < bands.size(); j++) {
                 double sim = TextNormalizer.similarity(bands.get(i).getName(), bands.get(j).getName());
                 boolean sameCity = sameCity(bands.get(i).getCity(), bands.get(j).getCity());
-                if (sim >= 0.8 || (sim >= 0.6 && sameCity)) {
+                if ((sim >= 0.8 || (sim >= 0.6 && sameCity))
+                        && !dismissedBands.contains(dismissedKey(bands.get(i).getId(), bands.get(j).getId()))) {
                     result.add(new DuplicatePair(EntityType.BAND,
                             bands.get(i).getId(), bands.get(i).getName(),
                             bands.get(j).getId(), bands.get(j).getName(),
@@ -91,13 +100,15 @@ public class AdminService {
                 }
             }
         }
+        Set<String> dismissedLocations = dismissedKeys(EntityType.LOCATION);
         List<Location> locations = locationRepository.findByStatusIn(
                 List.of(EntityStatus.STUB, EntityStatus.DRAFT, EntityStatus.PUBLISHED));
         for (int i = 0; i < locations.size(); i++) {
             for (int j = i + 1; j < locations.size(); j++) {
                 double sim = TextNormalizer.similarity(locations.get(i).getName(), locations.get(j).getName());
                 boolean sameCity = sameCity(locations.get(i).getCity(), locations.get(j).getCity());
-                if (sim >= 0.8 || (sim >= 0.6 && sameCity)) {
+                if ((sim >= 0.8 || (sim >= 0.6 && sameCity))
+                        && !dismissedLocations.contains(dismissedKey(locations.get(i).getId(), locations.get(j).getId()))) {
                     result.add(new DuplicatePair(EntityType.LOCATION,
                             locations.get(i).getId(), locations.get(i).getName(),
                             locations.get(j).getId(), locations.get(j).getName(),
@@ -106,6 +117,32 @@ public class AdminService {
             }
         }
         return result;
+    }
+
+    /** "Kein Duplikat" - the admin has looked at this exact pair and confirmed it's two
+     * distinct entities, so possibleDuplicates() should stop surfacing it. Idempotent:
+     * dismissing the same pair again is a no-op rather than piling up duplicate rows. */
+    @Transactional
+    public void rejectDuplicate(EntityType entityType, Long firstId, Long secondId, Long dismissedBy) {
+        long lower = Math.min(firstId, secondId);
+        long higher = Math.max(firstId, secondId);
+        if (dismissedDuplicateRepository.existsByEntityTypeAndLowerEntityIdAndHigherEntityId(entityType, lower, higher)) {
+            return;
+        }
+        dismissedDuplicateRepository.save(DismissedDuplicate.builder()
+                .entityType(entityType).lowerEntityId(lower).higherEntityId(higher).dismissedBy(dismissedBy).build());
+    }
+
+    private Set<String> dismissedKeys(EntityType entityType) {
+        Set<String> keys = new HashSet<>();
+        for (DismissedDuplicate d : dismissedDuplicateRepository.findByEntityType(entityType)) {
+            keys.add(dismissedKey(d.getLowerEntityId(), d.getHigherEntityId()));
+        }
+        return keys;
+    }
+
+    private String dismissedKey(Long idA, Long idB) {
+        return Math.min(idA, idB) + ":" + Math.max(idA, idB);
     }
 
     private boolean sameCity(String a, String b) {

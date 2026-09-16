@@ -60,6 +60,7 @@ public class EnumCheckConstraintSync implements ApplicationRunner {
                 new Spec("claim", "entity_type", values(EntityType.class)),
                 new Spec("claim", "status", values(ClaimStatus.class)),
                 new Spec("entity_merge", "entity_type", values(EntityType.class)),
+                new Spec("dismissed_duplicate", "entity_type", values(EntityType.class)),
                 new Spec("band", "status", values(EntityStatus.class)),
                 new Spec("location", "status", values(EntityStatus.class)),
                 new Spec("event", "status", values(EventStatus.class)),

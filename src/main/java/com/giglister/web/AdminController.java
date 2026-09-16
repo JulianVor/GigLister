@@ -16,6 +16,7 @@ import com.giglister.dto.admin.AdminUserResponse;
 import com.giglister.dto.admin.ClaimResponse;
 import com.giglister.dto.admin.DuplicatePair;
 import com.giglister.dto.admin.MergeRequest;
+import com.giglister.dto.admin.RejectDuplicateRequest;
 import com.giglister.dto.submission.RejectSubmissionRequest;
 import com.giglister.dto.submission.SubmissionResponse;
 import com.giglister.dto.submission.SubmissionUpdateRequest;
@@ -60,6 +61,14 @@ public class AdminController {
     @GetMapping("/duplicates")
     public List<DuplicatePair> duplicates() {
         return adminService.possibleDuplicates();
+    }
+
+    /** "Kein Duplikat" - see AdminService.rejectDuplicate. Distinct from /merge: this pair
+     * stays as two separate entities, just stops being suggested again. */
+    @PostMapping("/duplicates/reject")
+    public ResponseEntity<Void> rejectDuplicate(@Valid @RequestBody RejectDuplicateRequest request) {
+        adminService.rejectDuplicate(request.entityType(), request.firstId(), request.secondId(), CurrentUser.requireId());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/claims")

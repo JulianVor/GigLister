@@ -55,6 +55,25 @@ export async function mergeEntitiesAction(
   }
 }
 
+export async function rejectDuplicateAction(
+  entityType: EntityType,
+  firstId: number,
+  secondId: number
+): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.rejectDuplicate({ entityType, firstId, secondId }, token);
+    revalidatePath("/admin/duplicates");
+    revalidatePath("/admin");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
 export async function createUserAction(input: {
   email: string;
   username: string;
