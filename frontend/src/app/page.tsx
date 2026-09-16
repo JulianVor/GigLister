@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NextConcertsList } from "@/components/NextConcertsList";
 import { FollowedBandsRow } from "@/components/FollowedBandsRow";
+import type { EventSummary } from "@/lib/types";
 
 /**
  * The feed every visitor lands on - merges what used to be split across three places:
@@ -43,7 +44,7 @@ export default async function HomePage() {
   // remind you of, so it's dropped here rather than cluttering the one list meant to
   // answer "what's coming up for me". savedEvents is already date-ascending
   // (UserService.toMeResponse), so filtering keeps that order.
-  const upcomingSaved = session?.savedEvents.filter((e) => e.date >= today) ?? [];
+  const upcomingSaved = dedupeFestivals(session?.savedEvents.filter((e) => e.date >= today) ?? []);
 
   return (
     <div>
@@ -192,6 +193,23 @@ export default async function HomePage() {
       </div>
     </div>
   );
+}
+
+/** One entry per festival, not one per saved concert within it - NextConcertsList already
+ * shows a festival-linked row as just the festival's name and date (see its own comment),
+ * so three saved concerts from the same festival would otherwise repeat that same name
+ * three times. Events are already date-ascending, so the first (i.e. soonest) one for a
+ * given festival is the one kept; any later ones from it are dropped, not moved elsewhere -
+ * its own Gemerkte Konzerte page is where the rest of them actually show. A non-festival
+ * event is never deduped against anything. */
+function dedupeFestivals(events: EventSummary[]): EventSummary[] {
+  const seenFestivalIds = new Set<number>();
+  return events.filter((e) => {
+    if (e.eventSeries == null) return true;
+    if (seenFestivalIds.has(e.eventSeries.id)) return false;
+    seenFestivalIds.add(e.eventSeries.id);
+    return true;
+  });
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
