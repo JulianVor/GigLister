@@ -117,6 +117,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           loggedIn={!!session}
           session={session}
           eventId={event.id}
+          eventStartTime={event.startTime}
           partOfFestival={!!event.eventSeries}
         />
       </div>

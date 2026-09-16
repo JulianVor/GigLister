@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Fragment, useState } from "react";
 import type { EventSummary, LocationSummary, TimetableStyle } from "@/lib/types";
-import { fullDateLabel, formatTime, isSameDate } from "@/lib/format";
+import { fullDateLabel, formatTime, isSameDate, sortableMinutes } from "@/lib/format";
 import { eventLineupLabel } from "@/lib/event-display";
 import { entityColor } from "@/lib/entityColor";
 import { EventCard } from "./EventCard";
@@ -261,8 +261,15 @@ function GridTimetable({ events }: { events: EventSummary[] }) {
   );
 }
 
+/** Sorted against each row's own event.startTime (see sortableMinutes) - a headliner going
+ * on at "00:30" after that event's own 21:00 doors time belongs at the end of the running
+ * order, not the start just because "00:30" reads earlier as a bare time. */
+function byRowTime(a: SlotRow, b: SlotRow): number {
+  return sortableMinutes(a.time, a.event.startTime) - sortableMinutes(b.time, b.event.startTime);
+}
+
 function groupByTime(rows: SlotRow[]): { time: string | null; rows: SlotRow[] }[] {
-  const sorted = [...rows].sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
+  const sorted = [...rows].sort(byRowTime);
   const groups: { time: string | null; rows: SlotRow[] }[] = [];
   for (const row of sorted) {
     const last = groups[groups.length - 1];
@@ -287,7 +294,7 @@ function uniqueLocations(rows: SlotRow[]): LocationSummary[] {
 
 /** Distinct start times across a set of rows, time-ascending - the grid's row axis. */
 function uniqueTimes(rows: SlotRow[]): (string | null)[] {
-  const sorted = [...rows].sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
+  const sorted = [...rows].sort(byRowTime);
   const times: (string | null)[] = [];
   for (const row of sorted) {
     if (!times.includes(row.time)) times.push(row.time);

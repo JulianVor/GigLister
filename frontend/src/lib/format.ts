@@ -44,6 +44,21 @@ export function formatTime(time: string | null): string | null {
   return time.slice(0, 5);
 }
 
+/** A sort key for a HH:mm(:ss) time that puts one after midnight where it actually
+ * belongs - late, not first. A band's own start time carries no date, only a time of day,
+ * so a plain string/lexicographic sort always puts "00:30" before "21:00" even when that
+ * 00:30 act is the last one on, well after midnight. Comparing it against a same-night
+ * reference (typically the event's own overall startTime) fixes that: a time earlier than
+ * the reference is assumed to be on the following calendar day and sorts after it, instead
+ * of before. `null` (no time at all) sorts first, same as the plain string compare this
+ * replaces. */
+export function sortableMinutes(time: string | null, reference: string | null): number {
+  if (time == null) return -1;
+  const [hours, minutes] = time.split(":").map(Number);
+  const total = hours * 60 + minutes;
+  return reference != null && time < reference ? total + 24 * 60 : total;
+}
+
 export function relativeDayLabel(iso: string): string {
   const date = parseISO(iso);
   if (isToday(date)) return "Heute";

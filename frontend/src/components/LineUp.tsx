@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { BandSummary, MeResponse } from "@/lib/types";
 import { canManageEntity } from "@/lib/permissions";
-import { formatTime } from "@/lib/format";
+import { formatTime, sortableMinutes } from "@/lib/format";
 import { EntityPlaceholder } from "./EntityPlaceholder";
 import { StatusBadge } from "./StatusBadge";
 import { SaveActButton } from "./SaveActButton";
@@ -9,9 +9,13 @@ import { SaveActButton } from "./SaveActButton";
 /** Bands with their own start time come first, chronologically - the same "timed ones
  * sorted, then the rest" split SeriesTimetable's explodeEvent already uses for a Festival's
  * running order. Bands without one keep their original (line-up/position) order and stay
- * grouped at the end, since there's nothing to sort them by. */
-function sortByStartTime(bands: BandSummary[]): BandSummary[] {
-  const timed = bands.filter((b) => b.startTime).sort((a, b) => a.startTime!.localeCompare(b.startTime!));
+ * grouped at the end, since there's nothing to sort them by. Sorted against the event's own
+ * overall startTime (see sortableMinutes) so a band going on after midnight - "21:00, 22:00,
+ * then 00:00" - lands last, not first just because "00:00" reads earlier as a bare time. */
+function sortByStartTime(bands: BandSummary[], eventStartTime: string | null): BandSummary[] {
+  const timed = bands
+    .filter((b) => b.startTime)
+    .sort((a, b) => sortableMinutes(a.startTime, eventStartTime) - sortableMinutes(b.startTime, eventStartTime));
   const untimed = bands.filter((b) => !b.startTime);
   return [...timed, ...untimed];
 }
@@ -21,6 +25,7 @@ export function LineUp({
   loggedIn,
   session,
   eventId,
+  eventStartTime = null,
   partOfFestival = false,
 }: {
   bands: BandSummary[];
@@ -31,6 +36,9 @@ export function LineUp({
    * given in practice, but stays optional rather than forcing every caller to pass a
    * meaningless id). */
   eventId?: number;
+  /** The event's own overall start time - the reference sortByStartTime needs to place an
+   * after-midnight band correctly. */
+  eventStartTime?: string | null;
   /** Only a festival concert has individual acts worth picking out from the rest of the
    * bill - see UserService.saveAct. */
   partOfFestival?: boolean;
@@ -41,7 +49,7 @@ export function LineUp({
 
   return (
     <div className="divide-y divide-line border-y border-line">
-      {sortByStartTime(bands).map((band) => {
+      {sortByStartTime(bands, eventStartTime).map((band) => {
         const rowContent = (
           <>
             {band.logoUrl ? (
