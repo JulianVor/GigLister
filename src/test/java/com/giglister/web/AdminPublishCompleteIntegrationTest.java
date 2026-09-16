@@ -44,17 +44,18 @@ class AdminPublishCompleteIntegrationTest {
         String userToken = register("promoter@example.com", "password123", "Promoter");
 
         // Created directly, so it starts as DRAFT regardless of completeness (create()
-        // never checks it on its own) - but already clears isComplete's bar.
+        // never checks it on its own) - but already clears isComplete's bar (name, country,
+        // shortDescription, genres - city is deliberately not part of it).
         mockMvc.perform(post("/api/bands")
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "name", "Complete Draftband", "city", "Bremen",
+                                "name", "Complete Draftband", "country", "Deutschland",
                                 "shortDescription", "A fully filled-in band",
                                 "genres", List.of("Rock")))))
                 .andExpect(status().isCreated());
 
-        // Missing shortDescription/genres - must stay DRAFT after the sweep.
+        // Missing country/shortDescription/genres - must stay DRAFT after the sweep.
         mockMvc.perform(post("/api/bands")
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)

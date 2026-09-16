@@ -155,10 +155,13 @@ public class BandService {
         return bandRepository.save(band);
     }
 
-    /** What "vollständig" means for a band enrichment to auto-publish it - deliberately not
-     * the images, which a GPT skill can rarely source reliably. */
+    /** What "vollständig" means for a band enrichment to auto-publish it - name is always
+     * non-blank already (required at creation), checked anyway for how directly this reads
+     * against the actual rule. Deliberately not city/website/the images, which a GPT skill
+     * can rarely source reliably. */
     private boolean isComplete(Band band) {
-        return notBlank(band.getCity()) && notBlank(band.getShortDescription()) && !band.getGenres().isEmpty();
+        return notBlank(band.getName()) && notBlank(band.getCountry()) && notBlank(band.getShortDescription())
+                && !band.getGenres().isEmpty();
     }
 
     private boolean notBlank(String s) {
