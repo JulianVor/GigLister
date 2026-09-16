@@ -11,10 +11,16 @@ import { FestivalEventsFilter } from "@/components/FestivalEventsFilter";
 import { EmptyState } from "@/components/EmptyState";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 
-export default async function EventSeriesDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EventSeriesDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ filter?: string }>;
+}) {
   const { id } = await params;
   const seriesId = Number(id);
-  const [session, cookieStore] = await Promise.all([getSession(), cookies()]);
+  const [session, cookieStore, { filter: filterParam }] = await Promise.all([getSession(), cookies(), searchParams]);
 
   const series = await getEventSeries(seriesId).catch((err) => {
     if (err instanceof ApiError && err.status === 404) notFound();
@@ -25,8 +31,14 @@ export default async function EventSeriesDetailPage({ params }: { params: Promis
 
   // Only a logged-in visitor has anything saved to filter down to - a guest's leftover
   // cookie from a previous session (or one they poked at directly) never gets to hide
-  // every concert on the page out from under them.
-  const filter = session && cookieStore.get(FESTIVAL_EVENTS_FILTER_COOKIE)?.value === "SAVED" ? "SAVED" : "ALL";
+  // every concert on the page out from under them. `?filter=saved` (the homepage's saved-
+  // concerts list links here with it, see NextConcertsList) always wins over the stored
+  // cookie preference - arriving from "merkt this" should always land on Gemerkte
+  // Konzerte, whatever this visitor last had the toggle set to.
+  const filter =
+    session && (filterParam === "saved" || cookieStore.get(FESTIVAL_EVENTS_FILTER_COOKIE)?.value === "SAVED")
+      ? "SAVED"
+      : "ALL";
   const savedIds = new Set(session?.savedEvents.map((e) => e.id) ?? []);
   // Per event, the specific acts merkt within it (if any) - an event reached that path
   // (see UserService.saveAct) rather than a plain whole-event save.
@@ -72,7 +84,7 @@ export default async function EventSeriesDetailPage({ params }: { params: Promis
 
       {series.description && <p className="mt-6 whitespace-pre-wrap leading-relaxed">{series.description}</p>}
 
-      <div className="mt-10 flex items-baseline justify-between">
+      <div id="konzerte" className="mt-10 flex items-baseline justify-between scroll-mt-4">
         <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Konzerte dieses Festivals</h2>
         {session && series.events.length > 0 && <FestivalEventsFilter activeFilter={filter} />}
       </div>
