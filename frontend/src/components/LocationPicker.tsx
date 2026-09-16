@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CITY_COOKIE, LAT_COOKIE, LON_COOKIE, RADIUS_COOKIE } from "@/lib/location-cookies";
 import { geocodeCity } from "@/lib/geocode";
 
@@ -46,6 +46,29 @@ export function LocationPicker({
     const maxLeft = window.innerWidth - width - VIEWPORT_MARGIN;
     const left = Math.min(Math.max(rect.right - width, VIEWPORT_MARGIN), Math.max(maxLeft, VIEWPORT_MARGIN));
     setPanelStyle({ top: rect.bottom + 8, left, width });
+  }, [open]);
+
+  // The panel is `position: fixed`, computed once against the button's position at the
+  // moment it opens - it doesn't track the page afterwards. Left open, a scroll leaves it
+  // stranded at that same screen spot while the button (and everything else) moves away
+  // underneath it, floating disconnected wherever the page happened to scroll to. Closing
+  // on any scroll, and on a click outside the button/panel (both live under anchorRef, so
+  // one `contains` check covers both), avoids that instead of trying to keep it glued to
+  // the button.
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(e: MouseEvent) {
+      if (anchorRef.current && !anchorRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function handleScroll() {
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("scroll", handleScroll, { capture: true });
+    };
   }, [open]);
 
   function setCookie(name: string, value: string) {
