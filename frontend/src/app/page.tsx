@@ -61,7 +61,12 @@ export default async function HomePage() {
             three blocks just need different `order`/`md:order` per breakpoint, no separate
             markup. */}
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="order-1">
+          {/* min-w-0 on every grid item below: a CSS Grid item defaults to a minimum width
+              of its content's own min-content size, not the column it's actually given -
+              without it, a long untruncated title or FollowedBandsRow's non-wrapping tiles
+              would force the whole grid (and with it the page) wider than the viewport on
+              mobile instead of letting each one's own truncate/overflow-x-auto do its job. */}
+          <div className="order-1 min-w-0">
             <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Deine nächsten Konzerte</h2>
             <div className="mt-2">
               {!session ? (
@@ -85,7 +90,7 @@ export default async function HomePage() {
           </div>
 
           {session && (
-            <div className="order-2 md:order-3 md:col-span-2">
+            <div className="order-2 min-w-0 md:order-3 md:col-span-2">
               <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Gefolgte Bands</h2>
               <div className="mt-2">
                 {session.followedBands.length === 0 ? (
@@ -97,7 +102,7 @@ export default async function HomePage() {
             </div>
           )}
 
-          <div className="order-3 md:order-2">
+          <div className="order-3 min-w-0 md:order-2">
             <div className="flex items-baseline justify-between">
               <h2 className="font-meta text-sm uppercase tracking-wide text-muted">Heute in deiner Nähe</h2>
               <Link href="/orte" className="font-meta text-sm text-accent hover:underline">
