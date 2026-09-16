@@ -172,7 +172,7 @@ export interface MeResponse {
   platformAdmin: boolean;
   mustChangePassword: boolean;
   savedEvents: EventSummary[];
-  followedBands: { id: number; name: string; nextEventDate: string | null }[];
+  followedBands: { id: number; name: string; logoUrl: string | null; nextEventDate: string | null }[];
   managedEntities: {
     entityType: EntityType;
     entityId: number;

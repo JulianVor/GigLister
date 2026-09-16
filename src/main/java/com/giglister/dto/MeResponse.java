@@ -24,7 +24,7 @@ public record MeResponse(
         List<ManagedFollowedBand> followedBands,
         List<ManagedEntity> managedEntities
 ) {
-    public record ManagedFollowedBand(Long id, String name, String nextEventDate) {
+    public record ManagedFollowedBand(Long id, String name, String logoUrl, String nextEventDate) {
     }
 
     public record ManagedEntity(EntityType entityType, Long entityId, String name, PermissionLevel permission) {

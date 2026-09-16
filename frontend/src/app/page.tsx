@@ -10,6 +10,7 @@ import { LocationTeaser } from "@/components/LocationTeaser";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NextConcertsList } from "@/components/NextConcertsList";
+import { FollowedBandsRow } from "@/components/FollowedBandsRow";
 
 /**
  * The feed every visitor lands on - merges what used to be split across three places:
@@ -104,6 +105,16 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {session && (
+        <Section title="Gefolgte Bands">
+          {session.followedBands.length === 0 ? (
+            <EmptyState>Noch keinen Bands gefolgt.</EmptyState>
+          ) : (
+            <FollowedBandsRow bands={session.followedBands} />
+          )}
+        </Section>
+      )}
+
       {data.recommendedForYou.length > 0 && (
         <Section title={session ? "Das könnte dich interessieren" : "Beliebt in deiner Nähe"}>
           {data.recommendedForYou.map((e) => (
@@ -119,25 +130,6 @@ export default async function HomePage() {
           ) : (
             session.savedEvents.map((e) => <EventCard key={e.id} event={e} />)
           )}
-        </Section>
-      )}
-
-      {session && (
-        <Section title="Gefolgte Bands">
-          <div className="divide-y divide-line border-y border-line">
-            {session.followedBands.length === 0 ? (
-              <EmptyState>Noch keinen Bands gefolgt.</EmptyState>
-            ) : (
-              session.followedBands.map((band) => (
-                <Link key={band.id} href={`/bands/${band.id}`} className="flex items-center justify-between gap-4 py-3 hover:text-accent">
-                  <span className="font-display text-lg">{band.name}</span>
-                  <span className="font-meta text-sm text-muted">
-                    {band.nextEventDate ? `Nächstes Konzert ${band.nextEventDate}` : "Kein kommendes Konzert"}
-                  </span>
-                </Link>
-              ))
-            )}
-          </div>
         </Section>
       )}
 

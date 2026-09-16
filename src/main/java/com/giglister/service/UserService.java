@@ -112,7 +112,7 @@ public class UserService {
                     Band band = bandService.getOrThrow(f.getBandId());
                     List<Event> upcoming = eventRepository.findUpcomingForBand(band.getId(), EventStatus.PUBLISHED, LocalDate.now());
                     String next = upcoming.isEmpty() ? null : upcoming.get(0).getDate().toString();
-                    return new MeResponse.ManagedFollowedBand(band.getId(), band.getName(), next);
+                    return new MeResponse.ManagedFollowedBand(band.getId(), band.getName(), band.getLogoUrl(), next);
                 })
                 .toList();
 
