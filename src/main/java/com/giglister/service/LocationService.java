@@ -94,6 +94,26 @@ public class LocationService {
 
     @Transactional
     public Location create(LocationCreateRequest request, Long createdBy) {
+        return create(request, createdBy, EntityStatus.DRAFT);
+    }
+
+    /** Used when approving a GPT-skill submission (see SubmissionService.approveLocation) -
+     * unlike a real person filling out the create form themselves, an automated proposal
+     * has no one vouching that what's there is actually right, so it never starts as a
+     * "someone's deliberately working on this" Entwurf. Complete enough to auto-publish
+     * (same isComplete bar as applyEnrichment), or STUB otherwise - exactly where a
+     * same-quality submission enriching an already-existing stub would land it too. */
+    @Transactional
+    public Location createFromAutomatedProposal(LocationCreateRequest request, Long createdBy) {
+        Location location = create(request, createdBy, EntityStatus.STUB);
+        if (isComplete(location)) {
+            location.setStatus(EntityStatus.PUBLISHED);
+            location = locationRepository.save(location);
+        }
+        return location;
+    }
+
+    private Location create(LocationCreateRequest request, Long createdBy, EntityStatus status) {
         Double latitude = request.latitude();
         Double longitude = request.longitude();
         if (latitude == null || longitude == null) {
@@ -115,7 +135,7 @@ public class LocationService {
                 .titleImageUrl(request.titleImageUrl())
                 .latitude(latitude)
                 .longitude(longitude)
-                .status(EntityStatus.DRAFT)
+                .status(status)
                 .createdBy(createdBy)
                 .build();
         location = locationRepository.save(location);

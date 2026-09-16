@@ -56,6 +56,26 @@ public class BandService {
 
     @Transactional
     public Band create(BandCreateRequest request, Long createdBy) {
+        return create(request, createdBy, EntityStatus.DRAFT);
+    }
+
+    /** Used when approving a GPT-skill submission (see SubmissionService.approveBand) -
+     * unlike a real person filling out the create form themselves, an automated proposal
+     * has no one vouching that what's there is actually right, so it never starts as a
+     * "someone's deliberately working on this" Entwurf. Complete enough to auto-publish
+     * (same isComplete bar as applyEnrichment), or STUB otherwise - exactly where a
+     * same-quality submission enriching an already-existing stub would land it too. */
+    @Transactional
+    public Band createFromAutomatedProposal(BandCreateRequest request, Long createdBy) {
+        Band band = create(request, createdBy, EntityStatus.STUB);
+        if (isComplete(band)) {
+            band.setStatus(EntityStatus.PUBLISHED);
+            band = bandRepository.save(band);
+        }
+        return band;
+    }
+
+    private Band create(BandCreateRequest request, Long createdBy, EntityStatus status) {
         Band band = Band.builder()
                 .name(request.name())
                 .city(request.city())
@@ -65,7 +85,7 @@ public class BandService {
                 .logoUrl(request.logoUrl())
                 .titleImageUrl(request.titleImageUrl())
                 .genres(request.genres() != null ? new ArrayList<>(request.genres()) : new ArrayList<>())
-                .status(EntityStatus.DRAFT)
+                .status(status)
                 .createdBy(createdBy)
                 .build();
         band = bandRepository.save(band);

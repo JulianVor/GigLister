@@ -151,8 +151,15 @@ public class SubmissionService {
         return submissionRepository.save(submission);
     }
 
+    /** submittedBy null means the GPT-skill integration proposed this, not a person who
+     * filled out the form themselves - see createFromAutomatedProposal for why that starts
+     * it at STUB/PUBLISHED instead of the usual DRAFT a direct create() lands on. */
     private Long approveBand(Submission submission, Long adminUserId, String imageUrl) {
-        var band = bandService.create(parsePayload(submission, BandCreateRequest.class), resolveCreatedBy(submission, adminUserId));
+        BandCreateRequest request = parsePayload(submission, BandCreateRequest.class);
+        Long createdBy = resolveCreatedBy(submission, adminUserId);
+        var band = submission.getSubmittedBy() == null
+                ? bandService.createFromAutomatedProposal(request, createdBy)
+                : bandService.create(request, createdBy);
         if (imageUrl != null) {
             band = bandService.setTitleImage(band.getId(), imageUrl);
         }
@@ -160,7 +167,11 @@ public class SubmissionService {
     }
 
     private Long approveLocation(Submission submission, Long adminUserId, String imageUrl) {
-        var location = locationService.create(parsePayload(submission, LocationCreateRequest.class), resolveCreatedBy(submission, adminUserId));
+        LocationCreateRequest request = parsePayload(submission, LocationCreateRequest.class);
+        Long createdBy = resolveCreatedBy(submission, adminUserId);
+        var location = submission.getSubmittedBy() == null
+                ? locationService.createFromAutomatedProposal(request, createdBy)
+                : locationService.create(request, createdBy);
         if (imageUrl != null) {
             location = locationService.setTitleImage(location.getId(), imageUrl);
         }

@@ -94,10 +94,13 @@ class SubmissionIntegrationTest {
                 .andReturn();
         long bandId = objectMapper.readTree(approveResult.getResponse().getContentAsString()).get("resultEntityId").asLong();
 
+        // STUB, not DRAFT - "name"+"city" is all the GPT skill proposed, nowhere near
+        // isComplete's bar, and a GPT-skill proposal never lands as an "in-progress Entwurf"
+        // anyway (see BandService.createFromAutomatedProposal).
         mockMvc.perform(get("/api/bands/" + bandId).header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Submitted Band"))
-                .andExpect(jsonPath("$.status").value("DRAFT"));
+                .andExpect(jsonPath("$.status").value("STUB"));
 
         // Approving twice is a conflict, not a double-create.
         mockMvc.perform(post("/api/admin/submissions/" + submissionId + "/approve")
@@ -366,9 +369,10 @@ class SubmissionIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.location.name").value("Habibi Atelier"));
 
-        // Reused, not duplicated - only the one Location exists for this name/city
-        // (a freshly created Location is DRAFT, so this has to go through the admin
-        // listing rather than the public one, which only shows PUBLISHED).
+        // Reused, not duplicated - only the one Location exists for this name/city. Goes
+        // through the admin listing rather than the public one since it's agnostic to
+        // status either way (this submission's address+postalCode already clear
+        // isComplete, so it landed as PUBLISHED - see LocationService.createFromAutomatedProposal).
         mockMvc.perform(get("/api/admin/locations").header("Authorization", "Bearer " + adminToken).param("q", "Habibi"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
