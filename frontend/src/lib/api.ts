@@ -312,7 +312,16 @@ export function getBandStories(id: number, token?: string) {
   return apiFetch<BandStory[]>(`/api/bands/${id}/stories`, { token });
 }
 
-export function createBandStory(id: number, data: { imageUrl: string; text?: string }, token: string) {
+export interface BandStoryInput {
+  imageUrl: string;
+  text?: string;
+  imgWidthPct: number;
+  imgHeightPct: number;
+  imgOffsetLeftPct: number;
+  imgOffsetTopPct: number;
+}
+
+export function createBandStory(id: number, data: BandStoryInput, token: string) {
   return apiFetch<BandStory>(`/api/bands/${id}/stories`, { method: "POST", body: data, token });
 }
 

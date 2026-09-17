@@ -70,10 +70,15 @@ class BandStoryIntegrationTest {
                         .header("Authorization", "Bearer " + managerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "imageUrl", "https://example.com/story.jpg", "text", "Neues Video ist raus!"))))
+                                "imageUrl", "https://example.com/story.jpg", "text", "Neues Video ist raus!",
+                                "imgWidthPct", 150.0, "imgHeightPct", 100.0, "imgOffsetLeftPct", -25.0, "imgOffsetTopPct", 0.0))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.imageUrl").value("https://example.com/story.jpg"))
                 .andExpect(jsonPath("$.text").value("Neues Video ist raus!"))
+                .andExpect(jsonPath("$.imgWidthPct").value(150.0))
+                .andExpect(jsonPath("$.imgHeightPct").value(100.0))
+                .andExpect(jsonPath("$.imgOffsetLeftPct").value(-25.0))
+                .andExpect(jsonPath("$.imgOffsetTopPct").value(0.0))
                 .andExpect(jsonPath("$.expiresAt").exists())
                 .andReturn();
         long storyId = objectMapper.readTree(storyResult.getResponse().getContentAsString()).get("id").asLong();

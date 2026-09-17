@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CroppedStoryImage } from "@/components/CroppedStoryImage";
 import type { BandStory } from "@/lib/types";
 
 const STORY_DURATION_MS = 6000;
@@ -100,7 +101,10 @@ export function BandStoryViewer({
       aria-modal="true"
       aria-label={`Status von ${bandName}`}
     >
-      <div className="relative h-full w-full overflow-hidden bg-black sm:h-[85vh] sm:max-h-[780px] sm:w-[420px]">
+      {/* True 9:16, not just "whatever box happens to be available" - the crop a band chose in
+          BandStoryComposer is expressed as % of that exact ratio, so reproducing it accurately
+          (rather than stretching into an arbitrarily-shaped box) needs the same ratio here. */}
+      <div className="relative aspect-[9/16] h-full max-h-[900px] max-w-full overflow-hidden bg-black sm:h-[85vh]">
         <div className="absolute inset-x-0 top-0 z-10 flex gap-1 p-2">
           {stories.map((s, i) => (
             <StoryProgressSegment
@@ -125,8 +129,13 @@ export function BandStoryViewer({
           </button>
         </div>
 
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={story.imageUrl} alt="" className="h-full w-full object-contain" />
+        <CroppedStoryImage
+          src={story.imageUrl}
+          widthPct={story.imgWidthPct}
+          heightPct={story.imgHeightPct}
+          offsetLeftPct={story.imgOffsetLeftPct}
+          offsetTopPct={story.imgOffsetTopPct}
+        />
 
         {story.text && (
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-6 pt-12">

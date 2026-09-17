@@ -144,6 +144,13 @@ export interface BandStory {
   id: number;
   imageUrl: string;
   text: string | null;
+  // How the band positioned/zoomed imageUrl within the 9:16 story frame - see
+  // CroppedStoryImage. Null for a story that somehow lacks crop data (falls back to
+  // object-contain there).
+  imgWidthPct: number | null;
+  imgHeightPct: number | null;
+  imgOffsetLeftPct: number | null;
+  imgOffsetTopPct: number | null;
   createdAt: string;
   expiresAt: string;
 }

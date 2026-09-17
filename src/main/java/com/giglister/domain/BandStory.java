@@ -32,6 +32,17 @@ public class BandStory {
     @Column(length = 280)
     private String text;
 
+    // How the band positioned/zoomed imageUrl within the 9:16 story frame (see
+    // BandStoryComposer) - the image itself is never modified, these four numbers alone are
+    // enough to reproduce the exact same crop everywhere the story is shown (see
+    // CroppedStoryImage on the frontend). Nullable so a story predating this feature (none
+    // exist yet, but the columns are nullable defensively) just falls back to plain
+    // object-contain instead of breaking.
+    private Double imgWidthPct;
+    private Double imgHeightPct;
+    private Double imgOffsetLeftPct;
+    private Double imgOffsetTopPct;
+
     @Column(nullable = false)
     private Instant createdAt;
 

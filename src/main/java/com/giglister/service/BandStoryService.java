@@ -35,6 +35,10 @@ public class BandStoryService {
                 .bandId(bandId)
                 .imageUrl(request.imageUrl())
                 .text(request.text())
+                .imgWidthPct(request.imgWidthPct())
+                .imgHeightPct(request.imgHeightPct())
+                .imgOffsetLeftPct(request.imgOffsetLeftPct())
+                .imgOffsetTopPct(request.imgOffsetTopPct())
                 .build();
         return bandStoryRepository.save(story);
     }
@@ -55,6 +59,10 @@ public class BandStoryService {
     }
 
     public BandStoryResponse toResponse(BandStory story) {
-        return new BandStoryResponse(story.getId(), story.getImageUrl(), story.getText(), story.getCreatedAt(), story.getExpiresAt());
+        return new BandStoryResponse(
+                story.getId(), story.getImageUrl(), story.getText(),
+                story.getImgWidthPct(), story.getImgHeightPct(), story.getImgOffsetLeftPct(), story.getImgOffsetTopPct(),
+                story.getCreatedAt(), story.getExpiresAt()
+        );
     }
 }

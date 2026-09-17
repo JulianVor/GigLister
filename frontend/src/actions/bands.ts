@@ -83,10 +83,7 @@ export async function toggleFollowBandAction(bandId: number, follow: boolean): P
   }
 }
 
-export async function createBandStoryAction(
-  bandId: number,
-  input: { imageUrl: string; text?: string }
-): Promise<ActionResult> {
+export async function createBandStoryAction(bandId: number, input: api.BandStoryInput): Promise<ActionResult> {
   const token = await getToken();
   if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
 
