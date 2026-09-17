@@ -32,7 +32,9 @@ Backend und Web-App wurden nicht verändert. Die schreibenden Abnahmen verwenden
 
 ## Prüfung und Abnahmegrenzen
 
-Die aktuellen Ergebnisse stehen in `android/build/update-final-build.log`, `android/build/update-ui-tests.txt` und `android/build/update-live-ui-tests.txt`. Zusätzliche Vertragstests prüfen die zwei Einreichungsantworten, Nachtauftritte, Festival-Deduplizierung, einzelne Acts, Ticketvorrang, Genreparameter und Pflichtpasswortfelder.
+Nachprüfung am 17. September: Alle 14 bisherigen Bedienungstests bestanden zusammen mit den sechs neuen Story-Tests. Details zum aktuellen Build: [Stories-Abgleich](android-stories-2026-09-17.md).
+
+Die ursprünglichen Ergebnisse stehen in `android/build/update-final-build.log`, `android/build/update-ui-tests.txt` und `android/build/update-live-ui-tests.txt`. Zusätzliche Vertragstests prüfen die zwei Einreichungsantworten, Nachtauftritte, Festival-Deduplizierung, einzelne Acts, Ticketvorrang, Genreparameter und Pflichtpasswortfelder.
 
 Echte E-Mail-/Push-Zustellung, Live-Uploads und Änderungen mit einem echten Benutzerkonto bleiben außerhalb dieses schreibgeschützten Live-Abgleichs. Der finale Build ist eine installierbare Debug-APK, keine Store-Veröffentlichung. Automatisch verifizierte App Links benötigen weiterhin die passende Serverkonfiguration für die endgültige Signatur.
 

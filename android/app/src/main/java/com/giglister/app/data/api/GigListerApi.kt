@@ -23,6 +23,10 @@ import okhttp3.MultipartBody
  * (see frontend/src/lib/api.ts for the equivalent web-side calls) - both clients hit the
  * one Spring Boot backend, nothing Android-specific on the server side. */
 interface GigListerApi {
+    @GET("api/bands/{id}/stories") suspend fun stories(@Path("id") id: Long): List<BandStory>
+    @POST("api/bands/{id}/stories") suspend fun createStory(@Path("id") id: Long, @Body input: StoryInput): BandStory
+    @DELETE("api/bands/{id}/stories/{storyId}") suspend fun deleteStory(@Path("id") id: Long, @Path("storyId") storyId: Long)
+    @GET("api/bands/search") suspend fun storyBands(@Query("q") query: String): List<StoryBandOption>
 
     @POST("api/auth/login")
     suspend fun login(@Body body: LoginRequest): AuthResponse

@@ -103,6 +103,7 @@ fun routeUrl(venue: EntityDetails): String {
         val following = app.me?.followedBands?.any { it.id == id } == true
         LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (entity.titleImageUrl != null) item { AsyncImage(entity.titleImageUrl, null, Modifier.fillMaxWidth().height(220.dp), contentScale = ContentScale.Crop) }
+            if (isBand) item { BandStories(entity, app, navigate) }
             item { PageTitle(entity.name, listOfNotNull(entity.city, entity.country).joinToString(" · ")) }
             if (app.me.canEdit(type, id)) item { Text("Status: ${statusLabel(entity.status)}", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             if (isBand && entity.genres.isNotEmpty()) item { FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { entity.genres.forEach { SuggestionChip(onClick = {}, label = { Text(it) }) } } }
@@ -215,4 +216,3 @@ fun statusLabel(status: String): String = when (status) { "DRAFT" -> "Entwurf"; 
         ApiClient.api.deleteEntity(kind, id); confirm = false; navigate("home"); app.changed(); app.notice = "$label gelöscht."
     } }) { Text("Endgültig löschen") } }, dismissButton = { TextButton(onClick = { confirm = false }) { Text("Abbrechen") } })
 }
-
