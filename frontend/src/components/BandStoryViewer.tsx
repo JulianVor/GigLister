@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { deleteBandStoryAction } from "@/actions/bands";
 import { CroppedStoryImage } from "@/components/CroppedStoryImage";
+import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 import { parseTextLayers } from "@/lib/storyTextLayers";
 import type { BandStory } from "@/lib/types";
 
@@ -55,12 +57,16 @@ function StoryProgressSegment({
 export function BandStoryViewer({
   bandId,
   bandName,
+  profileImageUrl,
+  logoUrl,
   stories: initialStories,
   canManage = false,
   onClose,
 }: {
   bandId: number;
   bandName: string;
+  profileImageUrl?: string | null;
+  logoUrl?: string | null;
   stories: BandStory[];
   /** Whether the current visitor manages this band - shows a "Löschen" button per story. */
   canManage?: boolean;
@@ -146,7 +152,24 @@ export function BandStoryViewer({
         </div>
 
         <div className="absolute inset-x-0 top-4 z-10 flex items-center justify-between px-3">
-          <span className="font-meta text-sm font-medium text-white drop-shadow">{bandName}</span>
+          {/* onClose on top of the navigation itself: if the visitor is already on this exact
+              band page (e.g. viewing their own story from their own profile), Next treats the
+              click as a no-op navigation and never unmounts this dialog - closing it explicitly
+              is what actually reveals the profile underneath either way. */}
+          <Link href={`/bands/${bandId}`} onClick={onClose} className="flex min-w-0 items-center gap-2">
+            <span className="h-7 w-7 flex-none overflow-hidden rounded-full border border-white/40">
+              {profileImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profileImageUrl} alt="" className="h-full w-full object-cover" />
+              ) : logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="" className="h-full w-full bg-surface object-contain p-0.5" />
+              ) : (
+                <EntityPlaceholder name={bandName} className="h-full w-full" textClassName="text-xs" />
+              )}
+            </span>
+            <span className="truncate font-meta text-sm font-medium text-white drop-shadow">{bandName}</span>
+          </Link>
           <div className="flex items-center gap-3">
             {canManage && (
               <button

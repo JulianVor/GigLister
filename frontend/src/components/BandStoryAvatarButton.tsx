@@ -87,6 +87,8 @@ export function BandStoryAvatarButton({
         <BandStoryViewer
           bandId={bandId}
           bandName={bandName}
+          profileImageUrl={profileImageUrl}
+          logoUrl={logoUrl}
           stories={stories}
           canManage={canManage}
           onClose={() => setOpen(false)}
