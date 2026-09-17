@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 import { TEXT_LAYER_BASE_FONT_CQW, textLayerColor, type TextLayer } from "@/lib/storyTextLayers";
+import { BAND_TAG_BASE_FONT_CQW, type BandTagLayer } from "@/lib/storyBandTags";
 
 const FALLBACK_BG = "#111111";
 
@@ -19,6 +22,7 @@ export function CroppedStoryImage({
   rotationDeg,
   backgroundColor,
   textLayers = [],
+  bandTags = [],
 }: {
   src: string;
   widthPct: number | null;
@@ -28,6 +32,7 @@ export function CroppedStoryImage({
   rotationDeg: number | null;
   backgroundColor: string | null;
   textLayers?: TextLayer[];
+  bandTags?: BandTagLayer[];
 }) {
   if (widthPct == null || heightPct == null || centerXPct == null || centerYPct == null) {
     // No crop data (shouldn't normally happen going forward) - show the whole image, letterboxed.
@@ -68,6 +73,37 @@ export function CroppedStoryImage({
         >
           {layer.text}
         </p>
+      ))}
+      {bandTags.map((tag) => (
+        // z-10: sits above BandStoryViewer's invisible full-frame prev/next click zones
+        // (those have no z-index of their own, so without this a tag would render underneath
+        // them in DOM order and never actually be clickable).
+        <Link
+          key={tag.id}
+          href={`/bands/${tag.bandId}`}
+          className="absolute z-10 flex max-w-[85%] flex-col items-center gap-[0.2em] whitespace-nowrap"
+          style={{
+            left: `${tag.centerXPct}%`,
+            top: `${tag.centerYPct}%`,
+            fontSize: `${tag.scale * BAND_TAG_BASE_FONT_CQW}cqw`,
+            transform: `translate(-50%, -50%) rotate(${tag.rotationDeg}deg)`,
+          }}
+        >
+          <span className="block h-[1.8em] w-[1.8em] flex-none overflow-hidden border border-white/80 bg-surface">
+            {tag.profileImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={tag.profileImageUrl} alt="" className="h-full w-full object-cover" />
+            ) : tag.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={tag.logoUrl} alt="" className="h-full w-full object-contain p-[0.15em]" />
+            ) : (
+              <EntityPlaceholder name={tag.bandName} className="h-full w-full" textClassName="text-[0.9em]" />
+            )}
+          </span>
+          <span className="truncate font-display text-[0.85em] font-bold leading-tight text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]">
+            {tag.bandName}
+          </span>
+        </Link>
       ))}
     </div>
   );

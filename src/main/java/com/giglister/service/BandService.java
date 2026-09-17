@@ -8,6 +8,7 @@ import com.giglister.domain.enums.EventStatus;
 import com.giglister.domain.enums.PermissionLevel;
 import com.giglister.dto.band.BandCreateRequest;
 import com.giglister.dto.band.BandResponse;
+import com.giglister.dto.band.BandTagOptionResponse;
 import com.giglister.dto.band.BandUpdateRequest;
 import com.giglister.exception.ConflictException;
 import com.giglister.exception.ForbiddenException;
@@ -32,6 +33,10 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class BandService {
 
+    // Capped short - this backs a live-typing dropdown (see BandStoryComposer's "+ Band"),
+    // not a full search results page.
+    private static final int TAG_SEARCH_MAX_RESULTS = 8;
+
     private final BandRepository bandRepository;
     private final EventRepository eventRepository;
     private final BandFollowRepository bandFollowRepository;
@@ -49,6 +54,19 @@ public class BandService {
             return bandRepository.findByStatusAndCityIgnoreCase(EntityStatus.PUBLISHED, city, pageable);
         }
         return bandRepository.findByStatus(EntityStatus.PUBLISHED, pageable);
+    }
+
+    /** Typeahead results for tagging another band onto a story (see BandStoryComposer's
+     * "+ Band") - published bands only, matching what an anonymous story viewer could click
+     * through to anyway. */
+    public List<BandTagOptionResponse> searchTagOptions(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        return bandRepository.searchByNameAndStatus(query.trim(), EntityStatus.PUBLISHED).stream()
+                .limit(TAG_SEARCH_MAX_RESULTS)
+                .map(b -> new BandTagOptionResponse(b.getId(), b.getName(), b.getCity(), b.getProfileImageUrl(), b.getLogoUrl()))
+                .toList();
     }
 
     @Transactional

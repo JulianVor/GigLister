@@ -13,6 +13,7 @@ public record BandStoryResponse(
         Double imgRotationDeg,
         String imgBackgroundColor,
         String textLayersJson,
+        String bandTagsJson,
         Instant createdAt,
         Instant expiresAt
 ) {

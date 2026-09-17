@@ -6,6 +6,7 @@ import { deleteBandStoryAction } from "@/actions/bands";
 import { CroppedStoryImage } from "@/components/CroppedStoryImage";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 import { parseTextLayers } from "@/lib/storyTextLayers";
+import { parseBandTags } from "@/lib/storyBandTags";
 import type { BandStory } from "@/lib/types";
 
 const STORY_DURATION_MS = 6000;
@@ -201,6 +202,7 @@ export function BandStoryViewer({
           rotationDeg={story.imgRotationDeg}
           backgroundColor={story.imgBackgroundColor}
           textLayers={parseTextLayers(story.textLayersJson)}
+          bandTags={parseBandTags(story.bandTagsJson)}
         />
 
         <button

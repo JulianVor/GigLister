@@ -73,7 +73,8 @@ class BandStoryIntegrationTest {
                                 "imageUrl", "https://example.com/story.jpg", "text", "Neues Video ist raus!",
                                 "imgWidthPct", 150.0, "imgHeightPct", 100.0, "imgCenterXPct", 60.0, "imgCenterYPct", 50.0,
                                 "imgRotationDeg", 12.5, "imgBackgroundColor", "#3a2a1f",
-                                "textLayersJson", "[{\"id\":\"t1\",\"text\":\"NEUES VIDEO\",\"centerXPct\":50,\"centerYPct\":20,\"scale\":1.5,\"rotationDeg\":0}]"))))
+                                "textLayersJson", "[{\"id\":\"t1\",\"text\":\"NEUES VIDEO\",\"centerXPct\":50,\"centerYPct\":20,\"scale\":1.5,\"rotationDeg\":0}]",
+                                "bandTagsJson", "[{\"id\":\"b1\",\"bandId\":42,\"bandName\":\"Support Act\",\"profileImageUrl\":null,\"logoUrl\":null,\"centerXPct\":50,\"centerYPct\":80,\"scale\":1,\"rotationDeg\":0}]"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.imageUrl").value("https://example.com/story.jpg"))
                 .andExpect(jsonPath("$.text").value("Neues Video ist raus!"))
@@ -85,6 +86,8 @@ class BandStoryIntegrationTest {
                 .andExpect(jsonPath("$.imgBackgroundColor").value("#3a2a1f"))
                 .andExpect(jsonPath("$.textLayersJson").value(
                         "[{\"id\":\"t1\",\"text\":\"NEUES VIDEO\",\"centerXPct\":50,\"centerYPct\":20,\"scale\":1.5,\"rotationDeg\":0}]"))
+                .andExpect(jsonPath("$.bandTagsJson").value(
+                        "[{\"id\":\"b1\",\"bandId\":42,\"bandName\":\"Support Act\",\"profileImageUrl\":null,\"logoUrl\":null,\"centerXPct\":50,\"centerYPct\":80,\"scale\":1,\"rotationDeg\":0}]"))
                 .andExpect(jsonPath("$.expiresAt").exists())
                 .andReturn();
         long storyId = objectMapper.readTree(storyResult.getResponse().getContentAsString()).get("id").asLong();
@@ -140,6 +143,45 @@ class BandStoryIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
         assertThat(bandStoryRepository.findById(expired.getId())).isPresent();
+    }
+
+    @Test
+    void bandSearchFindsPublishedBandsByNameSubstringForTagging() throws Exception {
+        String managerToken = register("tagsearchmanager@giglister.test", "managerpass123", "TagSearchManager");
+
+        var createResult = mockMvc.perform(post("/api/bands")
+                        .header("Authorization", "Bearer " + managerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "name", "Support Act Supreme", "profileImageUrl", "https://example.com/support.png"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long bandId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asLong();
+
+        // Unpublished (STUB) - must not show up in tag search results.
+        mockMvc.perform(get("/api/bands/search").param("q", "Support"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        mockMvc.perform(patch("/api/bands/" + bandId + "/status")
+                        .header("Authorization", "Bearer " + managerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("status", "PUBLISHED"))))
+                .andExpect(status().isOk());
+
+        // No Authorization header - a band manager searching to tag another band while
+        // composing a story hits this anonymously through PUBLIC_API_URL (see
+        // BandStoryComposer), same as everything else under GET /api/bands/**.
+        mockMvc.perform(get("/api/bands/search").param("q", "support"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(bandId))
+                .andExpect(jsonPath("$[0].name").value("Support Act Supreme"))
+                .andExpect(jsonPath("$[0].profileImageUrl").value("https://example.com/support.png"));
+
+        mockMvc.perform(get("/api/bands/search").param("q", "no-such-band-xyz"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     private String register(String email, String password, String username) throws Exception {

@@ -16,6 +16,8 @@ public record BandStoryCreateRequest(
         Double imgRotationDeg,
         String imgBackgroundColor,
         // Opaque to the backend - see BandStory.textLayersJson.
-        String textLayersJson
+        String textLayersJson,
+        // Opaque to the backend - see BandStory.bandTagsJson.
+        String bandTagsJson
 ) {
 }

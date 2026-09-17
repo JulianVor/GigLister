@@ -12,6 +12,7 @@ import com.giglister.dto.admin.ClaimResponse;
 import com.giglister.dto.admin.DuplicateCandidate;
 import com.giglister.dto.band.BandCreateRequest;
 import com.giglister.dto.band.BandResponse;
+import com.giglister.dto.band.BandTagOptionResponse;
 import com.giglister.dto.band.BandUpdateRequest;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.BandService;
@@ -50,6 +51,11 @@ public class BandController {
     @GetMapping("/duplicates")
     public List<DuplicateCandidate> duplicates(@RequestParam String name, @RequestParam(required = false) String city) {
         return duplicateDetectionService.findBandCandidates(name, city);
+    }
+
+    @GetMapping("/search")
+    public List<BandTagOptionResponse> search(@RequestParam("q") String query) {
+        return bandService.searchTagOptions(query);
     }
 
     @GetMapping("/{id}")

@@ -155,8 +155,20 @@ export interface BandStory {
   imgBackgroundColor: string | null;
   // Opaque JSON - see lib/storyTextLayers.ts (parseTextLayers) for the actual shape.
   textLayersJson: string | null;
+  // Opaque JSON - see lib/storyBandTags.ts (parseBandTags) for the actual shape.
+  bandTagsJson: string | null;
   createdAt: string;
   expiresAt: string;
+}
+
+/** One typeahead result for tagging another band onto a story - see BandStoryComposer's
+ * "+ Band" and GET /api/bands/search. */
+export interface BandTagOption {
+  id: number;
+  name: string;
+  city: string | null;
+  profileImageUrl: string | null;
+  logoUrl: string | null;
 }
 
 export interface AuthResponse {

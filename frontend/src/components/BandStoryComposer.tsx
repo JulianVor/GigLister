@@ -1,10 +1,19 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { uploadImageAction } from "@/actions/uploads";
 import { createBandStoryAction } from "@/actions/bands";
+import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
 import { createTextLayer, serializeTextLayers, textLayerColor, TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
+import { createBandTagLayer, serializeBandTags, BAND_TAG_BASE_FONT_CQW, type BandTagLayer } from "@/lib/storyBandTags";
+import type { BandTagOption } from "@/lib/types";
+
+// Same pattern as BandStoryAvatarButton/EntityPicker: a client component fetching directly
+// against the backend for a public, unauthenticated GET, bypassing lib/api.ts (which is
+// server-only and can't be called from here).
+const PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const BAND_SEARCH_DEBOUNCE_MS = 300;
 
 const TEXT_MAX_LENGTH = 200;
 // Same frame the viewer actually shows the story in (see BandStoryViewer) - the crop only
@@ -360,6 +369,69 @@ function TextLayerOverlay({
   );
 }
 
+/** One band tag inside the crop editor - draggable/pinchable/rotatable like a text layer, but
+ * with no edit mode of its own (its content - which band, its picture, its name - was fixed at
+ * "+ Band" time; a tap here just (re)selects it for the Zoom/Drehen sliders). */
+function BandTagOverlay({
+  frameRef,
+  tag,
+  selected,
+  onSelect,
+  onChange,
+}: {
+  frameRef: React.RefObject<HTMLDivElement | null>;
+  tag: BandTagLayer;
+  selected: boolean;
+  onSelect: () => void;
+  onChange: (t: NormalizedTransform) => void;
+}) {
+  const gesture = useLayerGesture({
+    frameRef,
+    getTransform: () => ({ centerXPct: tag.centerXPct, centerYPct: tag.centerYPct, scale: tag.scale, rotationDeg: tag.rotationDeg }),
+    setTransform: onChange,
+    minScale: MIN_TEXT_SCALE,
+    maxScale: MAX_TEXT_SCALE,
+    onTap: onSelect,
+  });
+
+  return (
+    <div
+      className={`absolute flex max-w-[85%] cursor-move touch-none select-none flex-col items-center gap-[0.2em] whitespace-nowrap ${
+        selected ? "outline outline-2 outline-dashed outline-offset-4 outline-white/80" : ""
+      }`}
+      style={{
+        left: `${tag.centerXPct}%`,
+        top: `${tag.centerYPct}%`,
+        fontSize: `${tag.scale * BAND_TAG_BASE_FONT_CQW}cqw`,
+        transform: `translate(-50%, -50%) rotate(${tag.rotationDeg}deg)`,
+      }}
+      onPointerDown={(e) => {
+        onSelect();
+        gesture.onPointerDown(e);
+      }}
+      onPointerMove={gesture.onPointerMove}
+      onPointerUp={gesture.onPointerUp}
+      onPointerCancel={gesture.onPointerCancel}
+      onPointerLeave={gesture.onPointerLeave}
+    >
+      <span className="block h-[1.8em] w-[1.8em] flex-none overflow-hidden border border-white/80 bg-surface">
+        {tag.profileImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={tag.profileImageUrl} alt="" draggable={false} className="h-full w-full object-cover" />
+        ) : tag.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={tag.logoUrl} alt="" draggable={false} className="h-full w-full object-contain p-[0.15em]" />
+        ) : (
+          <EntityPlaceholder name={tag.bandName} className="h-full w-full" textClassName="text-[0.9em]" />
+        )}
+      </span>
+      <span className="truncate font-display text-[0.85em] font-bold leading-tight text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]">
+        {tag.bandName}
+      </span>
+    </div>
+  );
+}
+
 /** Drag-to-position, pinch-to-zoom, two-finger-to-rotate editor for fitting a photo (and any
  * number of text layers on top of it) into the 9:16 story frame before posting - same gesture
  * a phone's own camera roll / Instagram gives you. Whichever object is currently selected
@@ -377,11 +449,13 @@ function StoryCropEditor({
   onTransformChange,
   bgColor,
   textLayers,
+  bandTags,
   selectedLayerId,
   editingLayerId,
   onSelectLayer,
   onTextLayerChange,
   onTextLayerCommitText,
+  onBandTagChange,
   onStartEditing,
   onStopEditing,
 }: {
@@ -391,11 +465,13 @@ function StoryCropEditor({
   onTransformChange: (transform: PhotoTransform) => void;
   bgColor: string | null;
   textLayers: TextLayer[];
+  bandTags: BandTagLayer[];
   selectedLayerId: string;
   editingLayerId: string | null;
   onSelectLayer: (id: string) => void;
   onTextLayerChange: (id: string, t: NormalizedTransform) => void;
   onTextLayerCommitText: (id: string, text: string) => void;
+  onBandTagChange: (id: string, t: NormalizedTransform) => void;
   onStartEditing: (id: string) => void;
   onStopEditing: () => void;
 }) {
@@ -459,6 +535,16 @@ function StoryCropEditor({
           onStopEditing={onStopEditing}
         />
       ))}
+      {bandTags.map((tag) => (
+        <BandTagOverlay
+          key={tag.id}
+          frameRef={frameRef}
+          tag={tag}
+          selected={selectedLayerId === tag.id}
+          onSelect={() => onSelectLayer(tag.id)}
+          onChange={(next) => onBandTagChange(tag.id, next)}
+        />
+      ))}
     </div>
   );
 }
@@ -475,12 +561,46 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
   const [transform, setTransform] = useState<PhotoTransform | null>(null);
   const [bgColor, setBgColor] = useState<string | null>(null);
   const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
+  const [bandTags, setBandTags] = useState<BandTagLayer[]>([]);
   const [selectedLayerId, setSelectedLayerId] = useState("photo");
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // The "+ Band" search popover - its own little bit of state, separate from the crop editor's
+  // selection/editing state above (a band tag has no in-frame "editing" mode of its own, see
+  // BandTagOverlay).
+  const [showBandPicker, setShowBandPicker] = useState(false);
+  const [bandQuery, setBandQuery] = useState("");
+  const [bandResults, setBandResults] = useState<BandTagOption[]>([]);
+  const [bandSearchPending, setBandSearchPending] = useState(false);
+
+  useEffect(() => {
+    // Bails out without touching bandResults - it's only ever read from render behind the
+    // same `bandQuery.trim()` guard, so a stale value here is simply never shown.
+    if (!showBandPicker || !bandQuery.trim()) {
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setBandSearchPending(true);
+      try {
+        const res = await fetch(`${PUBLIC_API_URL}/api/bands/search?q=${encodeURIComponent(bandQuery.trim())}`);
+        const data: BandTagOption[] = res.ok ? await res.json() : [];
+        if (!cancelled) setBandResults(data.filter((b) => b.id !== bandId));
+      } catch {
+        if (!cancelled) setBandResults([]);
+      } finally {
+        if (!cancelled) setBandSearchPending(false);
+      }
+    }, BAND_SEARCH_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [bandQuery, showBandPicker, bandId]);
 
   // No hover + a coarse pointer = a touchscreen is the primary input (phones/tablets), as
   // opposed to a mouse/trackpad that can't pinch or rotate - those keep the sliders below,
@@ -490,9 +610,13 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
   const isTouchPrimary = useSyncExternalStore(subscribeToTouchPrimary, getIsTouchPrimary, getIsTouchPrimaryServerSnapshot);
 
   const selectedTextLayer = selectedLayerId !== "photo" ? (textLayers.find((l) => l.id === selectedLayerId) ?? null) : null;
+  const selectedBandTag = selectedLayerId !== "photo" ? (bandTags.find((t) => t.id === selectedLayerId) ?? null) : null;
   const currentScale =
-    selectedLayerId === "photo" ? (imgAspect != null && transform ? scaleOfPhoto(transform, imgAspect) : MIN_PHOTO_SCALE) : (selectedTextLayer?.scale ?? 1);
-  const currentRotation = selectedLayerId === "photo" ? (transform?.rotationDeg ?? 0) : (selectedTextLayer?.rotationDeg ?? 0);
+    selectedLayerId === "photo"
+      ? (imgAspect != null && transform ? scaleOfPhoto(transform, imgAspect) : MIN_PHOTO_SCALE)
+      : (selectedTextLayer?.scale ?? selectedBandTag?.scale ?? 1);
+  const currentRotation =
+    selectedLayerId === "photo" ? (transform?.rotationDeg ?? 0) : (selectedTextLayer?.rotationDeg ?? selectedBandTag?.rotationDeg ?? 0);
   const sliderMin = selectedLayerId === "photo" ? MIN_PHOTO_SCALE : MIN_TEXT_SCALE;
   const sliderMax = selectedLayerId === "photo" ? MAX_PHOTO_SCALE : MAX_TEXT_SCALE;
   const currentColorHue = selectedTextLayer?.colorHue ?? 0;
@@ -504,8 +628,12 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     setTransform(null);
     setBgColor(null);
     setTextLayers([]);
+    setBandTags([]);
     setSelectedLayerId("photo");
     setEditingLayerId(null);
+    setShowBandPicker(false);
+    setBandQuery("");
+    setBandResults([]);
     setError(null);
   }
 
@@ -559,6 +687,19 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, colorHue } : l)));
   }
 
+  function addBandTag(option: BandTagOption) {
+    const tag = createBandTagLayer(option);
+    setBandTags((prev) => [...prev, tag]);
+    setSelectedLayerId(tag.id);
+    setShowBandPicker(false);
+    setBandQuery("");
+    setBandResults([]);
+  }
+
+  function updateBandTag(id: string, next: NormalizedTransform) {
+    setBandTags((prev) => prev.map((t) => (t.id === id ? { ...t, ...next } : t)));
+  }
+
   function commitTextLayerText(id: string, text: string) {
     setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, text } : l)));
   }
@@ -574,9 +715,10 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     setEditingLayerId(null);
   }
 
-  function deleteSelectedTextLayer() {
+  function deleteSelectedLayer() {
     if (selectedLayerId === "photo") return;
     setTextLayers((prev) => prev.filter((l) => l.id !== selectedLayerId));
+    setBandTags((prev) => prev.filter((t) => t.id !== selectedLayerId));
     setSelectedLayerId("photo");
     setEditingLayerId(null);
   }
@@ -588,6 +730,8 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
       setTransform({ ...transform, widthPct: size.widthPct, heightPct: size.heightPct });
     } else if (selectedTextLayer) {
       updateTextLayer(selectedTextLayer.id, { ...selectedTextLayer, scale: newScale });
+    } else if (selectedBandTag) {
+      updateBandTag(selectedBandTag.id, { ...selectedBandTag, scale: newScale });
     }
   }
 
@@ -597,6 +741,8 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
       setTransform({ ...transform, rotationDeg: deg });
     } else if (selectedTextLayer) {
       updateTextLayer(selectedTextLayer.id, { ...selectedTextLayer, rotationDeg: deg });
+    } else if (selectedBandTag) {
+      updateBandTag(selectedBandTag.id, { ...selectedBandTag, rotationDeg: deg });
     }
   }
 
@@ -604,6 +750,7 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     if (!imageUrl || !transform) return;
     setError(null);
     const layersJson = serializeTextLayers(textLayers);
+    const tagsJson = serializeBandTags(bandTags);
     const plainText = textLayers
       .map((l) => l.text.trim())
       .filter(Boolean)
@@ -620,6 +767,7 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
         imgRotationDeg: transform.rotationDeg,
         imgBackgroundColor: bgColor ?? FALLBACK_BG,
         textLayersJson: layersJson,
+        bandTagsJson: tagsJson,
       });
       if (!result.ok) {
         setError(result.error ?? "Posten fehlgeschlagen.");
@@ -674,11 +822,13 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
               onTransformChange={setTransform}
               bgColor={bgColor}
               textLayers={textLayers}
+              bandTags={bandTags}
               selectedLayerId={selectedLayerId}
               editingLayerId={editingLayerId}
               onSelectLayer={setSelectedLayerId}
               onTextLayerChange={updateTextLayer}
               onTextLayerCommitText={commitTextLayerText}
+              onBandTagChange={updateBandTag}
               onStartEditing={setEditingLayerId}
               onStopEditing={stopEditingLayer}
             />
@@ -687,15 +837,67 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
               <p className="font-meta text-xs text-muted">
                 {isTouchPrimary ? "Ziehen zum Verschieben · zwei Finger zum Zoomen und Drehen" : "Ziehen zum Verschieben"}
               </p>
-              <div className="flex flex-none gap-3">
+              <div className="relative flex flex-none gap-3">
                 {selectedLayerId !== "photo" && (
-                  <button type="button" onClick={deleteSelectedTextLayer} className="font-meta text-xs text-accent hover:underline">
+                  <button type="button" onClick={deleteSelectedLayer} className="font-meta text-xs text-accent hover:underline">
                     Löschen
                   </button>
                 )}
                 <button type="button" onClick={addTextLayer} className="font-meta text-xs text-accent hover:underline">
                   + Text
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBandPicker((v) => !v)}
+                  className="font-meta text-xs text-accent hover:underline"
+                >
+                  + Band
+                </button>
+
+                {showBandPicker && (
+                  <div className="absolute right-0 top-full z-20 mt-1 w-56 border border-line bg-surface p-2 shadow-lg">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={bandQuery}
+                      onChange={(e) => setBandQuery(e.target.value)}
+                      placeholder="Band suchen …"
+                      className="w-full border border-line bg-bg px-2 py-1 font-meta text-xs outline-none focus:border-accent"
+                    />
+                    {bandQuery.trim() && (
+                      <ul className="mt-1 max-h-48 overflow-y-auto">
+                        {bandSearchPending && bandResults.length === 0 && (
+                          <li className="px-1 py-1 font-meta text-xs text-muted">Suche …</li>
+                        )}
+                        {!bandSearchPending && bandResults.length === 0 && (
+                          <li className="px-1 py-1 font-meta text-xs text-muted">Keine Band gefunden.</li>
+                        )}
+                        {bandResults.map((option) => (
+                          <li key={option.id}>
+                            <button
+                              type="button"
+                              onClick={() => addBandTag(option)}
+                              className="flex w-full items-center gap-2 px-1 py-1 text-left hover:bg-bg"
+                            >
+                              <span className="block h-6 w-6 flex-none overflow-hidden border border-line bg-bg">
+                                {option.profileImageUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={option.profileImageUrl} alt="" className="h-full w-full object-cover" />
+                                ) : option.logoUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={option.logoUrl} alt="" className="h-full w-full object-contain p-0.5" />
+                                ) : (
+                                  <EntityPlaceholder name={option.name} className="h-full w-full" textClassName="text-xs" />
+                                )}
+                              </span>
+                              <span className="truncate font-meta text-xs">{option.name}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

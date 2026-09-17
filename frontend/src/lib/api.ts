@@ -322,6 +322,7 @@ export interface BandStoryInput {
   imgRotationDeg: number;
   imgBackgroundColor: string;
   textLayersJson?: string;
+  bandTagsJson?: string;
 }
 
 export function createBandStory(id: number, data: BandStoryInput, token: string) {

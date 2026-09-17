@@ -56,6 +56,15 @@ public class BandStory {
     @Column(columnDefinition = "TEXT")
     private String textLayersJson;
 
+    // Other bands tagged onto the photo (see BandStoryComposer's "+ Band") - same
+    // opaque-JSON-from-the-backend's-perspective approach as textLayersJson: a plain array of
+    // {id, bandId, bandName, profileImageUrl, logoUrl, centerXPct, centerYPct, scale,
+    // rotationDeg}, built/read/rendered only by the frontend (see lib/storyBandTags.ts). The
+    // tagged band's name/image are snapshotted at tagging time rather than looked up live -
+    // consistent with the rest of a story being an immutable-once-posted snapshot.
+    @Column(columnDefinition = "TEXT")
+    private String bandTagsJson;
+
     @Column(nullable = false)
     private Instant createdAt;
 
