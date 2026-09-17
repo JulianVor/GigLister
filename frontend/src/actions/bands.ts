@@ -83,6 +83,39 @@ export async function toggleFollowBandAction(bandId: number, follow: boolean): P
   }
 }
 
+export async function createBandStoryAction(
+  bandId: number,
+  input: { imageUrl: string; text?: string }
+): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.createBandStory(bandId, input, token);
+    revalidatePath("/");
+    revalidatePath(`/bands/${bandId}`);
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+export async function deleteBandStoryAction(bandId: number, storyId: number): Promise<ActionResult> {
+  const token = await getToken();
+  if (!token) return { ok: false, error: "Bitte zuerst einloggen." };
+
+  try {
+    await api.deleteBandStory(bandId, storyId, token);
+    revalidatePath("/");
+    revalidatePath(`/bands/${bandId}`);
+    return { ok: true, data: undefined };
+  } catch (err) {
+    if (err instanceof api.ApiError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
 export async function claimBandAction(bandId: number, message?: string): Promise<ActionResult> {
   const token = await getToken();
   if (!token) redirect("/login");

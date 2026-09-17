@@ -1,6 +1,8 @@
 package com.giglister.service;
 
 import com.giglister.domain.Band;
+import com.giglister.domain.BandFollow;
+import com.giglister.domain.BandStory;
 import com.giglister.domain.EntityPermission;
 import com.giglister.domain.Event;
 import com.giglister.domain.SavedAct;
@@ -16,6 +18,7 @@ import com.giglister.exception.BadRequestException;
 import com.giglister.exception.ConflictException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandFollowRepository;
+import com.giglister.repository.BandStoryRepository;
 import com.giglister.repository.EntityPermissionRepository;
 import com.giglister.repository.EventRepository;
 import com.giglister.repository.SavedActRepository;
@@ -25,11 +28,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,6 +45,7 @@ public class UserService {
     private final SavedEventRepository savedEventRepository;
     private final SavedActRepository savedActRepository;
     private final BandFollowRepository bandFollowRepository;
+    private final BandStoryRepository bandStoryRepository;
     private final EntityPermissionRepository entityPermissionRepository;
     private final EventRepository eventRepository;
     private final BandService bandService;
@@ -144,12 +150,21 @@ public class UserService {
                 .map(a -> new MeResponse.SavedAct(a.getEventId(), a.getBandId()))
                 .toList();
 
-        List<MeResponse.ManagedFollowedBand> followedBands = bandFollowRepository.findByUserId(user.getId()).stream()
+        List<BandFollow> follows = bandFollowRepository.findByUserId(user.getId());
+        // One query for every followed band's live-story status instead of one per band -
+        // see BandStoryRepository.findByBandIdInAndExpiresAtAfter.
+        Set<Long> bandsWithActiveStory = bandStoryRepository
+                .findByBandIdInAndExpiresAtAfter(follows.stream().map(BandFollow::getBandId).toList(), Instant.now())
+                .stream().map(BandStory::getBandId).collect(Collectors.toSet());
+        List<MeResponse.ManagedFollowedBand> followedBands = follows.stream()
                 .map(f -> {
                     Band band = bandService.getOrThrow(f.getBandId());
                     List<Event> upcoming = eventRepository.findUpcomingForBand(band.getId(), EventStatus.PUBLISHED, LocalDate.now());
                     String next = upcoming.isEmpty() ? null : upcoming.get(0).getDate().toString();
-                    return new MeResponse.ManagedFollowedBand(band.getId(), band.getName(), band.getLogoUrl(), next);
+                    return new MeResponse.ManagedFollowedBand(
+                            band.getId(), band.getName(), band.getLogoUrl(), band.getProfileImageUrl(),
+                            bandsWithActiveStory.contains(band.getId()), next
+                    );
                 })
                 .toList();
 

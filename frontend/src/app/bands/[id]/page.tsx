@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ApiError, getBand } from "@/lib/api";
+import { ApiError, getBand, getBandStories } from "@/lib/api";
 import { getSession, getToken } from "@/lib/session";
 import { canManageEntity } from "@/lib/permissions";
 import { EventCard } from "@/components/EventCard";
@@ -9,7 +9,9 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { FollowBandButton } from "@/components/FollowBandButton";
 import { ClaimButton } from "@/components/ClaimButton";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
-import { BandTitleImage, BandLogo } from "@/components/BandImages";
+import { BandTitleImage, BandProfileImage } from "@/components/BandImages";
+import { BandStoryAvatarButton } from "@/components/BandStoryAvatarButton";
+import { BandStoryComposer } from "@/components/BandStoryComposer";
 import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function BandDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +23,7 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;
   });
+  const stories = await getBandStories(bandId, token).catch(() => []);
 
   const canEdit = canManageEntity(session, "BAND", band.id);
   const following = session?.followedBands.some((b) => b.id === band.id) ?? false;
@@ -42,10 +45,23 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
 
       <div className="flex items-start gap-4">
         {canEdit ? (
-          <BandLogo band={band} />
+          <BandProfileImage band={band} />
+        ) : stories.length > 0 ? (
+          <BandStoryAvatarButton
+            bandId={band.id}
+            bandName={band.name}
+            profileImageUrl={band.profileImageUrl}
+            logoUrl={band.logoUrl}
+            size="h-16 w-16 flex-none"
+            textClassName="text-2xl"
+            preloadedStories={stories}
+          />
+        ) : band.profileImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={band.profileImageUrl} alt="" className="h-16 w-16 flex-none border border-line object-cover" />
         ) : band.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={band.logoUrl} alt="" className="h-16 w-16 flex-none border border-line object-cover" />
+          <img src={band.logoUrl} alt="" className="h-16 w-16 flex-none border border-line bg-surface object-contain p-2" />
         ) : (
           <EntityPlaceholder name={band.name} className="h-16 w-16 flex-none border border-line" textClassName="text-2xl" />
         )}
@@ -89,6 +105,7 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
             Website
           </a>
         )}
+        {canEdit && <BandStoryComposer bandId={band.id} />}
         {canEdit && (
           <Link href={`/bands/${band.id}/bearbeiten`} className="border border-line px-5 py-2 font-meta text-sm hover:border-fg">
             Bearbeiten

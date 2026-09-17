@@ -14,7 +14,9 @@ import com.giglister.exception.ForbiddenException;
 import com.giglister.exception.NotFoundException;
 import com.giglister.repository.BandFollowRepository;
 import com.giglister.repository.BandRepository;
+import com.giglister.repository.BandStoryRepository;
 import com.giglister.repository.EventRepository;
+import com.giglister.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +35,7 @@ public class BandService {
     private final BandRepository bandRepository;
     private final EventRepository eventRepository;
     private final BandFollowRepository bandFollowRepository;
+    private final BandStoryRepository bandStoryRepository;
     private final PermissionService permissionService;
     private final SummaryMapper summaryMapper;
 
@@ -84,6 +87,7 @@ public class BandService {
                 .website(request.website())
                 .logoUrl(request.logoUrl())
                 .titleImageUrl(request.titleImageUrl())
+                .profileImageUrl(request.profileImageUrl())
                 .genres(request.genres() != null ? new ArrayList<>(request.genres()) : new ArrayList<>())
                 .status(status)
                 .createdBy(createdBy)
@@ -112,6 +116,7 @@ public class BandService {
         band.setWebsite(request.website());
         band.setLogoUrl(request.logoUrl());
         band.setTitleImageUrl(request.titleImageUrl());
+        band.setProfileImageUrl(request.profileImageUrl());
         band.setGenres(request.genres() != null ? new ArrayList<>(request.genres()) : band.getGenres());
         return bandRepository.save(band);
     }
@@ -213,6 +218,7 @@ public class BandService {
             throw new ConflictException("Diese Band hat noch Konzerte und kann daher nicht gelöscht werden.");
         }
         bandFollowRepository.deleteByBandId(id);
+        bandStoryRepository.deleteByBandId(id);
         permissionService.revokeAll(EntityType.BAND, id);
         bandRepository.delete(band);
     }
@@ -227,9 +233,26 @@ public class BandService {
         return new BandResponse(
                 band.getId(), band.getName(), band.getCity(), band.getCountry(),
                 band.getShortDescription(), band.getWebsite(), band.getLogoUrl(), band.getTitleImageUrl(),
-                band.getGenres(), band.getStatus(), permissionService.isUnclaimed(EntityType.BAND, band.getId()),
+                band.getProfileImageUrl(), band.getGenres(), band.getStatus(),
+                permissionService.isUnclaimed(EntityType.BAND, band.getId()),
                 upcomingEvents(band.getId())
         );
+    }
+
+    /**
+     * PUBLISHED bands are visible to everyone. A STUB/DRAFT band has no real public profile
+     * yet, so it's hidden from anonymous visitors - but any logged-in user can still reach
+     * it, otherwise nobody could ever discover and claim a band they just saw referenced in
+     * an event's line-up. Shared with BandStoryService.listActive - a story is exactly as
+     * visible as the band it belongs to, never more.
+     */
+    public void assertVisible(Band band) {
+        if (band.getStatus() == EntityStatus.PUBLISHED) {
+            return;
+        }
+        if (CurrentUser.getOrNull() == null) {
+            throw new NotFoundException("Band " + band.getId() + " not found");
+        }
     }
 
     @Transactional

@@ -12,6 +12,7 @@ public record BandCreateRequest(
         String website,
         String logoUrl,
         String titleImageUrl,
+        String profileImageUrl,
         List<String> genres
 ) {
 }

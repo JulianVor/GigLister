@@ -14,6 +14,7 @@ public record BandResponse(
         String website,
         String logoUrl,
         String titleImageUrl,
+        String profileImageUrl,
         List<String> genres,
         EntityStatus status,
         boolean unclaimed,

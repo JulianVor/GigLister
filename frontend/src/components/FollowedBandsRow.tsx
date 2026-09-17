@@ -1,34 +1,62 @@
 import Link from "next/link";
 import { EntityPlaceholder } from "./EntityPlaceholder";
+import { BandStoryAvatarButton } from "./BandStoryAvatarButton";
 
 interface FollowedBand {
   id: number;
   name: string;
   logoUrl: string | null;
+  profileImageUrl: string | null;
+  hasActiveStory: boolean;
 }
+
+const TILE_SIZE = "h-20 w-20 sm:h-24 sm:w-24";
 
 /** A horizontally scrollable row of square band tiles - same logo-or-color-initial
  * treatment LineUp gives a band within a line-up, just sized up into its own tile with
  * the name below instead of a small avatar next to it. The only place a visitor can
  * actually see which bands they follow at a glance; before this, that list only existed
- * buried further down the homepage as plain text rows. */
+ * buried further down the homepage as plain text rows.
+ *
+ * The avatar and the name are two separate clickable elements (not one tile-wide Link)
+ * because a band with an active status needs its avatar to open the story viewer instead
+ * of navigating away - see BandStoryAvatarButton. The name below always still links to the
+ * profile either way, so a story-having band is never harder to actually visit. */
 export function FollowedBandsRow({ bands }: { bands: FollowedBand[] }) {
   return (
     <div className="flex gap-4 overflow-x-auto pb-2">
       {bands.map((band) => (
-        <Link key={band.id} href={`/bands/${band.id}`} className="w-20 flex-none text-center hover:text-accent sm:w-24">
-          {band.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={band.logoUrl}
-              alt=""
-              className="h-20 w-20 border border-line bg-surface object-contain p-2 sm:h-24 sm:w-24"
+        <div key={band.id} className="w-20 flex-none text-center sm:w-24">
+          {band.hasActiveStory ? (
+            <BandStoryAvatarButton
+              bandId={band.id}
+              bandName={band.name}
+              profileImageUrl={band.profileImageUrl}
+              logoUrl={band.logoUrl}
+              size={TILE_SIZE}
+              textClassName="text-3xl"
             />
           ) : (
-            <EntityPlaceholder name={band.name} className="h-20 w-20 sm:h-24 sm:w-24" textClassName="text-3xl" />
+            <Link href={`/bands/${band.id}`} className="block hover:text-accent">
+              {band.profileImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={band.profileImageUrl} alt="" className={`border border-line object-cover ${TILE_SIZE}`} />
+              ) : band.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={band.logoUrl}
+                  alt=""
+                  className={`border border-line bg-surface object-contain p-2 ${TILE_SIZE}`}
+                />
+              ) : (
+                <EntityPlaceholder name={band.name} className={TILE_SIZE} textClassName="text-3xl" />
+              )}
+            </Link>
           )}
-          <div className="mt-1.5 truncate font-meta text-xs">{band.name}</div>
-        </Link>
+          <Link href={`/bands/${band.id}`} className="mt-1.5 block truncate font-meta text-xs hover:text-accent">
+            {band.name}
+          </Link>
+        </div>
       ))}
     </div>
   );

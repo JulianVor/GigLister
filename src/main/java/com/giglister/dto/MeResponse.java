@@ -32,7 +32,9 @@ public record MeResponse(
     public record SavedAct(Long eventId, Long bandId) {
     }
 
-    public record ManagedFollowedBand(Long id, String name, String logoUrl, String nextEventDate) {
+    public record ManagedFollowedBand(
+            Long id, String name, String logoUrl, String profileImageUrl, boolean hasActiveStory, String nextEventDate
+    ) {
     }
 
     public record ManagedEntity(EntityType entityType, Long entityId, String name, PermissionLevel permission) {

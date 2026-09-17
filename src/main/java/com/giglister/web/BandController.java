@@ -2,7 +2,6 @@ package com.giglister.web;
 
 import com.giglister.domain.Band;
 import com.giglister.domain.Claim;
-import com.giglister.domain.enums.EntityStatus;
 import com.giglister.domain.enums.EntityType;
 import com.giglister.domain.enums.PermissionLevel;
 import com.giglister.dto.ClaimRequest;
@@ -14,7 +13,6 @@ import com.giglister.dto.admin.DuplicateCandidate;
 import com.giglister.dto.band.BandCreateRequest;
 import com.giglister.dto.band.BandResponse;
 import com.giglister.dto.band.BandUpdateRequest;
-import com.giglister.exception.NotFoundException;
 import com.giglister.security.CurrentUser;
 import com.giglister.service.BandService;
 import com.giglister.service.ClaimService;
@@ -57,23 +55,8 @@ public class BandController {
     @GetMapping("/{id}")
     public BandResponse get(@PathVariable Long id) {
         Band band = bandService.getOrThrow(id);
-        assertVisible(band);
+        bandService.assertVisible(band);
         return bandService.toResponse(band);
-    }
-
-    /**
-     * PUBLISHED bands are visible to everyone. A STUB/DRAFT band has no real
-     * public profile yet, so it's hidden from anonymous visitors - but any
-     * logged-in user can still reach it, otherwise nobody could ever discover
-     * and claim a band they just saw referenced in an event's line-up.
-     */
-    private void assertVisible(Band band) {
-        if (band.getStatus() == EntityStatus.PUBLISHED) {
-            return;
-        }
-        if (CurrentUser.getOrNull() == null) {
-            throw new NotFoundException("Band " + band.getId() + " not found");
-        }
     }
 
     @PostMapping

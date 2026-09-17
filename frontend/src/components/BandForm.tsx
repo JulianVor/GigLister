@@ -23,6 +23,7 @@ export function BandForm({ band }: { band?: BandResponse }) {
   const [website, setWebsite] = useState(band?.website ?? "");
   const [logoUrl, setLogoUrl] = useState(band?.logoUrl ?? "");
   const [titleImageUrl, setTitleImageUrl] = useState(band?.titleImageUrl ?? "");
+  const [profileImageUrl, setProfileImageUrl] = useState(band?.profileImageUrl ?? "");
   const [genres, setGenres] = useState(band?.genres.join(", ") ?? "");
   // A new band is always created as DRAFT (see BandService.create) - the status
   // field here only lets you publish it in the same step, right after creation.
@@ -40,6 +41,7 @@ export function BandForm({ band }: { band?: BandResponse }) {
       website: website || undefined,
       logoUrl: logoUrl || undefined,
       titleImageUrl: titleImageUrl || undefined,
+      profileImageUrl: profileImageUrl || undefined,
       genres: genres
         .split(",")
         .map((g) => g.trim())
@@ -96,7 +98,10 @@ export function BandForm({ band }: { band?: BandResponse }) {
       <Field label="Website">
         <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} className="input" />
       </Field>
-      <Field label="Logo">
+      <Field label="Profilbild">
+        <ImageUploadField value={profileImageUrl} onChange={setProfileImageUrl} aspect="square" />
+      </Field>
+      <Field label="Logo (Fallback, falls kein Profilbild gesetzt ist)">
         <ImageUploadField value={logoUrl} onChange={setLogoUrl} aspect="square" />
       </Field>
       <Field label="Titelbild">

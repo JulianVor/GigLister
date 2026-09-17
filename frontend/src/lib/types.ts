@@ -133,10 +133,19 @@ export interface BandResponse {
   website: string | null;
   logoUrl: string | null;
   titleImageUrl: string | null;
+  profileImageUrl: string | null;
   genres: string[];
   status: EntityStatus;
   unclaimed: boolean;
   upcomingEvents: EventSummary[];
+}
+
+export interface BandStory {
+  id: number;
+  imageUrl: string;
+  text: string | null;
+  createdAt: string;
+  expiresAt: string;
 }
 
 export interface AuthResponse {
@@ -176,7 +185,14 @@ export interface MeResponse {
   /** Individual festival acts (band-within-event) gemerkt - every one implies its eventId
    * is also in savedEvents (see UserService.saveAct), the reverse isn't true. */
   savedActs: { eventId: number; bandId: number }[];
-  followedBands: { id: number; name: string; logoUrl: string | null; nextEventDate: string | null }[];
+  followedBands: {
+    id: number;
+    name: string;
+    logoUrl: string | null;
+    profileImageUrl: string | null;
+    hasActiveStory: boolean;
+    nextEventDate: string | null;
+  }[];
   managedEntities: {
     entityType: EntityType;
     entityId: number;

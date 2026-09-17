@@ -10,6 +10,7 @@ import type {
   AuthResponse,
   BandImageDisplay,
   BandResponse,
+  BandStory,
   CalendarDayCount,
   ClaimResponse,
   DiscoverResponse,
@@ -262,6 +263,7 @@ export interface BandInput {
   website?: string;
   logoUrl?: string;
   titleImageUrl?: string;
+  profileImageUrl?: string;
   genres?: string[];
 }
 
@@ -304,6 +306,18 @@ export function followBand(id: number, token: string) {
 
 export function unfollowBand(id: number, token: string) {
   return apiFetch<void>(`/api/bands/${id}/follow`, { method: "DELETE", token });
+}
+
+export function getBandStories(id: number, token?: string) {
+  return apiFetch<BandStory[]>(`/api/bands/${id}/stories`, { token });
+}
+
+export function createBandStory(id: number, data: { imageUrl: string; text?: string }, token: string) {
+  return apiFetch<BandStory>(`/api/bands/${id}/stories`, { method: "POST", body: data, token });
+}
+
+export function deleteBandStory(id: number, storyId: number, token: string) {
+  return apiFetch<void>(`/api/bands/${id}/stories/${storyId}`, { method: "DELETE", token });
 }
 
 // --- Locations ---

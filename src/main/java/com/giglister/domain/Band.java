@@ -41,6 +41,11 @@ public class Band {
 
     private String titleImageUrl;
 
+    // Set explicitly via the band's own page (see BandProfileImage) - logoUrl is only ever
+    // its fallback (StoryRing avatars, FollowedBandsRow), never overwritten by it, so a band
+    // that only ever uploaded a logo keeps showing that until it deliberately sets one of these.
+    private String profileImageUrl;
+
     // Eager for the same reason as Event.bandIds - DTO mapping happens outside the transaction.
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "band_genre", joinColumns = @JoinColumn(name = "band_id"))
