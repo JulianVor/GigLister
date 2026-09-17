@@ -158,7 +158,7 @@ export function BandStoryViewer({
               click as a no-op navigation and never unmounts this dialog - closing it explicitly
               is what actually reveals the profile underneath either way. */}
           <Link href={`/bands/${bandId}`} onClick={onClose} className="flex min-w-0 items-center gap-2">
-            <span className="h-7 w-7 flex-none overflow-hidden rounded-full border border-white/40">
+            <span className="h-7 w-7 flex-none overflow-hidden border border-white/40">
               {profileImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={profileImageUrl} alt="" className="h-full w-full object-cover" />
