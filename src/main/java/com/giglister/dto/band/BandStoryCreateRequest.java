@@ -6,12 +6,14 @@ import jakarta.validation.constraints.Size;
 public record BandStoryCreateRequest(
         @NotBlank String imageUrl,
         @Size(max = 280) String text,
-        // How the band positioned/zoomed imageUrl within the 9:16 story frame - see
-        // BandStory.imgWidthPct and BandStoryComposer on the frontend. All four together or
-        // none - the frontend always sends all four.
+        // How the band positioned/scaled/rotated imageUrl within the 9:16 story frame - see
+        // BandStory.imgWidthPct and BandStoryComposer on the frontend. All five together or
+        // none - the frontend always sends all five.
         Double imgWidthPct,
         Double imgHeightPct,
-        Double imgOffsetLeftPct,
-        Double imgOffsetTopPct
+        Double imgCenterXPct,
+        Double imgCenterYPct,
+        Double imgRotationDeg,
+        String imgBackgroundColor
 ) {
 }

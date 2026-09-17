@@ -8,8 +8,10 @@ public record BandStoryResponse(
         String text,
         Double imgWidthPct,
         Double imgHeightPct,
-        Double imgOffsetLeftPct,
-        Double imgOffsetTopPct,
+        Double imgCenterXPct,
+        Double imgCenterYPct,
+        Double imgRotationDeg,
+        String imgBackgroundColor,
         Instant createdAt,
         Instant expiresAt
 ) {

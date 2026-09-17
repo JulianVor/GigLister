@@ -37,8 +37,10 @@ public class BandStoryService {
                 .text(request.text())
                 .imgWidthPct(request.imgWidthPct())
                 .imgHeightPct(request.imgHeightPct())
-                .imgOffsetLeftPct(request.imgOffsetLeftPct())
-                .imgOffsetTopPct(request.imgOffsetTopPct())
+                .imgCenterXPct(request.imgCenterXPct())
+                .imgCenterYPct(request.imgCenterYPct())
+                .imgRotationDeg(request.imgRotationDeg())
+                .imgBackgroundColor(request.imgBackgroundColor())
                 .build();
         return bandStoryRepository.save(story);
     }
@@ -61,7 +63,8 @@ public class BandStoryService {
     public BandStoryResponse toResponse(BandStory story) {
         return new BandStoryResponse(
                 story.getId(), story.getImageUrl(), story.getText(),
-                story.getImgWidthPct(), story.getImgHeightPct(), story.getImgOffsetLeftPct(), story.getImgOffsetTopPct(),
+                story.getImgWidthPct(), story.getImgHeightPct(),
+                story.getImgCenterXPct(), story.getImgCenterYPct(), story.getImgRotationDeg(), story.getImgBackgroundColor(),
                 story.getCreatedAt(), story.getExpiresAt()
         );
     }

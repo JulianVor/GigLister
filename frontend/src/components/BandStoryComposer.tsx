@@ -9,53 +9,103 @@ const TEXT_MAX_LENGTH = 280;
 // Same frame the viewer actually shows the story in (see BandStoryViewer) - the crop only
 // reproduces faithfully if both sides agree on what shape "the frame" is.
 const FRAME_ASPECT = 9 / 16;
-const MAX_ZOOM = 3;
+// scale=1 always means "the whole photo is visible" (fit) - there's no forced minimum crop
+// anymore, per the band's own request: zooming out all the way should show the entire image,
+// with whatever's left of the frame filled by imgBackgroundColor rather than always cropping.
+const MIN_SCALE = 1;
+const MAX_SCALE = 5;
+const FALLBACK_BG = "#111111";
 
-interface Crop {
+interface Transform {
   widthPct: number;
   heightPct: number;
-  leftPct: number;
-  topPct: number;
+  centerXPct: number;
+  centerYPct: number;
+  rotationDeg: number;
 }
 
-/** The size (as % of the frame) at which an image of this aspect ratio exactly covers the
- * frame with no gaps - the zoom=1 baseline everything else scales up from. */
-function coverSize(imgAspect: number): { widthPct: number; heightPct: number } {
+/** The size (as % of the frame) at which an image of this aspect ratio is entirely visible
+ * within the frame (letterboxed on one axis unless the ratios match exactly) - the scale=1
+ * baseline everything else scales up from. */
+function fitSize(imgAspect: number): { widthPct: number; heightPct: number } {
   if (imgAspect > FRAME_ASPECT) {
-    return { widthPct: (imgAspect / FRAME_ASPECT) * 100, heightPct: 100 };
+    return { widthPct: 100, heightPct: (FRAME_ASPECT / imgAspect) * 100 };
   }
-  return { widthPct: 100, heightPct: (FRAME_ASPECT / imgAspect) * 100 };
+  return { widthPct: (imgAspect / FRAME_ASPECT) * 100, heightPct: 100 };
 }
 
-function clampOffset(offset: number, sizePct: number): number {
-  return Math.min(0, Math.max(100 - sizePct, offset));
+function sizeAtScale(imgAspect: number, scale: number) {
+  const fit = fitSize(imgAspect);
+  return { widthPct: fit.widthPct * scale, heightPct: fit.heightPct * scale };
 }
 
-function centeredCrop(imgAspect: number, zoom: number): Crop {
-  const base = coverSize(imgAspect);
-  const widthPct = base.widthPct * zoom;
-  const heightPct = base.heightPct * zoom;
-  return {
-    widthPct,
-    heightPct,
-    leftPct: clampOffset((100 - widthPct) / 2, widthPct),
-    topPct: clampOffset((100 - heightPct) / 2, heightPct),
-  };
+// Loose safety bound only - keeps a wild drag from losing the image entirely off-frame.
+// Not "always cover the frame" anymore: gaps are fine now, imgBackgroundColor fills them.
+function clampCenter(pct: number): number {
+  return Math.min(150, Math.max(-50, pct));
 }
 
-/** Drag-to-position, slider-to-zoom editor for fitting a photo into the 9:16 story frame
- * before posting - same "move and scale" step Instagram/WhatsApp give you, because a band's
- * source image (a flyer, a landscape photo, whatever) rarely already has the story's own
- * aspect ratio. Purely a positioning tool: the source image is never modified, only the four
+/** Average color sampled from the photo (a 1x1 canvas draw does a cheap area-average via the
+ * browser's own downscaling) - used to fill whatever the image doesn't cover once it's no
+ * longer forced to cover the whole frame. Needs crossOrigin on the loader (not on the live
+ * preview <img>, which never reads pixels) since the upload is served from a different origin
+ * than the frontend in dev - falls back to null (caller uses FALLBACK_BG) if that's blocked
+ * for any reason, e.g. a stricter CORS setup elsewhere. */
+function sampleAverageColor(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, 1, 1);
+        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+        resolve(`#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+/** Drag-to-position, slider-to-zoom-and-rotate editor for fitting a photo into the 9:16 story
+ * frame before posting - same "move and scale" step Instagram/WhatsApp give you, because a
+ * band's source image (a flyer, a landscape photo, whatever) rarely already has the story's
+ * own aspect ratio. Purely a positioning tool: the source image is never modified, only a few
  * numbers describing where it sits get saved (see CroppedStoryImage, which reproduces this
  * exact same view everywhere the story is then shown). */
-function StoryCropEditor({ imageUrl, crop, onCropChange }: { imageUrl: string; crop: Crop; onCropChange: (crop: Crop) => void }) {
+function StoryCropEditor({
+  imageUrl,
+  transform,
+  onTransformChange,
+  bgColor,
+}: {
+  imageUrl: string;
+  transform: Transform;
+  onTransformChange: (transform: Transform) => void;
+  bgColor: string | null;
+}) {
   const frameRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef({ active: false, startClientX: 0, startClientY: 0, startLeft: 0, startTop: 0 });
+  const dragRef = useRef({ active: false, startClientX: 0, startClientY: 0, startCenterX: 0, startCenterY: 0 });
 
   function onPointerDown(e: React.PointerEvent) {
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = { active: true, startClientX: e.clientX, startClientY: e.clientY, startLeft: crop.leftPct, startTop: crop.topPct };
+    dragRef.current = {
+      active: true,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startCenterX: transform.centerXPct,
+      startCenterY: transform.centerYPct,
+    };
   }
 
   function onPointerMove(e: React.PointerEvent) {
@@ -63,10 +113,10 @@ function StoryCropEditor({ imageUrl, crop, onCropChange }: { imageUrl: string; c
     const rect = frameRef.current.getBoundingClientRect();
     const dxPct = ((e.clientX - dragRef.current.startClientX) / rect.width) * 100;
     const dyPct = ((e.clientY - dragRef.current.startClientY) / rect.height) * 100;
-    onCropChange({
-      ...crop,
-      leftPct: clampOffset(dragRef.current.startLeft + dxPct, crop.widthPct),
-      topPct: clampOffset(dragRef.current.startTop + dyPct, crop.heightPct),
+    onTransformChange({
+      ...transform,
+      centerXPct: clampCenter(dragRef.current.startCenterX + dxPct),
+      centerYPct: clampCenter(dragRef.current.startCenterY + dyPct),
     });
   }
 
@@ -77,7 +127,8 @@ function StoryCropEditor({ imageUrl, crop, onCropChange }: { imageUrl: string; c
   return (
     <div
       ref={frameRef}
-      className="relative mt-3 aspect-[9/16] w-full touch-none overflow-hidden border border-line bg-black"
+      className="relative mt-3 aspect-[9/16] w-full touch-none overflow-hidden border border-line"
+      style={{ backgroundColor: bgColor ?? FALLBACK_BG }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -89,7 +140,13 @@ function StoryCropEditor({ imageUrl, crop, onCropChange }: { imageUrl: string; c
         alt=""
         draggable={false}
         className="absolute max-w-none cursor-move select-none"
-        style={{ width: `${crop.widthPct}%`, height: `${crop.heightPct}%`, left: `${crop.leftPct}%`, top: `${crop.topPct}%` }}
+        style={{
+          left: `${transform.centerXPct}%`,
+          top: `${transform.centerYPct}%`,
+          width: `${transform.widthPct}%`,
+          height: `${transform.heightPct}%`,
+          transform: `translate(-50%, -50%) rotate(${transform.rotationDeg}deg)`,
+        }}
       />
     </div>
   );
@@ -97,15 +154,16 @@ function StoryCropEditor({ imageUrl, crop, onCropChange }: { imageUrl: string; c
 
 /** "Status posten" - the entry point a band's own manager uses to publish a new 24h status
  * (see BandStoryAvatarButton/BandStoryViewer for how everyone else then sees it). Upload a
- * photo, position/zoom it to fit the frame, optionally caption it, then post - unlike
+ * photo, position/zoom/rotate it to fit the frame, optionally caption it, then post - unlike
  * PasteImageUpload elsewhere, the image alone isn't persisted onto anything until "Posten"
  * (there's nothing sensible to save it onto before the story itself exists). */
 export function BandStoryComposer({ bandId }: { bandId: number }) {
   const [open, setOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imgAspect, setImgAspect] = useState<number | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [crop, setCrop] = useState<Crop | null>(null);
+  const [scale, setScale] = useState(MIN_SCALE);
+  const [transform, setTransform] = useState<Transform | null>(null);
+  const [bgColor, setBgColor] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -116,8 +174,9 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     setOpen(false);
     setImageUrl(null);
     setImgAspect(null);
-    setZoom(1);
-    setCrop(null);
+    setScale(MIN_SCALE);
+    setTransform(null);
+    setBgColor(null);
     setText("");
     setError(null);
   }
@@ -137,53 +196,52 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     setUploading(true);
     startTransition(async () => {
       const result = await uploadImageAction(formData);
-      setUploading(false);
       if (!result.ok) {
+        setUploading(false);
         setError(result.error);
         return;
       }
       const url = result.data.url;
       const probe = new Image();
-      probe.onload = () => {
+      probe.onload = async () => {
         const aspect = probe.naturalWidth / probe.naturalHeight;
+        const size = sizeAtScale(aspect, MIN_SCALE);
         setImgAspect(aspect);
-        setZoom(1);
-        setCrop(centeredCrop(aspect, 1));
+        setScale(MIN_SCALE);
+        setTransform({ widthPct: size.widthPct, heightPct: size.heightPct, centerXPct: 50, centerYPct: 50, rotationDeg: 0 });
         setImageUrl(url);
+        setUploading(false);
+        setBgColor(await sampleAverageColor(url));
       };
       probe.src = url;
     });
   }
 
-  function handleZoomChange(newZoom: number) {
-    setZoom(newZoom);
-    if (imgAspect == null || !crop) return;
-    const base = coverSize(imgAspect);
-    const widthPct = base.widthPct * newZoom;
-    const heightPct = base.heightPct * newZoom;
-    // Keep whatever's currently centered in the frame centered after rescaling, instead of
-    // always re-centering on the image's own middle.
-    const centerFracX = (50 - crop.leftPct) / crop.widthPct;
-    const centerFracY = (50 - crop.topPct) / crop.heightPct;
-    setCrop({
-      widthPct,
-      heightPct,
-      leftPct: clampOffset(50 - centerFracX * widthPct, widthPct),
-      topPct: clampOffset(50 - centerFracY * heightPct, heightPct),
-    });
+  function handleScaleChange(newScale: number) {
+    setScale(newScale);
+    if (imgAspect == null || !transform) return;
+    const size = sizeAtScale(imgAspect, newScale);
+    setTransform({ ...transform, widthPct: size.widthPct, heightPct: size.heightPct });
+  }
+
+  function handleRotationChange(deg: number) {
+    if (!transform) return;
+    setTransform({ ...transform, rotationDeg: deg });
   }
 
   function submit() {
-    if (!imageUrl || !crop) return;
+    if (!imageUrl || !transform) return;
     setError(null);
     startTransition(async () => {
       const result = await createBandStoryAction(bandId, {
         imageUrl,
         text: text.trim() || undefined,
-        imgWidthPct: crop.widthPct,
-        imgHeightPct: crop.heightPct,
-        imgOffsetLeftPct: crop.leftPct,
-        imgOffsetTopPct: crop.topPct,
+        imgWidthPct: transform.widthPct,
+        imgHeightPct: transform.heightPct,
+        imgCenterXPct: transform.centerXPct,
+        imgCenterYPct: transform.centerYPct,
+        imgRotationDeg: transform.rotationDeg,
+        imgBackgroundColor: bgColor ?? FALLBACK_BG,
       });
       if (!result.ok) {
         setError(result.error ?? "Posten fehlgeschlagen.");
@@ -215,7 +273,7 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
           </button>
         </div>
 
-        {!imageUrl || !crop ? (
+        {!imageUrl || !transform ? (
           <div
             role="button"
             tabIndex={0}
@@ -231,18 +289,35 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
           </div>
         ) : (
           <>
-            <StoryCropEditor imageUrl={imageUrl} crop={crop} onCropChange={setCrop} />
+            <StoryCropEditor imageUrl={imageUrl} transform={transform} onTransformChange={setTransform} bgColor={bgColor} />
             <p className="mt-1 font-meta text-xs text-muted">Ziehen zum Verschieben</p>
-            <input
-              type="range"
-              min={1}
-              max={MAX_ZOOM}
-              step={0.01}
-              value={zoom}
-              onChange={(e) => handleZoomChange(Number(e.target.value))}
-              aria-label="Zoom"
-              className="mt-2 w-full"
-            />
+
+            <label className="mt-2 flex items-center gap-2" htmlFor="story-zoom">
+              <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Zoom</span>
+              <input
+                id="story-zoom"
+                type="range"
+                min={MIN_SCALE}
+                max={MAX_SCALE}
+                step={0.01}
+                value={scale}
+                onChange={(e) => handleScaleChange(Number(e.target.value))}
+                className="w-full"
+              />
+            </label>
+            <label className="mt-2 flex items-center gap-2" htmlFor="story-rotation">
+              <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Drehen</span>
+              <input
+                id="story-rotation"
+                type="range"
+                min={-180}
+                max={180}
+                step={1}
+                value={transform.rotationDeg}
+                onChange={(e) => handleRotationChange(Number(e.target.value))}
+                className="w-full"
+              />
+            </label>
 
             <label className="mt-3 block font-meta text-xs uppercase tracking-wide text-muted" htmlFor="story-text">
               Text (optional)
@@ -282,7 +357,7 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
           <button
             type="button"
             onClick={submit}
-            disabled={!imageUrl || !crop || pending}
+            disabled={!imageUrl || !transform || pending}
             className="bg-accent px-5 py-2 font-meta text-sm text-accent-fg disabled:opacity-50"
           >
             {pending ? "Wird gepostet …" : "Posten"}

@@ -317,8 +317,10 @@ export interface BandStoryInput {
   text?: string;
   imgWidthPct: number;
   imgHeightPct: number;
-  imgOffsetLeftPct: number;
-  imgOffsetTopPct: number;
+  imgCenterXPct: number;
+  imgCenterYPct: number;
+  imgRotationDeg: number;
+  imgBackgroundColor: string;
 }
 
 export function createBandStory(id: number, data: BandStoryInput, token: string) {

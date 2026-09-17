@@ -133,8 +133,10 @@ export function BandStoryViewer({
           src={story.imageUrl}
           widthPct={story.imgWidthPct}
           heightPct={story.imgHeightPct}
-          offsetLeftPct={story.imgOffsetLeftPct}
-          offsetTopPct={story.imgOffsetTopPct}
+          centerXPct={story.imgCenterXPct}
+          centerYPct={story.imgCenterYPct}
+          rotationDeg={story.imgRotationDeg}
+          backgroundColor={story.imgBackgroundColor}
         />
 
         {story.text && (

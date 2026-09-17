@@ -32,16 +32,21 @@ public class BandStory {
     @Column(length = 280)
     private String text;
 
-    // How the band positioned/zoomed imageUrl within the 9:16 story frame (see
-    // BandStoryComposer) - the image itself is never modified, these four numbers alone are
-    // enough to reproduce the exact same crop everywhere the story is shown (see
-    // CroppedStoryImage on the frontend). Nullable so a story predating this feature (none
-    // exist yet, but the columns are nullable defensively) just falls back to plain
-    // object-contain instead of breaking.
+    // How the band positioned/scaled/rotated imageUrl within the 9:16 story frame (see
+    // BandStoryComposer) - the image itself is never modified, these numbers alone are enough
+    // to reproduce the exact same view everywhere the story is shown (see CroppedStoryImage
+    // on the frontend). Center-based (not top-left-based) so rotating around it is simple CSS.
+    // Nullable so a story predating this feature (none exist yet, but the columns are nullable
+    // defensively) just falls back to plain object-contain instead of breaking.
     private Double imgWidthPct;
     private Double imgHeightPct;
-    private Double imgOffsetLeftPct;
-    private Double imgOffsetTopPct;
+    private Double imgCenterXPct;
+    private Double imgCenterYPct;
+    private Double imgRotationDeg;
+    // Fills whatever the image doesn't cover (it's never forced to cover the whole frame
+    // anymore - the band can zoom out until the entire photo is visible, or rotate it,
+    // leaving gaps) - the average color sampled from the photo itself, not a flat black.
+    private String imgBackgroundColor;
 
     @Column(nullable = false)
     private Instant createdAt;
