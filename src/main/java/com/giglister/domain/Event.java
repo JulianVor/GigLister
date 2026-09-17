@@ -1,5 +1,6 @@
 package com.giglister.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.giglister.domain.enums.BandImageDisplay;
 import com.giglister.domain.enums.EventStatus;
 import jakarta.persistence.*;
@@ -57,7 +58,14 @@ public class Event {
 
     /** Convenience over bandLineup for callers that only need "which bands, in order" -
      * permission checks, genre filtering, notifications, admin listings, search... -
-     * without caring about each band's own optional start time. */
+     * without caring about each band's own optional start time. @JsonIgnore: without it,
+     * this getter-shaped derived method leaks in as a plain "bandIds" JSON property
+     * wherever an Event is serialized directly (see DataTransferService) - harmless on
+     * its own, except Jackson deserializing that same JSON back finds no setBandIds() but
+     * does find this getter, and falls back to calling it and mutating the list it
+     * returns in place; Stream#toList()'s result is immutable, so that throws
+     * UnsupportedOperationException on every re-import. */
+    @JsonIgnore
     public List<Long> getBandIds() {
         return bandLineup.stream().map(BandLineupEntry::getBandId).toList();
     }

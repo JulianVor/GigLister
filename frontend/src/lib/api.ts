@@ -498,6 +498,28 @@ export function getAdminUserDetail(id: number, token: string) {
   return apiFetch<MeResponse>(`/api/admin/users/${id}`, { token });
 }
 
+/** Raw Response, not parsed JSON like apiFetch - the /admin/data/export route handler
+ * streams this straight through as a file download, body and Content-Disposition header
+ * both untouched. See AdminController.exportData. */
+export function exportAllData(token: string) {
+  return fetch(`${API_BASE_URL}/api/admin/data/export`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+}
+
+/** Also a raw Response - the /admin/data/import route handler already has the request
+ * body as plain text (from the browser's own fetch), so this just forwards it exactly as
+ * received rather than round-tripping it through JSON.parse/stringify. See
+ * AdminController.importData. */
+export function importAllData(rawBody: string, token: string) {
+  return fetch(`${API_BASE_URL}/api/admin/data/import`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: rawBody,
+  });
+}
+
 /** No password in the request - the backend generates a temporary one and hands it back
  * once, in the response, for the admin to pass along to the new user themselves. */
 export function createAdminUser(data: { email: string; username: string }, token: string) {

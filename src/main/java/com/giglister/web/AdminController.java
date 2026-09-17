@@ -25,6 +25,7 @@ import com.giglister.security.CurrentUser;
 import com.giglister.service.AdminService;
 import com.giglister.service.BandService;
 import com.giglister.service.ClaimService;
+import com.giglister.service.DataTransferService;
 import com.giglister.service.LocationService;
 import com.giglister.service.MergeService;
 import com.giglister.service.SubmissionService;
@@ -32,10 +33,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -53,10 +57,29 @@ public class AdminController {
     private final SubmissionService submissionService;
     private final LocationService locationService;
     private final BandService bandService;
+    private final DataTransferService dataTransferService;
 
     @GetMapping("/dashboard")
     public AdminDashboardResponse dashboard() {
         return adminService.dashboard();
+    }
+
+    /** Every row in every table, as one JSON file - see DataTransferService. */
+    @GetMapping("/data/export")
+    public ResponseEntity<DataTransferService.DataExport> exportData() {
+        DataTransferService.DataExport data = dataTransferService.exportAll();
+        String filename = "giglister-export-" + DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.now()) + ".json";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(data);
+    }
+
+    /** Replaces every row in every table with what's in the uploaded export - see
+     * DataTransferService.importAll for why this needs request.confirm() to exactly
+     * match CONFIRMATION_PHRASE. */
+    @PostMapping("/data/import")
+    public DataTransferService.ImportResult importData(@RequestBody DataTransferService.ImportRequest request) {
+        return dataTransferService.importAll(request);
     }
 
     @GetMapping("/duplicates")
