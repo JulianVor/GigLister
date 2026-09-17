@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { deleteBandStoryAction } from "@/actions/bands";
 import { CroppedStoryImage } from "@/components/CroppedStoryImage";
 import { parseTextLayers } from "@/lib/storyTextLayers";
 import type { BandStory } from "@/lib/types";
@@ -52,15 +53,24 @@ function StoryProgressSegment({
  * shape as Instagram/WhatsApp Status. Full-bleed on mobile; a centered phone-shaped card with
  * a dark backdrop on anything wide enough (sm:) to have room around it. */
 export function BandStoryViewer({
+  bandId,
   bandName,
-  stories,
+  stories: initialStories,
+  canManage = false,
   onClose,
 }: {
+  bandId: number;
   bandName: string;
   stories: BandStory[];
+  /** Whether the current visitor manages this band - shows a "Löschen" button per story. */
+  canManage?: boolean;
   onClose: () => void;
 }) {
+  // Its own copy, not the prop directly - deleting a story removes it from here so the
+  // viewer can keep showing the rest without waiting on a refetch from the parent.
+  const [stories, setStories] = useState(initialStories);
   const [index, setIndex] = useState(0);
+  const [deleting, setDeleting] = useState(false);
   const pausedRef = useRef(false);
 
   const goNext = useCallback(() => {
@@ -71,6 +81,23 @@ export function BandStoryViewer({
 
   function goPrev() {
     setIndex((i) => Math.max(0, i - 1));
+  }
+
+  async function handleDelete() {
+    const story = stories[index];
+    if (!story || deleting) return;
+    if (!window.confirm("Diesen Status wirklich löschen?")) return;
+    setDeleting(true);
+    const result = await deleteBandStoryAction(bandId, story.id);
+    setDeleting(false);
+    if (!result.ok) return;
+    const remaining = stories.filter((s) => s.id !== story.id);
+    if (remaining.length === 0) {
+      onClose();
+      return;
+    }
+    setStories(remaining);
+    setIndex((i) => Math.min(i, remaining.length - 1));
   }
 
   useEffect(() => {
@@ -120,14 +147,26 @@ export function BandStoryViewer({
 
         <div className="absolute inset-x-0 top-4 z-10 flex items-center justify-between px-3">
           <span className="font-meta text-sm font-medium text-white drop-shadow">{bandName}</span>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Schließen"
-            className="px-2 py-1 font-meta text-lg leading-none text-white/90 hover:text-white"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-3">
+            {canManage && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="font-meta text-xs text-white/90 underline hover:text-white disabled:opacity-60"
+              >
+                {deleting ? "Wird gelöscht …" : "Löschen"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Schließen"
+              className="px-2 py-1 font-meta text-lg leading-none text-white/90 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <CroppedStoryImage

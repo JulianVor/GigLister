@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { FollowBandButton } from "@/components/FollowBandButton";
 import { ClaimButton } from "@/components/ClaimButton";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
-import { BandTitleImage, BandProfileImage } from "@/components/BandImages";
+import { BandTitleImage } from "@/components/BandImages";
 import { BandStoryAvatarButton } from "@/components/BandStoryAvatarButton";
 import { BandStoryComposer } from "@/components/BandStoryComposer";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -44,9 +44,7 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
       )}
 
       <div className="flex items-start gap-4">
-        {canEdit ? (
-          <BandProfileImage band={band} hasActiveStory={stories.length > 0} />
-        ) : stories.length > 0 ? (
+        {stories.length > 0 ? (
           <BandStoryAvatarButton
             bandId={band.id}
             bandName={band.name}
@@ -55,6 +53,7 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
             size="h-16 w-16 flex-none"
             textClassName="text-2xl"
             preloadedStories={stories}
+            canManage={canEdit}
           />
         ) : band.profileImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

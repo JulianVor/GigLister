@@ -24,6 +24,7 @@ export function BandStoryAvatarButton({
   size,
   textClassName,
   preloadedStories,
+  canManage = false,
 }: {
   bandId: number;
   bandName: string;
@@ -32,6 +33,9 @@ export function BandStoryAvatarButton({
   size: string;
   textClassName?: string;
   preloadedStories?: BandStory[];
+  /** Whether the current visitor manages this band - shows a "Löschen" button inside the
+   * viewer for each story when true (see BandStoryViewer). */
+  canManage?: boolean;
 }) {
   const [stories, setStories] = useState<BandStory[] | null>(preloadedStories ?? null);
   const [open, setOpen] = useState(false);
@@ -80,7 +84,13 @@ export function BandStoryAvatarButton({
         </StoryRing>
       </button>
       {open && stories && stories.length > 0 && (
-        <BandStoryViewer bandName={bandName} stories={stories} onClose={() => setOpen(false)} />
+        <BandStoryViewer
+          bandId={bandId}
+          bandName={bandName}
+          stories={stories}
+          canManage={canManage}
+          onClose={() => setOpen(false)}
+        />
       )}
     </>
   );

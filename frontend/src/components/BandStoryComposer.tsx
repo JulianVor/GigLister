@@ -98,29 +98,66 @@ function getIsTouchPrimaryServerSnapshot() {
   return false;
 }
 
-/** Average color sampled from the photo (a 1x1 canvas draw does a cheap area-average via the
- * browser's own downscaling) - used to fill whatever the image doesn't cover once it's no
- * longer forced to cover the whole frame. Needs crossOrigin on the loader (not on the live
- * preview <img>, which never reads pixels) since the upload is served from a different origin
- * than the frontend in dev - falls back to null (caller uses FALLBACK_BG) if that's blocked
- * for any reason, e.g. a stricter CORS setup elsewhere. */
-function sampleAverageColor(url: string): Promise<string | null> {
+// Downscale target for dominant-color sampling - plenty of pixels for a stable histogram
+// without reading full-resolution image data.
+const DOMINANT_COLOR_SAMPLE_SIZE = 48;
+// Quantization step per RGB channel (256/24 ≈ 11 buckets/channel) - coarse enough that
+// near-identical shades of the same color count as "the same" color instead of splitting
+// its vote across dozens of 1-off buckets, which would let a visually negligible color win
+// on a technicality.
+const DOMINANT_COLOR_BUCKET_SIZE = 24;
+
+/** The color that actually appears most often in the photo (not a blend of every pixel - a
+ * flag with three equal-sized stripes should come back as one of those three colors, not the
+ * muddy average of all of them) - used to fill whatever the image doesn't cover once it's no
+ * longer forced to cover the whole frame. Downscales onto a small canvas, buckets every pixel
+ * into a coarse RGB grid, and returns the actual average color of pixels in the bucket with
+ * the most votes (truer to what's actually there than just the bucket's quantized center).
+ * Needs crossOrigin on the loader (not on the live preview <img>, which never reads pixels)
+ * since the upload is served from a different origin than the frontend in dev - falls back to
+ * null (caller uses FALLBACK_BG) if that's blocked for any reason, e.g. a stricter CORS setup
+ * elsewhere. */
+function sampleDominantColor(url: string): Promise<string | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
+        const size = DOMINANT_COLOR_SAMPLE_SIZE;
         const canvas = document.createElement("canvas");
-        canvas.width = 1;
-        canvas.height = 1;
+        canvas.width = size;
+        canvas.height = size;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
           resolve(null);
           return;
         }
-        ctx.drawImage(img, 0, 0, 1, 1);
-        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-        resolve(`#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`);
+        ctx.drawImage(img, 0, 0, size, size);
+        const { data } = ctx.getImageData(0, 0, size, size);
+        const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 200) continue; // skip (near-)transparent pixels
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const key = `${Math.floor(r / DOMINANT_COLOR_BUCKET_SIZE)}_${Math.floor(g / DOMINANT_COLOR_BUCKET_SIZE)}_${Math.floor(b / DOMINANT_COLOR_BUCKET_SIZE)}`;
+          const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
+          bucket.count++;
+          bucket.r += r;
+          bucket.g += g;
+          bucket.b += b;
+          buckets.set(key, bucket);
+        }
+        let dominant: { count: number; r: number; g: number; b: number } | null = null;
+        for (const bucket of buckets.values()) {
+          if (!dominant || bucket.count > dominant.count) dominant = bucket;
+        }
+        if (!dominant) {
+          resolve(null);
+          return;
+        }
+        const rgb = [dominant.r, dominant.g, dominant.b].map((c) => Math.round(c / dominant!.count));
+        resolve(`#${rgb.map((c) => c.toString(16).padStart(2, "0")).join("")}`);
       } catch {
         resolve(null);
       }
@@ -499,7 +536,7 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
         setTransform({ widthPct: size.widthPct, heightPct: size.heightPct, centerXPct: 50, centerYPct: 50, rotationDeg: 0 });
         setImageUrl(url);
         setUploading(false);
-        setBgColor(await sampleAverageColor(url));
+        setBgColor(await sampleDominantColor(url));
       };
       probe.src = url;
     });

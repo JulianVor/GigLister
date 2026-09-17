@@ -24,7 +24,11 @@ const TILE_SIZE = "h-20 w-20 sm:h-24 sm:w-24";
  * profile either way, so a story-having band is never harder to actually visit. */
 export function FollowedBandsRow({ bands }: { bands: FollowedBand[] }) {
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
+    // p-1.5 (not just pb-2): overflow-x-auto also clips vertically (setting only one axis to a
+    // non-visible overflow makes the browser compute the other as auto too - a CSS overflow
+    // quirk), and StoryRing's colorful ring extends 6px past each tile on every side, so it
+    // needs breathing room on top/left/right too, not just underneath.
+    <div className="flex gap-4 overflow-x-auto p-1.5">
       {bands.map((band) => (
         <div key={band.id} className="w-20 flex-none text-center sm:w-24">
           {band.hasActiveStory ? (
