@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { uploadImageAction } from "@/actions/uploads";
 import { createBandStoryAction } from "@/actions/bands";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
@@ -24,6 +24,11 @@ interface Transform {
   rotationDeg: number;
 }
 
+interface Point {
+  x: number;
+  y: number;
+}
+
 /** The size (as % of the frame) at which an image of this aspect ratio is entirely visible
  * within the frame (letterboxed on one axis unless the ratios match exactly) - the scale=1
  * baseline everything else scales up from. */
@@ -39,10 +44,43 @@ function sizeAtScale(imgAspect: number, scale: number) {
   return { widthPct: fit.widthPct * scale, heightPct: fit.heightPct * scale };
 }
 
-// Loose safety bound only - keeps a wild drag from losing the image entirely off-frame.
-// Not "always cover the frame" anymore: gaps are fine now, imgBackgroundColor fills them.
+function scaleOf(transform: Transform, imgAspect: number): number {
+  return transform.widthPct / fitSize(imgAspect).widthPct;
+}
+
+// Loose safety bound only - keeps a wild drag/pinch from losing the image entirely off-frame
+// or scaling it away to nothing/absurdly large. Not "always cover the frame": gaps are fine
+// now, imgBackgroundColor fills them.
 function clampCenter(pct: number): number {
   return Math.min(150, Math.max(-50, pct));
+}
+
+function clampScale(scale: number): number {
+  return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
+}
+
+const TOUCH_PRIMARY_QUERY = "(hover: none) and (pointer: coarse)";
+
+function subscribeToTouchPrimary(callback: () => void) {
+  const mq = window.matchMedia(TOUCH_PRIMARY_QUERY);
+  mq.addEventListener("change", callback);
+  return () => mq.removeEventListener("change", callback);
+}
+
+function getIsTouchPrimary() {
+  return window.matchMedia(TOUCH_PRIMARY_QUERY).matches;
+}
+
+function getIsTouchPrimaryServerSnapshot() {
+  return false;
+}
+
+function distance(a: Point, b: Point): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function angleDeg(a: Point, b: Point): number {
+  return (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
 }
 
 /** Average color sampled from the photo (a 1x1 canvas draw does a cheap area-average via the
@@ -77,51 +115,102 @@ function sampleAverageColor(url: string): Promise<string | null> {
   });
 }
 
-/** Drag-to-position, slider-to-zoom-and-rotate editor for fitting a photo into the 9:16 story
- * frame before posting - same "move and scale" step Instagram/WhatsApp give you, because a
- * band's source image (a flyer, a landscape photo, whatever) rarely already has the story's
- * own aspect ratio. Purely a positioning tool: the source image is never modified, only a few
- * numbers describing where it sits get saved (see CroppedStoryImage, which reproduces this
- * exact same view everywhere the story is then shown). */
+/** Drag-to-position, pinch-to-zoom, two-finger-to-rotate editor for fitting a photo into the
+ * 9:16 story frame before posting - same gesture a phone's own camera roll / Instagram gives
+ * you, because a band's source image (a flyer, a landscape photo, whatever) rarely already has
+ * the story's own aspect ratio. A mouse/trackpad can't pinch, so the sliders next to this stay
+ * the only way to zoom/rotate there - but on an actual touchscreen the gesture alone is enough,
+ * which is why BandStoryComposer hides them on touch-primary devices. Purely a positioning
+ * tool: the source image is never modified, only a few numbers describing where it sits get
+ * saved (see CroppedStoryImage, which reproduces this exact same view wherever the story is
+ * then shown). */
 function StoryCropEditor({
   imageUrl,
+  imgAspect,
   transform,
   onTransformChange,
   bgColor,
 }: {
   imageUrl: string;
+  imgAspect: number;
   transform: Transform;
   onTransformChange: (transform: Transform) => void;
   bgColor: string | null;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef({ active: false, startClientX: 0, startClientY: 0, startCenterX: 0, startCenterY: 0 });
+  const pointersRef = useRef<Map<number, Point>>(new Map());
+  const gestureRef = useRef({
+    transform,
+    singleStart: { x: 0, y: 0 },
+    // Two-pointer-only reference values.
+    distance: 0,
+    angle: 0,
+    midpoint: { x: 0, y: 0 },
+  });
+
+  function startGesture() {
+    const points = [...pointersRef.current.values()];
+    gestureRef.current.transform = transform;
+    if (points.length === 1) {
+      gestureRef.current.singleStart = points[0];
+    } else if (points.length === 2) {
+      gestureRef.current.distance = distance(points[0], points[1]);
+      gestureRef.current.angle = angleDeg(points[0], points[1]);
+      gestureRef.current.midpoint = { x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 };
+    }
+  }
 
   function onPointerDown(e: React.PointerEvent) {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = {
-      active: true,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startCenterX: transform.centerXPct,
-      startCenterY: transform.centerYPct,
-    };
+    // Guarded: a failed capture (e.g. an already-released pointer in some edge case) would
+    // otherwise abort this handler before the pointer is even tracked below, silently
+    // breaking the whole gesture instead of just losing capture-while-dragging-outside-frame.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    startGesture();
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!dragRef.current.active || !frameRef.current) return;
+    if (!pointersRef.current.has(e.pointerId) || !frameRef.current) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const points = [...pointersRef.current.values()];
     const rect = frameRef.current.getBoundingClientRect();
-    const dxPct = ((e.clientX - dragRef.current.startClientX) / rect.width) * 100;
-    const dyPct = ((e.clientY - dragRef.current.startClientY) / rect.height) * 100;
-    onTransformChange({
-      ...transform,
-      centerXPct: clampCenter(dragRef.current.startCenterX + dxPct),
-      centerYPct: clampCenter(dragRef.current.startCenterY + dyPct),
-    });
+
+    if (points.length === 2) {
+      const newDistance = distance(points[0], points[1]);
+      const newAngle = angleDeg(points[0], points[1]);
+      const newMidpoint = { x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 };
+      const start = gestureRef.current;
+      const scaleRatio = start.distance > 0 ? newDistance / start.distance : 1;
+      const newScale = clampScale(scaleOf(start.transform, imgAspect) * scaleRatio);
+      const size = sizeAtScale(imgAspect, newScale);
+      const dxPct = ((newMidpoint.x - start.midpoint.x) / rect.width) * 100;
+      const dyPct = ((newMidpoint.y - start.midpoint.y) / rect.height) * 100;
+      onTransformChange({
+        widthPct: size.widthPct,
+        heightPct: size.heightPct,
+        rotationDeg: start.transform.rotationDeg + (newAngle - start.angle),
+        centerXPct: clampCenter(start.transform.centerXPct + dxPct),
+        centerYPct: clampCenter(start.transform.centerYPct + dyPct),
+      });
+    } else if (points.length === 1) {
+      const start = gestureRef.current;
+      const dxPct = ((points[0].x - start.singleStart.x) / rect.width) * 100;
+      const dyPct = ((points[0].y - start.singleStart.y) / rect.height) * 100;
+      onTransformChange({
+        ...start.transform,
+        centerXPct: clampCenter(start.transform.centerXPct + dxPct),
+        centerYPct: clampCenter(start.transform.centerYPct + dyPct),
+      });
+    }
   }
 
-  function onPointerUp() {
-    dragRef.current.active = false;
+  function onPointerUpOrCancel(e: React.PointerEvent) {
+    pointersRef.current.delete(e.pointerId);
+    startGesture();
   }
 
   return (
@@ -131,8 +220,9 @@ function StoryCropEditor({
       style={{ backgroundColor: bgColor ?? FALLBACK_BG }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerLeave={onPointerUp}
+      onPointerUp={onPointerUpOrCancel}
+      onPointerCancel={onPointerUpOrCancel}
+      onPointerLeave={onPointerUpOrCancel}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -161,7 +251,6 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
   const [open, setOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imgAspect, setImgAspect] = useState<number | null>(null);
-  const [scale, setScale] = useState(MIN_SCALE);
   const [transform, setTransform] = useState<Transform | null>(null);
   const [bgColor, setBgColor] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -170,11 +259,17 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // No hover + a coarse pointer = a touchscreen is the primary input (phones/tablets), as
+  // opposed to a mouse/trackpad that can't pinch or rotate - those keep the sliders below,
+  // since there's no gesture for them to use instead. Server snapshot is "false" (sliders
+  // shown) since matchMedia isn't available during SSR - corrects itself on the client's
+  // first paint, same as any other viewport-dependent UI.
+  const isTouchPrimary = useSyncExternalStore(subscribeToTouchPrimary, getIsTouchPrimary, getIsTouchPrimaryServerSnapshot);
+
   function reset() {
     setOpen(false);
     setImageUrl(null);
     setImgAspect(null);
-    setScale(MIN_SCALE);
     setTransform(null);
     setBgColor(null);
     setText("");
@@ -207,7 +302,6 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
         const aspect = probe.naturalWidth / probe.naturalHeight;
         const size = sizeAtScale(aspect, MIN_SCALE);
         setImgAspect(aspect);
-        setScale(MIN_SCALE);
         setTransform({ widthPct: size.widthPct, heightPct: size.heightPct, centerXPct: 50, centerYPct: 50, rotationDeg: 0 });
         setImageUrl(url);
         setUploading(false);
@@ -218,7 +312,6 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
   }
 
   function handleScaleChange(newScale: number) {
-    setScale(newScale);
     if (imgAspect == null || !transform) return;
     const size = sizeAtScale(imgAspect, newScale);
     setTransform({ ...transform, widthPct: size.widthPct, heightPct: size.heightPct });
@@ -273,7 +366,7 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
           </button>
         </div>
 
-        {!imageUrl || !transform ? (
+        {!imageUrl || !transform || imgAspect == null ? (
           <div
             role="button"
             tabIndex={0}
@@ -289,35 +382,47 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
           </div>
         ) : (
           <>
-            <StoryCropEditor imageUrl={imageUrl} transform={transform} onTransformChange={setTransform} bgColor={bgColor} />
-            <p className="mt-1 font-meta text-xs text-muted">Ziehen zum Verschieben</p>
+            <StoryCropEditor
+              imageUrl={imageUrl}
+              imgAspect={imgAspect}
+              transform={transform}
+              onTransformChange={setTransform}
+              bgColor={bgColor}
+            />
+            <p className="mt-1 font-meta text-xs text-muted">
+              {isTouchPrimary ? "Ziehen zum Verschieben · zwei Finger zum Zoomen und Drehen" : "Ziehen zum Verschieben"}
+            </p>
 
-            <label className="mt-2 flex items-center gap-2" htmlFor="story-zoom">
-              <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Zoom</span>
-              <input
-                id="story-zoom"
-                type="range"
-                min={MIN_SCALE}
-                max={MAX_SCALE}
-                step={0.01}
-                value={scale}
-                onChange={(e) => handleScaleChange(Number(e.target.value))}
-                className="w-full"
-              />
-            </label>
-            <label className="mt-2 flex items-center gap-2" htmlFor="story-rotation">
-              <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Drehen</span>
-              <input
-                id="story-rotation"
-                type="range"
-                min={-180}
-                max={180}
-                step={1}
-                value={transform.rotationDeg}
-                onChange={(e) => handleRotationChange(Number(e.target.value))}
-                className="w-full"
-              />
-            </label>
+            {!isTouchPrimary && (
+              <>
+                <label className="mt-2 flex items-center gap-2" htmlFor="story-zoom">
+                  <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Zoom</span>
+                  <input
+                    id="story-zoom"
+                    type="range"
+                    min={MIN_SCALE}
+                    max={MAX_SCALE}
+                    step={0.01}
+                    value={scaleOf(transform, imgAspect)}
+                    onChange={(e) => handleScaleChange(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </label>
+                <label className="mt-2 flex items-center gap-2" htmlFor="story-rotation">
+                  <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Drehen</span>
+                  <input
+                    id="story-rotation"
+                    type="range"
+                    min={-180}
+                    max={180}
+                    step={1}
+                    value={transform.rotationDeg}
+                    onChange={(e) => handleRotationChange(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </label>
+              </>
+            )}
 
             <label className="mt-3 block font-meta text-xs uppercase tracking-wide text-muted" htmlFor="story-text">
               Text (optional)
