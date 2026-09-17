@@ -1,4 +1,4 @@
-import { colorFromSliderPos } from "@/lib/storyColor";
+import { colorFromSliderPos, invertColor } from "@/lib/storyColor";
 
 /** A freely positioned/scaled/rotated text overlay on a band's story photo (see
  * BandStoryComposer's "+ Text") - as many as a band wants, each independently draggable and
@@ -15,8 +15,8 @@ export interface TextLayer {
   /** Position (0-100) on the color slider's white-to-black gradient - see storyColor.ts;
    * null means "no color chosen yet" -> renders white. */
   colorPos: number | null;
-  /** Whether a solid backdrop (see StoryLayerBox) renders behind the text, for when the photo
-   * makes it hard to read on its own. */
+  /** Whether a solid backdrop renders behind the text, for when the photo makes it hard to
+   * read on its own - see textLayerBoxColor for its color. */
   hasBox: boolean;
 }
 
@@ -42,6 +42,12 @@ export function createTextLayer(): TextLayer {
 /** The actual CSS color for a text layer's chosen slider position - see colorFromSliderPos. */
 export function textLayerColor(colorPos: number | null | undefined): string {
   return colorFromSliderPos(colorPos);
+}
+
+/** The backdrop box's color when hasBox is on - literally the opposite of the text's own
+ * color (white text -> a black box, and so on), per the band's explicit request. */
+export function textLayerBoxColor(colorPos: number | null | undefined): string {
+  return invertColor(textLayerColor(colorPos));
 }
 
 /** Drops any layer nobody actually typed into (an added-then-abandoned empty one) - never

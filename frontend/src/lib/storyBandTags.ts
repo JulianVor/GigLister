@@ -1,4 +1,4 @@
-import { colorFromSliderPos } from "@/lib/storyColor";
+import { colorFromSliderPos, invertColor } from "@/lib/storyColor";
 
 /** A freely positioned/scaled/rotated tag for another band on a story's photo (see
  * BandStoryComposer's "+ Band") - a square picture plus the band's name, clickable through to
@@ -21,8 +21,8 @@ export interface BandTagLayer {
    * the displayed band name - the picture itself is never recolored, only the name is a label
    * like a text layer's. Null means "no color chosen yet" -> renders white. */
   colorPos: number | null;
-  /** Whether a solid backdrop (see StoryLayerBox) renders behind the picture+name, for when
-   * the photo makes it hard to read on its own. */
+  /** Whether a solid backdrop renders behind the picture and, separately, behind the name, for
+   * when the photo makes it hard to read on its own - see bandTagBoxColor for its color. */
   hasBox: boolean;
 }
 
@@ -55,6 +55,12 @@ export function createBandTagLayer(band: {
 /** The actual CSS color for a band tag's chosen slider position - see colorFromSliderPos. */
 export function bandTagColor(colorPos: number | null | undefined): string {
   return colorFromSliderPos(colorPos);
+}
+
+/** The backdrop box's color when hasBox is on - literally the opposite of the name's own
+ * color (white name -> a black box, and so on), per the band's explicit request. */
+export function bandTagBoxColor(colorPos: number | null | undefined): string {
+  return invertColor(bandTagColor(colorPos));
 }
 
 export function serializeBandTags(tags: BandTagLayer[]): string | undefined {

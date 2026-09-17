@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
-import { StoryLayerBox } from "@/components/StoryLayerBox";
-import { TEXT_LAYER_BASE_FONT_CQW, textLayerColor, type TextLayer } from "@/lib/storyTextLayers";
-import { BAND_TAG_BASE_FONT_CQW, bandTagColor, type BandTagLayer } from "@/lib/storyBandTags";
+import { TEXT_LAYER_BASE_FONT_CQW, textLayerColor, textLayerBoxColor, type TextLayer } from "@/lib/storyTextLayers";
+import { BAND_TAG_BASE_FONT_CQW, bandTagColor, bandTagBoxColor, type BandTagLayer } from "@/lib/storyBandTags";
 
 const FALLBACK_BG = "#111111";
 
@@ -63,7 +62,7 @@ export function CroppedStoryImage({
       {textLayers.map((layer) => (
         <div
           key={layer.id}
-          className="absolute max-w-[90%]"
+          className="absolute max-w-[90%] text-center"
           style={{
             left: `${layer.centerXPct}%`,
             top: `${layer.centerYPct}%`,
@@ -71,13 +70,28 @@ export function CroppedStoryImage({
             transform: `translate(-50%, -50%) rotate(${layer.rotationDeg}deg)`,
           }}
         >
-          {layer.hasBox && <StoryLayerBox />}
-          <p
-            className="whitespace-pre-wrap break-words text-center font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
-            style={{ color: textLayerColor(layer.colorPos) }}
+          {/* box-decoration-break: clone (not the Tailwind class - relying on inline style
+              guarantees it regardless of Tailwind's default utility set) makes each wrapped
+              LINE of this inline span get its own tightly-fit background box, square corners,
+              rather than one rectangle spanning the whole (possibly multi-line) block - which
+              is what turns a longer text into the "several differently-sized rectangles"
+              look the band asked for, automatically, with no per-line measurement. */}
+          <span
+            className="whitespace-pre-wrap break-words font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
+            style={{
+              color: textLayerColor(layer.colorPos),
+              ...(layer.hasBox
+                ? {
+                    backgroundColor: textLayerBoxColor(layer.colorPos),
+                    padding: "0.1em 0.35em",
+                    boxDecorationBreak: "clone",
+                    WebkitBoxDecorationBreak: "clone",
+                  }
+                : {}),
+            }}
           >
             {layer.text}
-          </p>
+          </span>
         </div>
       ))}
       {bandTags.map((tag) => (
@@ -87,7 +101,7 @@ export function CroppedStoryImage({
         <Link
           key={tag.id}
           href={`/bands/${tag.bandId}`}
-          className="absolute z-10 flex max-w-[85%] flex-col items-center gap-[0.2em] whitespace-nowrap"
+          className={`absolute z-10 flex max-w-[85%] flex-col items-center whitespace-nowrap ${tag.hasBox ? "" : "gap-[0.2em]"}`}
           style={{
             left: `${tag.centerXPct}%`,
             top: `${tag.centerYPct}%`,
@@ -95,21 +109,32 @@ export function CroppedStoryImage({
             transform: `translate(-50%, -50%) rotate(${tag.rotationDeg}deg)`,
           }}
         >
-          {tag.hasBox && <StoryLayerBox />}
-          <span className="block h-[1.8em] w-[1.8em] flex-none overflow-hidden border border-white/80 bg-surface">
-            {tag.profileImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={tag.profileImageUrl} alt="" className="h-full w-full object-cover" />
-            ) : tag.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={tag.logoUrl} alt="" className="h-full w-full object-contain p-[0.15em]" />
-            ) : (
-              <EntityPlaceholder name={tag.bandName} className="h-full w-full" textClassName="text-[0.9em]" />
-            )}
+          {/* With the box on, this and the name span below each get their own tightly-fit
+              background (no shared gap between them, so the two touch and read as one
+              irregular shape - narrower over the picture, wider under the name - rather than
+              a single rectangle wrapped around both). */}
+          <span
+            className="block flex-none"
+            style={tag.hasBox ? { backgroundColor: bandTagBoxColor(tag.colorPos), padding: "0.28em" } : undefined}
+          >
+            <span className="block h-[1.8em] w-[1.8em] flex-none overflow-hidden border border-white/80 bg-surface">
+              {tag.profileImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={tag.profileImageUrl} alt="" className="h-full w-full object-cover" />
+              ) : tag.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={tag.logoUrl} alt="" className="h-full w-full object-contain p-[0.15em]" />
+              ) : (
+                <EntityPlaceholder name={tag.bandName} className="h-full w-full" textClassName="text-[0.9em]" />
+              )}
+            </span>
           </span>
           <span
             className="truncate font-display text-[0.85em] font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
-            style={{ color: bandTagColor(tag.colorPos) }}
+            style={{
+              color: bandTagColor(tag.colorPos),
+              ...(tag.hasBox ? { backgroundColor: bandTagBoxColor(tag.colorPos), padding: "0.15em 0.4em" } : {}),
+            }}
           >
             {tag.bandName}
           </span>

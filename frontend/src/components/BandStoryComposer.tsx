@@ -4,10 +4,9 @@ import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from
 import { uploadImageAction } from "@/actions/uploads";
 import { createBandStoryAction } from "@/actions/bands";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
-import { StoryLayerBox } from "@/components/StoryLayerBox";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
-import { createTextLayer, serializeTextLayers, textLayerColor, TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
-import { createBandTagLayer, serializeBandTags, bandTagColor, BAND_TAG_BASE_FONT_CQW, type BandTagLayer } from "@/lib/storyBandTags";
+import { createTextLayer, serializeTextLayers, textLayerColor, textLayerBoxColor, TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
+import { createBandTagLayer, serializeBandTags, bandTagColor, bandTagBoxColor, BAND_TAG_BASE_FONT_CQW, type BandTagLayer } from "@/lib/storyBandTags";
 import { COLOR_SLIDER_GRADIENT_CSS } from "@/lib/storyColor";
 import type { BandTagOption } from "@/lib/types";
 
@@ -326,7 +325,6 @@ function TextLayerOverlay({
     left: `${layer.centerXPct}%`,
     top: `${layer.centerYPct}%`,
     fontSize: `${layer.scale * TEXT_LAYER_BASE_FONT_CQW}cqw`,
-    color: textLayerColor(layer.colorPos),
     transform: `translate(-50%, -50%) rotate(${layer.rotationDeg}deg)`,
   };
 
@@ -346,14 +344,14 @@ function TextLayerOverlay({
         onPointerDown={(e) => e.stopPropagation()}
         placeholder="Text"
         className="absolute border-b border-white/70 bg-transparent text-center font-display font-bold leading-tight outline-none placeholder:text-white/50"
-        style={{ ...style, width: "min(85%, 12em)" }}
+        style={{ ...style, color: textLayerColor(layer.colorPos), width: "min(85%, 12em)" }}
       />
     );
   }
 
   return (
     <div
-      className={`absolute max-w-[85%] cursor-move touch-none select-none ${
+      className={`absolute max-w-[85%] cursor-move touch-none select-none text-center ${
         selected ? "outline outline-2 outline-dashed outline-offset-4 outline-white/80" : ""
       }`}
       style={style}
@@ -366,8 +364,26 @@ function TextLayerOverlay({
       onPointerCancel={gesture.onPointerCancel}
       onPointerLeave={gesture.onPointerLeave}
     >
-      {layer.hasBox && <StoryLayerBox />}
-      <p className="whitespace-pre-wrap break-words text-center font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]">{layer.text}</p>
+      {/* box-decoration-break: clone (inline style, not relying on a Tailwind utility) makes
+          each wrapped LINE of this inline span get its own tightly-fit background box - the
+          "several differently-sized rectangles" look, entirely automatic, no per-line
+          measurement needed. */}
+      <span
+        className="whitespace-pre-wrap break-words font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
+        style={{
+          color: textLayerColor(layer.colorPos),
+          ...(layer.hasBox
+            ? {
+                backgroundColor: textLayerBoxColor(layer.colorPos),
+                padding: "0.1em 0.35em",
+                boxDecorationBreak: "clone",
+                WebkitBoxDecorationBreak: "clone",
+              }
+            : {}),
+        }}
+      >
+        {layer.text}
+      </span>
     </div>
   );
 }
@@ -399,7 +415,7 @@ function BandTagOverlay({
 
   return (
     <div
-      className={`absolute flex max-w-[85%] cursor-move touch-none select-none flex-col items-center gap-[0.2em] whitespace-nowrap ${
+      className={`absolute flex max-w-[85%] cursor-move touch-none select-none flex-col items-center whitespace-nowrap ${tag.hasBox ? "" : "gap-[0.2em]"} ${
         selected ? "outline outline-2 outline-dashed outline-offset-4 outline-white/80" : ""
       }`}
       style={{
@@ -417,21 +433,29 @@ function BandTagOverlay({
       onPointerCancel={gesture.onPointerCancel}
       onPointerLeave={gesture.onPointerLeave}
     >
-      {tag.hasBox && <StoryLayerBox />}
-      <span className="block h-[1.8em] w-[1.8em] flex-none overflow-hidden border border-white/80 bg-surface">
-        {tag.profileImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={tag.profileImageUrl} alt="" draggable={false} className="h-full w-full object-cover" />
-        ) : tag.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={tag.logoUrl} alt="" draggable={false} className="h-full w-full object-contain p-[0.15em]" />
-        ) : (
-          <EntityPlaceholder name={tag.bandName} className="h-full w-full" textClassName="text-[0.9em]" />
-        )}
+      {/* With the box on, this and the name span below each get their own tightly-fit
+          background and no shared gap between them, so the two touch and read as one
+          irregular shape - narrower over the picture, wider under the name - instead of a
+          single rectangle wrapped around both. */}
+      <span className="block flex-none" style={tag.hasBox ? { backgroundColor: bandTagBoxColor(tag.colorPos), padding: "0.28em" } : undefined}>
+        <span className="block h-[1.8em] w-[1.8em] flex-none overflow-hidden border border-white/80 bg-surface">
+          {tag.profileImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={tag.profileImageUrl} alt="" draggable={false} className="h-full w-full object-cover" />
+          ) : tag.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={tag.logoUrl} alt="" draggable={false} className="h-full w-full object-contain p-[0.15em]" />
+          ) : (
+            <EntityPlaceholder name={tag.bandName} className="h-full w-full" textClassName="text-[0.9em]" />
+          )}
+        </span>
       </span>
       <span
         className="truncate font-display text-[0.85em] font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
-        style={{ color: bandTagColor(tag.colorPos) }}
+        style={{
+          color: bandTagColor(tag.colorPos),
+          ...(tag.hasBox ? { backgroundColor: bandTagBoxColor(tag.colorPos), padding: "0.15em 0.4em" } : {}),
+        }}
       >
         {tag.bandName}
       </span>

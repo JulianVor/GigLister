@@ -36,3 +36,15 @@ export function colorFromSliderPos(pos: number | null | undefined): string {
   const rgb = [r1 + (r2 - r1) * frac, g1 + (g2 - g1) * frac, b1 + (b2 - b1) * frac].map((c) => Math.round(c));
   return `#${rgb.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
+
+/** Literal RGB inversion - white text becomes a black box, black text a white box, and so on
+ * for every point in between. Used for the box behind a label (see StoryLayerBox usage in
+ * storyTextLayers.ts/storyBandTags.ts), which the band explicitly wants to be "the opposite
+ * color" of the label it sits behind, not a fixed black. */
+export function invertColor(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const r = 255 - ((n >> 16) & 0xff);
+  const g = 255 - ((n >> 8) & 0xff);
+  const b = 255 - (n & 0xff);
+  return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
