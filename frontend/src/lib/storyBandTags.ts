@@ -21,6 +21,9 @@ export interface BandTagLayer {
    * the displayed band name - the picture itself is never recolored, only the name is a label
    * like a text layer's. Null means "no color chosen yet" -> renders white. */
   colorPos: number | null;
+  /** Whether a solid backdrop (see StoryLayerBox) renders behind the picture+name, for when
+   * the photo makes it hard to read on its own. */
+  hasBox: boolean;
 }
 
 // Same unit as TEXT_LAYER_BASE_FONT_CQW (% of the frame's own width) - the chip's square
@@ -45,6 +48,7 @@ export function createBandTagLayer(band: {
     scale: 1,
     rotationDeg: 0,
     colorPos: null,
+    hasBox: false,
   };
 }
 
@@ -76,7 +80,11 @@ export function parseBandTags(json: string | null | undefined): BandTagLayer[] {
         ((t as BandTagLayer).colorPos === null ||
           (t as BandTagLayer).colorPos === undefined ||
           typeof (t as BandTagLayer).colorPos === "number")
-    ).map((t) => ({ ...t, colorPos: typeof t.colorPos === "number" ? t.colorPos : null }));
+    ).map((t) => ({
+      ...t,
+      colorPos: typeof t.colorPos === "number" ? t.colorPos : null,
+      hasBox: t.hasBox === true,
+    }));
   } catch {
     return [];
   }

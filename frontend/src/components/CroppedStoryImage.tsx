@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
+import { StoryLayerBox } from "@/components/StoryLayerBox";
 import { TEXT_LAYER_BASE_FONT_CQW, textLayerColor, type TextLayer } from "@/lib/storyTextLayers";
 import { BAND_TAG_BASE_FONT_CQW, bandTagColor, type BandTagLayer } from "@/lib/storyBandTags";
 
@@ -60,19 +61,24 @@ export function CroppedStoryImage({
         }}
       />
       {textLayers.map((layer) => (
-        <p
+        <div
           key={layer.id}
-          className="absolute max-w-[90%] whitespace-pre-wrap break-words text-center font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
+          className="absolute max-w-[90%]"
           style={{
             left: `${layer.centerXPct}%`,
             top: `${layer.centerYPct}%`,
             fontSize: `${layer.scale * TEXT_LAYER_BASE_FONT_CQW}cqw`,
-            color: textLayerColor(layer.colorPos),
             transform: `translate(-50%, -50%) rotate(${layer.rotationDeg}deg)`,
           }}
         >
-          {layer.text}
-        </p>
+          {layer.hasBox && <StoryLayerBox />}
+          <p
+            className="whitespace-pre-wrap break-words text-center font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
+            style={{ color: textLayerColor(layer.colorPos) }}
+          >
+            {layer.text}
+          </p>
+        </div>
       ))}
       {bandTags.map((tag) => (
         // z-10: sits above BandStoryViewer's invisible full-frame prev/next click zones
@@ -89,6 +95,7 @@ export function CroppedStoryImage({
             transform: `translate(-50%, -50%) rotate(${tag.rotationDeg}deg)`,
           }}
         >
+          {tag.hasBox && <StoryLayerBox />}
           <span className="block h-[1.8em] w-[1.8em] flex-none overflow-hidden border border-white/80 bg-surface">
             {tag.profileImageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

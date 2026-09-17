@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from
 import { uploadImageAction } from "@/actions/uploads";
 import { createBandStoryAction } from "@/actions/bands";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
+import { StoryLayerBox } from "@/components/StoryLayerBox";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
 import { createTextLayer, serializeTextLayers, textLayerColor, TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
 import { createBandTagLayer, serializeBandTags, bandTagColor, BAND_TAG_BASE_FONT_CQW, type BandTagLayer } from "@/lib/storyBandTags";
@@ -351,8 +352,8 @@ function TextLayerOverlay({
   }
 
   return (
-    <p
-      className={`absolute max-w-[85%] cursor-move touch-none select-none whitespace-pre-wrap break-words text-center font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] ${
+    <div
+      className={`absolute max-w-[85%] cursor-move touch-none select-none ${
         selected ? "outline outline-2 outline-dashed outline-offset-4 outline-white/80" : ""
       }`}
       style={style}
@@ -365,8 +366,9 @@ function TextLayerOverlay({
       onPointerCancel={gesture.onPointerCancel}
       onPointerLeave={gesture.onPointerLeave}
     >
-      {layer.text}
-    </p>
+      {layer.hasBox && <StoryLayerBox />}
+      <p className="whitespace-pre-wrap break-words text-center font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]">{layer.text}</p>
+    </div>
   );
 }
 
@@ -415,6 +417,7 @@ function BandTagOverlay({
       onPointerCancel={gesture.onPointerCancel}
       onPointerLeave={gesture.onPointerLeave}
     >
+      {tag.hasBox && <StoryLayerBox />}
       <span className="block h-[1.8em] w-[1.8em] flex-none overflow-hidden border border-white/80 bg-surface">
         {tag.profileImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -691,6 +694,10 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, colorPos } : l)));
   }
 
+  function toggleTextLayerBox(id: string) {
+    setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, hasBox: !l.hasBox } : l)));
+  }
+
   function addBandTag(option: BandTagOption) {
     const tag = createBandTagLayer(option);
     setBandTags((prev) => [...prev, tag]);
@@ -706,6 +713,10 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
 
   function updateBandTagColor(id: string, colorPos: number) {
     setBandTags((prev) => prev.map((t) => (t.id === id ? { ...t, colorPos } : t)));
+  }
+
+  function toggleBandTagBox(id: string) {
+    setBandTags((prev) => prev.map((t) => (t.id === id ? { ...t, hasBox: !t.hasBox } : t)));
   }
 
   function commitTextLayerText(id: string, text: string) {
@@ -849,6 +860,18 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
                 {selectedLayerId !== "photo" && (
                   <button type="button" onClick={deleteSelectedLayer} className="font-meta text-xs text-accent hover:underline">
                     Löschen
+                  </button>
+                )}
+                {(selectedTextLayer || selectedBandTag) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedTextLayer) toggleTextLayerBox(selectedTextLayer.id);
+                      else if (selectedBandTag) toggleBandTagBox(selectedBandTag.id);
+                    }}
+                    className="font-meta text-xs text-accent hover:underline"
+                  >
+                    {(selectedTextLayer?.hasBox ?? selectedBandTag?.hasBox) ? "Kasten ✓" : "Kasten"}
                   </button>
                 )}
                 <button type="button" onClick={addTextLayer} className="font-meta text-xs text-accent hover:underline">

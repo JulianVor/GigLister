@@ -15,6 +15,9 @@ export interface TextLayer {
   /** Position (0-100) on the color slider's white-to-black gradient - see storyColor.ts;
    * null means "no color chosen yet" -> renders white. */
   colorPos: number | null;
+  /** Whether a solid backdrop (see StoryLayerBox) renders behind the text, for when the photo
+   * makes it hard to read on its own. */
+  hasBox: boolean;
 }
 
 // 1 scale unit = this many cqw (% of the frame's own width, via CSS container query units) -
@@ -32,6 +35,7 @@ export function createTextLayer(): TextLayer {
     scale: 1,
     rotationDeg: 0,
     colorPos: null,
+    hasBox: false,
   };
 }
 
@@ -66,7 +70,11 @@ export function parseTextLayers(json: string | null | undefined): TextLayer[] {
         ((l as TextLayer).colorPos === null ||
           (l as TextLayer).colorPos === undefined ||
           typeof (l as TextLayer).colorPos === "number")
-    ).map((l) => ({ ...l, colorPos: typeof l.colorPos === "number" ? l.colorPos : null }));
+    ).map((l) => ({
+      ...l,
+      colorPos: typeof l.colorPos === "number" ? l.colorPos : null,
+      hasBox: l.hasBox === true,
+    }));
   } catch {
     return [];
   }
