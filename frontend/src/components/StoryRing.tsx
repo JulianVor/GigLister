@@ -6,9 +6,12 @@ const STORY_RING_GRADIENT =
 
 /** Square-avatar wrapper: a colorful ring when the band has an active status (see
  * BandStoryAvatarButton), a plain border otherwise - used identically on the homepage's
- * FollowedBandsRow tiles and the band's own profile-picture in bands/[id]. The two-layer
- * padding trick (gradient background, then a bg-bg gap, then the avatar) is the same
- * construction Instagram's own story ring uses. */
+ * FollowedBandsRow tiles and the band's own profile-picture in bands/[id]. The ring is drawn
+ * OUTSIDE the given box (two layers behind it, extending past its edges) rather than inset
+ * via padding - insetting shrank whatever's inside it, which badly squeezed
+ * BandProfileImage's hover-to-upload text in the already-small 64px avatar box it wraps on
+ * the band's own page. Growing outward instead keeps the wrapped content exactly the size it
+ * would've been without the ring. */
 export function StoryRing({
   active,
   size,
@@ -23,10 +26,10 @@ export function StoryRing({
   }
 
   return (
-    <div className={`shrink-0 p-[2px] ${size}`} style={{ background: STORY_RING_GRADIENT }}>
-      <div className="h-full w-full bg-bg p-[2px]">
-        <div className="h-full w-full overflow-hidden">{children}</div>
-      </div>
+    <div className={`relative shrink-0 ${size}`}>
+      <div className="absolute -inset-[6px]" style={{ background: STORY_RING_GRADIENT }} />
+      <div className="absolute -inset-[3px] bg-bg" />
+      <div className="absolute inset-0 overflow-hidden">{children}</div>
     </div>
   );
 }

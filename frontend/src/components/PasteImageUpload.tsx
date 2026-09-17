@@ -75,7 +75,7 @@ export function PasteImageUpload({
   }
 
   return (
-    <div>
+    <div className="h-full w-full">
       <div
         tabIndex={0}
         role="button"
