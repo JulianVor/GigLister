@@ -321,6 +321,7 @@ export interface BandStoryInput {
   imgCenterYPct: number;
   imgRotationDeg: number;
   imgBackgroundColor: string;
+  textLayersJson?: string;
 }
 
 export function createBandStory(id: number, data: BandStoryInput, token: string) {

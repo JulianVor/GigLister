@@ -153,6 +153,8 @@ export interface BandStory {
   imgCenterYPct: number | null;
   imgRotationDeg: number | null;
   imgBackgroundColor: string | null;
+  // Opaque JSON - see lib/storyTextLayers.ts (parseTextLayers) for the actual shape.
+  textLayersJson: string | null;
   createdAt: string;
   expiresAt: string;
 }

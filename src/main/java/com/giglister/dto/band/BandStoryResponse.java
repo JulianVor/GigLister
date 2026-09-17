@@ -12,6 +12,7 @@ public record BandStoryResponse(
         Double imgCenterYPct,
         Double imgRotationDeg,
         String imgBackgroundColor,
+        String textLayersJson,
         Instant createdAt,
         Instant expiresAt
 ) {

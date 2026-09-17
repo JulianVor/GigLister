@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CroppedStoryImage } from "@/components/CroppedStoryImage";
+import { parseTextLayers } from "@/lib/storyTextLayers";
 import type { BandStory } from "@/lib/types";
 
 const STORY_DURATION_MS = 6000;
@@ -137,13 +138,8 @@ export function BandStoryViewer({
           centerYPct={story.imgCenterYPct}
           rotationDeg={story.imgRotationDeg}
           backgroundColor={story.imgBackgroundColor}
+          textLayers={parseTextLayers(story.textLayersJson)}
         />
-
-        {story.text && (
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-6 pt-12">
-            <p className="font-meta text-sm leading-relaxed text-white">{story.text}</p>
-          </div>
-        )}
 
         <button
           type="button"

@@ -48,6 +48,14 @@ public class BandStory {
     // leaving gaps) - the average color sampled from the photo itself, not a flat black.
     private String imgBackgroundColor;
 
+    // Freely positioned/scaled/rotated text overlays (see BandStoryComposer's "+ Text"),
+    // opaque JSON from the backend's point of view - a plain array of
+    // {id, text, centerXPct, centerYPct, scale, rotationDeg}, entirely built, read and
+    // rendered by the frontend (see lib/storyTextLayers.ts). No relational table for these:
+    // they only ever exist alongside their one parent story, nothing else ever queries them.
+    @Column(columnDefinition = "TEXT")
+    private String textLayersJson;
+
     @Column(nullable = false)
     private Instant createdAt;
 

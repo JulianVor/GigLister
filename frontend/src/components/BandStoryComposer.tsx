@@ -4,23 +4,38 @@ import { useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { uploadImageAction } from "@/actions/uploads";
 import { createBandStoryAction } from "@/actions/bands";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
+import { createTextLayer, serializeTextLayers, TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
 
-const TEXT_MAX_LENGTH = 280;
+const TEXT_MAX_LENGTH = 200;
 // Same frame the viewer actually shows the story in (see BandStoryViewer) - the crop only
 // reproduces faithfully if both sides agree on what shape "the frame" is.
 const FRAME_ASPECT = 9 / 16;
 // scale=1 always means "the whole photo is visible" (fit) - there's no forced minimum crop
 // anymore, per the band's own request: zooming out all the way should show the entire image,
 // with whatever's left of the frame filled by imgBackgroundColor rather than always cropping.
-const MIN_SCALE = 1;
-const MAX_SCALE = 5;
+const MIN_PHOTO_SCALE = 1;
+const MAX_PHOTO_SCALE = 5;
+const MIN_TEXT_SCALE = 0.4;
+const MAX_TEXT_SCALE = 4;
 const FALLBACK_BG = "#111111";
 
-interface Transform {
+interface PhotoTransform {
   widthPct: number;
   heightPct: number;
   centerXPct: number;
   centerYPct: number;
+  rotationDeg: number;
+}
+
+/** Center/scale/rotation, the shape every draggable thing in the editor reduces to - the
+ * photo (scale derived from its width vs. the "whole photo visible" baseline) and every text
+ * layer (scale stored directly) alike, so the drag/pinch/rotate gesture and the Zoom/Drehen
+ * sliders only ever need to know about this one shape, never which kind of object it came
+ * from (see StoryCropEditor/useLayerGesture). */
+interface NormalizedTransform {
+  centerXPct: number;
+  centerYPct: number;
+  scale: number;
   rotationDeg: number;
 }
 
@@ -44,19 +59,27 @@ function sizeAtScale(imgAspect: number, scale: number) {
   return { widthPct: fit.widthPct * scale, heightPct: fit.heightPct * scale };
 }
 
-function scaleOf(transform: Transform, imgAspect: number): number {
+function scaleOfPhoto(transform: PhotoTransform, imgAspect: number): number {
   return transform.widthPct / fitSize(imgAspect).widthPct;
 }
 
-// Loose safety bound only - keeps a wild drag/pinch from losing the image entirely off-frame
-// or scaling it away to nothing/absurdly large. Not "always cover the frame": gaps are fine
-// now, imgBackgroundColor fills them.
+// Loose safety bound only - keeps a wild drag/pinch from losing an object entirely off-frame.
+// Not "always cover the frame": gaps are fine now, imgBackgroundColor fills them for the photo,
+// and a text layer never needs to "cover" anything to begin with.
 function clampCenter(pct: number): number {
   return Math.min(150, Math.max(-50, pct));
 }
 
-function clampScale(scale: number): number {
-  return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function distance(a: Point, b: Point): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function angleDeg(a: Point, b: Point): number {
+  return (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
 }
 
 const TOUCH_PRIMARY_QUERY = "(hover: none) and (pointer: coarse)";
@@ -73,14 +96,6 @@ function getIsTouchPrimary() {
 
 function getIsTouchPrimaryServerSnapshot() {
   return false;
-}
-
-function distance(a: Point, b: Point): number {
-  return Math.hypot(b.x - a.x, b.y - a.y);
-}
-
-function angleDeg(a: Point, b: Point): number {
-  return (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
 }
 
 /** Average color sampled from the photo (a 1x1 canvas draw does a cheap area-average via the
@@ -115,34 +130,32 @@ function sampleAverageColor(url: string): Promise<string | null> {
   });
 }
 
-/** Drag-to-position, pinch-to-zoom, two-finger-to-rotate editor for fitting a photo into the
- * 9:16 story frame before posting - same gesture a phone's own camera roll / Instagram gives
- * you, because a band's source image (a flyer, a landscape photo, whatever) rarely already has
- * the story's own aspect ratio. A mouse/trackpad can't pinch, so the sliders next to this stay
- * the only way to zoom/rotate there - but on an actual touchscreen the gesture alone is enough,
- * which is why BandStoryComposer hides them on touch-primary devices. Purely a positioning
- * tool: the source image is never modified, only a few numbers describing where it sits get
- * saved (see CroppedStoryImage, which reproduces this exact same view wherever the story is
- * then shown). */
-function StoryCropEditor({
-  imageUrl,
-  imgAspect,
-  transform,
-  onTransformChange,
-  bgColor,
+/** Drag/pinch/rotate for one object (the photo, or one text layer) against a shared frame -
+ * factored out so the photo and every text layer drive the exact same gesture math, just
+ * pointed at a different NormalizedTransform getter/setter. One finger pans; two fingers
+ * pinch-zoom and rotate at once, anchored to the pinch's own midpoint. Also reports a plain
+ * tap (pointer released with barely any movement, never a second finger) via `onTap` - how a
+ * text layer knows "select and start editing" versus "I just got dragged". */
+function useLayerGesture({
+  frameRef,
+  getTransform,
+  setTransform,
+  minScale,
+  maxScale,
+  onTap,
 }: {
-  imageUrl: string;
-  imgAspect: number;
-  transform: Transform;
-  onTransformChange: (transform: Transform) => void;
-  bgColor: string | null;
+  frameRef: React.RefObject<HTMLDivElement | null>;
+  getTransform: () => NormalizedTransform;
+  setTransform: (t: NormalizedTransform) => void;
+  minScale: number;
+  maxScale: number;
+  onTap?: () => void;
 }) {
-  const frameRef = useRef<HTMLDivElement>(null);
   const pointersRef = useRef<Map<number, Point>>(new Map());
   const gestureRef = useRef({
-    transform,
+    transform: getTransform(),
     singleStart: { x: 0, y: 0 },
-    // Two-pointer-only reference values.
+    movement: 0,
     distance: 0,
     angle: 0,
     midpoint: { x: 0, y: 0 },
@@ -150,9 +163,10 @@ function StoryCropEditor({
 
   function startGesture() {
     const points = [...pointersRef.current.values()];
-    gestureRef.current.transform = transform;
+    gestureRef.current.transform = getTransform();
     if (points.length === 1) {
       gestureRef.current.singleStart = points[0];
+      gestureRef.current.movement = 0;
     } else if (points.length === 2) {
       gestureRef.current.distance = distance(points[0], points[1]);
       gestureRef.current.angle = angleDeg(points[0], points[1]);
@@ -161,13 +175,13 @@ function StoryCropEditor({
   }
 
   function onPointerDown(e: React.PointerEvent) {
-    // Guarded: a failed capture (e.g. an already-released pointer in some edge case) would
-    // otherwise abort this handler before the pointer is even tracked below, silently
-    // breaking the whole gesture instead of just losing capture-while-dragging-outside-frame.
+    // Stops the frame's own background gesture (which would otherwise re-select "photo") from
+    // also firing for the same touch when this is a text layer.
+    e.stopPropagation();
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
-      // ignore
+      // Guarded: an invalid/already-released pointer id shouldn't abort tracking it below.
     }
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     startGesture();
@@ -178,29 +192,26 @@ function StoryCropEditor({
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const points = [...pointersRef.current.values()];
     const rect = frameRef.current.getBoundingClientRect();
+    const start = gestureRef.current;
 
     if (points.length === 2) {
       const newDistance = distance(points[0], points[1]);
       const newAngle = angleDeg(points[0], points[1]);
       const newMidpoint = { x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 };
-      const start = gestureRef.current;
       const scaleRatio = start.distance > 0 ? newDistance / start.distance : 1;
-      const newScale = clampScale(scaleOf(start.transform, imgAspect) * scaleRatio);
-      const size = sizeAtScale(imgAspect, newScale);
       const dxPct = ((newMidpoint.x - start.midpoint.x) / rect.width) * 100;
       const dyPct = ((newMidpoint.y - start.midpoint.y) / rect.height) * 100;
-      onTransformChange({
-        widthPct: size.widthPct,
-        heightPct: size.heightPct,
+      setTransform({
+        scale: clamp(start.transform.scale * scaleRatio, minScale, maxScale),
         rotationDeg: start.transform.rotationDeg + (newAngle - start.angle),
         centerXPct: clampCenter(start.transform.centerXPct + dxPct),
         centerYPct: clampCenter(start.transform.centerYPct + dyPct),
       });
     } else if (points.length === 1) {
-      const start = gestureRef.current;
       const dxPct = ((points[0].x - start.singleStart.x) / rect.width) * 100;
       const dyPct = ((points[0].y - start.singleStart.y) / rect.height) * 100;
-      onTransformChange({
+      gestureRef.current.movement = Math.max(gestureRef.current.movement, distance(points[0], start.singleStart));
+      setTransform({
         ...start.transform,
         centerXPct: clampCenter(start.transform.centerXPct + dxPct),
         centerYPct: clampCenter(start.transform.centerYPct + dyPct),
@@ -209,27 +220,185 @@ function StoryCropEditor({
   }
 
   function onPointerUpOrCancel(e: React.PointerEvent) {
+    e.stopPropagation();
+    const wasTap = pointersRef.current.size === 1 && gestureRef.current.movement < 6;
     pointersRef.current.delete(e.pointerId);
     startGesture();
+    if (wasTap) onTap?.();
   }
+
+  return {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: onPointerUpOrCancel,
+    onPointerCancel: onPointerUpOrCancel,
+    onPointerLeave: onPointerUpOrCancel,
+  };
+}
+
+/** One text layer inside the crop editor - a draggable/pinchable/rotatable label, tap to
+ * (re)select and start typing, drag to reposition (which selects it too, but doesn't open the
+ * keyboard). Only ever renders its own <input> while `editing`; otherwise it's the same static
+ * text CroppedStoryImage would show, just with a selection outline when it's the active target
+ * of the Zoom/Drehen sliders. */
+function TextLayerOverlay({
+  frameRef,
+  layer,
+  selected,
+  editing,
+  onSelect,
+  onChange,
+  onCommitText,
+  onStartEditing,
+  onStopEditing,
+}: {
+  frameRef: React.RefObject<HTMLDivElement | null>;
+  layer: TextLayer;
+  selected: boolean;
+  editing: boolean;
+  onSelect: () => void;
+  onChange: (t: NormalizedTransform) => void;
+  onCommitText: (text: string) => void;
+  onStartEditing: () => void;
+  onStopEditing: () => void;
+}) {
+  const gesture = useLayerGesture({
+    frameRef,
+    getTransform: () => ({ centerXPct: layer.centerXPct, centerYPct: layer.centerYPct, scale: layer.scale, rotationDeg: layer.rotationDeg }),
+    setTransform: onChange,
+    minScale: MIN_TEXT_SCALE,
+    maxScale: MAX_TEXT_SCALE,
+    onTap: () => {
+      onSelect();
+      onStartEditing();
+    },
+  });
+
+  const style: React.CSSProperties = {
+    left: `${layer.centerXPct}%`,
+    top: `${layer.centerYPct}%`,
+    fontSize: `${layer.scale * TEXT_LAYER_BASE_FONT_CQW}cqw`,
+    transform: `translate(-50%, -50%) rotate(${layer.rotationDeg}deg)`,
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={layer.text}
+        onChange={(e) => onCommitText(e.target.value.slice(0, TEXT_MAX_LENGTH))}
+        onBlur={onStopEditing}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        placeholder="Text"
+        className="absolute border-b border-white/70 bg-transparent text-center font-display font-bold leading-tight text-white outline-none placeholder:text-white/50"
+        style={{ ...style, width: "min(85%, 12em)" }}
+      />
+    );
+  }
+
+  return (
+    <p
+      className={`absolute max-w-[85%] cursor-move touch-none select-none whitespace-pre-wrap break-words text-center font-display font-bold leading-tight text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] ${
+        selected ? "outline outline-2 outline-dashed outline-offset-4 outline-white/80" : ""
+      }`}
+      style={style}
+      onPointerDown={(e) => {
+        onSelect();
+        gesture.onPointerDown(e);
+      }}
+      onPointerMove={gesture.onPointerMove}
+      onPointerUp={gesture.onPointerUp}
+      onPointerCancel={gesture.onPointerCancel}
+      onPointerLeave={gesture.onPointerLeave}
+    >
+      {layer.text}
+    </p>
+  );
+}
+
+/** Drag-to-position, pinch-to-zoom, two-finger-to-rotate editor for fitting a photo (and any
+ * number of text layers on top of it) into the 9:16 story frame before posting - same gesture
+ * a phone's own camera roll / Instagram gives you. Whichever object is currently selected
+ * (the photo, or one text layer) is what the Zoom/Drehen sliders and a two-finger gesture
+ * anywhere in the frame act on - see useLayerGesture/TextLayerOverlay. A mouse/trackpad can't
+ * pinch, so the sliders stay the only way to zoom/rotate there; BandStoryComposer hides them
+ * on touch-primary devices, where the gesture alone is enough. Purely a positioning tool: the
+ * source image is never modified, only a few numbers describing where everything sits get
+ * saved (see CroppedStoryImage, which reproduces this exact same view wherever the story is
+ * then shown). */
+function StoryCropEditor({
+  imageUrl,
+  imgAspect,
+  transform,
+  onTransformChange,
+  bgColor,
+  textLayers,
+  selectedLayerId,
+  editingLayerId,
+  onSelectLayer,
+  onTextLayerChange,
+  onTextLayerCommitText,
+  onStartEditing,
+  onStopEditing,
+}: {
+  imageUrl: string;
+  imgAspect: number;
+  transform: PhotoTransform;
+  onTransformChange: (transform: PhotoTransform) => void;
+  bgColor: string | null;
+  textLayers: TextLayer[];
+  selectedLayerId: string;
+  editingLayerId: string | null;
+  onSelectLayer: (id: string) => void;
+  onTextLayerChange: (id: string, t: NormalizedTransform) => void;
+  onTextLayerCommitText: (id: string, text: string) => void;
+  onStartEditing: (id: string) => void;
+  onStopEditing: () => void;
+}) {
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  const photoGesture = useLayerGesture({
+    frameRef,
+    getTransform: () => ({
+      centerXPct: transform.centerXPct,
+      centerYPct: transform.centerYPct,
+      scale: scaleOfPhoto(transform, imgAspect),
+      rotationDeg: transform.rotationDeg,
+    }),
+    setTransform: (n) => {
+      const size = sizeAtScale(imgAspect, n.scale);
+      onTransformChange({ widthPct: size.widthPct, heightPct: size.heightPct, centerXPct: n.centerXPct, centerYPct: n.centerYPct, rotationDeg: n.rotationDeg });
+    },
+    minScale: MIN_PHOTO_SCALE,
+    maxScale: MAX_PHOTO_SCALE,
+  });
 
   return (
     <div
       ref={frameRef}
       className="relative mt-3 aspect-[9/16] w-full touch-none overflow-hidden border border-line"
-      style={{ backgroundColor: bgColor ?? FALLBACK_BG }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUpOrCancel}
-      onPointerCancel={onPointerUpOrCancel}
-      onPointerLeave={onPointerUpOrCancel}
+      style={{ backgroundColor: bgColor ?? FALLBACK_BG, containerType: "inline-size" }}
+      onPointerDown={(e) => {
+        onSelectLayer("photo");
+        photoGesture.onPointerDown(e);
+      }}
+      onPointerMove={photoGesture.onPointerMove}
+      onPointerUp={photoGesture.onPointerUp}
+      onPointerCancel={photoGesture.onPointerCancel}
+      onPointerLeave={photoGesture.onPointerLeave}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={imageUrl}
         alt=""
         draggable={false}
-        className="absolute max-w-none cursor-move select-none"
+        className="absolute max-w-none"
         style={{
           left: `${transform.centerXPct}%`,
           top: `${transform.centerYPct}%`,
@@ -238,22 +407,38 @@ function StoryCropEditor({
           transform: `translate(-50%, -50%) rotate(${transform.rotationDeg}deg)`,
         }}
       />
+      {textLayers.map((layer) => (
+        <TextLayerOverlay
+          key={layer.id}
+          frameRef={frameRef}
+          layer={layer}
+          selected={selectedLayerId === layer.id}
+          editing={editingLayerId === layer.id}
+          onSelect={() => onSelectLayer(layer.id)}
+          onChange={(next) => onTextLayerChange(layer.id, next)}
+          onCommitText={(text) => onTextLayerCommitText(layer.id, text)}
+          onStartEditing={() => onStartEditing(layer.id)}
+          onStopEditing={onStopEditing}
+        />
+      ))}
     </div>
   );
 }
 
 /** "Status posten" - the entry point a band's own manager uses to publish a new 24h status
  * (see BandStoryAvatarButton/BandStoryViewer for how everyone else then sees it). Upload a
- * photo, position/zoom/rotate it to fit the frame, optionally caption it, then post - unlike
- * PasteImageUpload elsewhere, the image alone isn't persisted onto anything until "Posten"
- * (there's nothing sensible to save it onto before the story itself exists). */
+ * photo, position/zoom/rotate it (and any text layers on top) to fit the frame, then post -
+ * unlike PasteImageUpload elsewhere, the image alone isn't persisted onto anything until
+ * "Posten" (there's nothing sensible to save it onto before the story itself exists). */
 export function BandStoryComposer({ bandId }: { bandId: number }) {
   const [open, setOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imgAspect, setImgAspect] = useState<number | null>(null);
-  const [transform, setTransform] = useState<Transform | null>(null);
+  const [transform, setTransform] = useState<PhotoTransform | null>(null);
   const [bgColor, setBgColor] = useState<string | null>(null);
-  const [text, setText] = useState("");
+  const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
+  const [selectedLayerId, setSelectedLayerId] = useState("photo");
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -266,13 +451,22 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
   // first paint, same as any other viewport-dependent UI.
   const isTouchPrimary = useSyncExternalStore(subscribeToTouchPrimary, getIsTouchPrimary, getIsTouchPrimaryServerSnapshot);
 
+  const selectedTextLayer = selectedLayerId !== "photo" ? (textLayers.find((l) => l.id === selectedLayerId) ?? null) : null;
+  const currentScale =
+    selectedLayerId === "photo" ? (imgAspect != null && transform ? scaleOfPhoto(transform, imgAspect) : MIN_PHOTO_SCALE) : (selectedTextLayer?.scale ?? 1);
+  const currentRotation = selectedLayerId === "photo" ? (transform?.rotationDeg ?? 0) : (selectedTextLayer?.rotationDeg ?? 0);
+  const sliderMin = selectedLayerId === "photo" ? MIN_PHOTO_SCALE : MIN_TEXT_SCALE;
+  const sliderMax = selectedLayerId === "photo" ? MAX_PHOTO_SCALE : MAX_TEXT_SCALE;
+
   function reset() {
     setOpen(false);
     setImageUrl(null);
     setImgAspect(null);
     setTransform(null);
     setBgColor(null);
-    setText("");
+    setTextLayers([]);
+    setSelectedLayerId("photo");
+    setEditingLayerId(null);
     setError(null);
   }
 
@@ -300,7 +494,7 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
       const probe = new Image();
       probe.onload = async () => {
         const aspect = probe.naturalWidth / probe.naturalHeight;
-        const size = sizeAtScale(aspect, MIN_SCALE);
+        const size = sizeAtScale(aspect, MIN_PHOTO_SCALE);
         setImgAspect(aspect);
         setTransform({ widthPct: size.widthPct, heightPct: size.heightPct, centerXPct: 50, centerYPct: 50, rotationDeg: 0 });
         setImageUrl(url);
@@ -311,30 +505,78 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     });
   }
 
+  function addTextLayer() {
+    const layer = createTextLayer();
+    setTextLayers((prev) => [...prev, layer]);
+    setSelectedLayerId(layer.id);
+    setEditingLayerId(layer.id);
+  }
+
+  function updateTextLayer(id: string, next: NormalizedTransform) {
+    setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, ...next } : l)));
+  }
+
+  function commitTextLayerText(id: string, text: string) {
+    setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, text } : l)));
+  }
+
+  function stopEditingLayer() {
+    const id = editingLayerId;
+    if (!id) return;
+    const layer = textLayers.find((l) => l.id === id);
+    if (!layer || layer.text.trim().length === 0) {
+      setTextLayers((prev) => prev.filter((l) => l.id !== id));
+      setSelectedLayerId("photo");
+    }
+    setEditingLayerId(null);
+  }
+
+  function deleteSelectedTextLayer() {
+    if (selectedLayerId === "photo") return;
+    setTextLayers((prev) => prev.filter((l) => l.id !== selectedLayerId));
+    setSelectedLayerId("photo");
+    setEditingLayerId(null);
+  }
+
   function handleScaleChange(newScale: number) {
-    if (imgAspect == null || !transform) return;
-    const size = sizeAtScale(imgAspect, newScale);
-    setTransform({ ...transform, widthPct: size.widthPct, heightPct: size.heightPct });
+    if (selectedLayerId === "photo") {
+      if (imgAspect == null || !transform) return;
+      const size = sizeAtScale(imgAspect, newScale);
+      setTransform({ ...transform, widthPct: size.widthPct, heightPct: size.heightPct });
+    } else if (selectedTextLayer) {
+      updateTextLayer(selectedTextLayer.id, { ...selectedTextLayer, scale: newScale });
+    }
   }
 
   function handleRotationChange(deg: number) {
-    if (!transform) return;
-    setTransform({ ...transform, rotationDeg: deg });
+    if (selectedLayerId === "photo") {
+      if (!transform) return;
+      setTransform({ ...transform, rotationDeg: deg });
+    } else if (selectedTextLayer) {
+      updateTextLayer(selectedTextLayer.id, { ...selectedTextLayer, rotationDeg: deg });
+    }
   }
 
   function submit() {
     if (!imageUrl || !transform) return;
     setError(null);
+    const layersJson = serializeTextLayers(textLayers);
+    const plainText = textLayers
+      .map((l) => l.text.trim())
+      .filter(Boolean)
+      .join(" · ")
+      .slice(0, 280);
     startTransition(async () => {
       const result = await createBandStoryAction(bandId, {
         imageUrl,
-        text: text.trim() || undefined,
+        text: plainText || undefined,
         imgWidthPct: transform.widthPct,
         imgHeightPct: transform.heightPct,
         imgCenterXPct: transform.centerXPct,
         imgCenterYPct: transform.centerYPct,
         imgRotationDeg: transform.rotationDeg,
         imgBackgroundColor: bgColor ?? FALLBACK_BG,
+        textLayersJson: layersJson,
       });
       if (!result.ok) {
         setError(result.error ?? "Posten fehlgeschlagen.");
@@ -388,10 +630,31 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
               transform={transform}
               onTransformChange={setTransform}
               bgColor={bgColor}
+              textLayers={textLayers}
+              selectedLayerId={selectedLayerId}
+              editingLayerId={editingLayerId}
+              onSelectLayer={setSelectedLayerId}
+              onTextLayerChange={updateTextLayer}
+              onTextLayerCommitText={commitTextLayerText}
+              onStartEditing={setEditingLayerId}
+              onStopEditing={stopEditingLayer}
             />
-            <p className="mt-1 font-meta text-xs text-muted">
-              {isTouchPrimary ? "Ziehen zum Verschieben · zwei Finger zum Zoomen und Drehen" : "Ziehen zum Verschieben"}
-            </p>
+
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="font-meta text-xs text-muted">
+                {isTouchPrimary ? "Ziehen zum Verschieben · zwei Finger zum Zoomen und Drehen" : "Ziehen zum Verschieben"}
+              </p>
+              <div className="flex flex-none gap-3">
+                {selectedLayerId !== "photo" && (
+                  <button type="button" onClick={deleteSelectedTextLayer} className="font-meta text-xs text-accent hover:underline">
+                    Löschen
+                  </button>
+                )}
+                <button type="button" onClick={addTextLayer} className="font-meta text-xs text-accent hover:underline">
+                  + Text
+                </button>
+              </div>
+            </div>
 
             {!isTouchPrimary && (
               <>
@@ -400,10 +663,10 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
                   <input
                     id="story-zoom"
                     type="range"
-                    min={MIN_SCALE}
-                    max={MAX_SCALE}
+                    min={sliderMin}
+                    max={sliderMax}
                     step={0.01}
-                    value={scaleOf(transform, imgAspect)}
+                    value={currentScale}
                     onChange={(e) => handleScaleChange(Number(e.target.value))}
                     className="w-full"
                   />
@@ -416,28 +679,13 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
                     min={-180}
                     max={180}
                     step={1}
-                    value={transform.rotationDeg}
+                    value={currentRotation}
                     onChange={(e) => handleRotationChange(Number(e.target.value))}
                     className="w-full"
                   />
                 </label>
               </>
             )}
-
-            <label className="mt-3 block font-meta text-xs uppercase tracking-wide text-muted" htmlFor="story-text">
-              Text (optional)
-            </label>
-            <textarea
-              id="story-text"
-              value={text}
-              onChange={(e) => setText(e.target.value.slice(0, TEXT_MAX_LENGTH))}
-              maxLength={TEXT_MAX_LENGTH}
-              rows={2}
-              className="mt-1 w-full border border-line bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
-            />
-            <div className="mt-1 text-right font-meta text-xs text-muted">
-              {text.length}/{TEXT_MAX_LENGTH}
-            </div>
           </>
         )}
 

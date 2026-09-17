@@ -41,6 +41,7 @@ public class BandStoryService {
                 .imgCenterYPct(request.imgCenterYPct())
                 .imgRotationDeg(request.imgRotationDeg())
                 .imgBackgroundColor(request.imgBackgroundColor())
+                .textLayersJson(request.textLayersJson())
                 .build();
         return bandStoryRepository.save(story);
     }
@@ -65,6 +66,7 @@ public class BandStoryService {
                 story.getId(), story.getImageUrl(), story.getText(),
                 story.getImgWidthPct(), story.getImgHeightPct(),
                 story.getImgCenterXPct(), story.getImgCenterYPct(), story.getImgRotationDeg(), story.getImgBackgroundColor(),
+                story.getTextLayersJson(),
                 story.getCreatedAt(), story.getExpiresAt()
         );
     }
