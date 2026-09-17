@@ -33,7 +33,7 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
         uiState = uiState.copy(password = value)
     }
 
-    fun login(onSuccess: () -> Unit) {
+    fun login(onSuccess: (com.giglister.app.data.model.MeResponse) -> Unit) {
         if (uiState.username.isBlank() || uiState.password.isBlank()) {
             uiState = uiState.copy(error = "Bitte Nutzername und Passwort angeben.")
             return
@@ -41,10 +41,10 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
         uiState = uiState.copy(loading = true, error = null)
         viewModelScope.launch {
             try {
-                authRepository.login(uiState.username, uiState.password)
-                registerCurrentFcmToken()
+                val profile = authRepository.login(uiState.username.trim(), uiState.password)
+                if (!profile.mustChangePassword) kotlinx.coroutines.withTimeoutOrNull(3000) { registerCurrentFcmToken() }
                 uiState = uiState.copy(loading = false)
-                onSuccess()
+                onSuccess(profile)
             } catch (e: Exception) {
                 uiState = uiState.copy(loading = false, error = errorMessage(e))
             }

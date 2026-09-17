@@ -29,6 +29,7 @@ class LocationRepository(context: Context) {
         return try {
             client.getCurrentLocation(request, CancellationTokenSource().token).await()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             null
         }
     }

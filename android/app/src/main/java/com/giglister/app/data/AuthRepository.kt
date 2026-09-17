@@ -45,7 +45,7 @@ class AuthRepository(private val context: Context) {
         TokenStore.token = null
     }
 
-    private suspend fun saveToken(token: String) {
+    suspend fun saveToken(token: String) {
         context.authDataStore.edit { it[TOKEN_KEY] = token }
         TokenStore.token = token
     }

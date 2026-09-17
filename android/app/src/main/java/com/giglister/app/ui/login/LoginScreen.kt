@@ -13,6 +13,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -23,8 +26,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun LoginScreen(
     authRepository: AuthRepository,
-    onLoggedIn: () -> Unit,
-    onGoToRegister: () -> Unit
+    onLoggedIn: (com.giglister.app.data.model.MeResponse) -> Unit,
+    onGoToRegister: () -> Unit,
+    onForgot: () -> Unit = {}
 ) {
     val viewModel: LoginViewModel = viewModel(factory = SimpleViewModelFactory { LoginViewModel(authRepository) })
     val state = viewModel.uiState
@@ -32,6 +36,8 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
             .padding(24.dp),
         verticalArrangement = Arrangement.Center
     ) {
@@ -92,5 +98,6 @@ fun LoginScreen(
         ) {
             Text("Noch kein Konto? Registrieren")
         }
+        TextButton(onClick = onForgot, modifier = Modifier.fillMaxWidth()) { Text("Passwort vergessen?") }
     }
 }

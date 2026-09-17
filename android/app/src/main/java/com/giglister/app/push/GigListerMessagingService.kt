@@ -33,6 +33,6 @@ class GigListerMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val title = message.notification?.title ?: return
         val body = message.notification?.body ?: ""
-        NotificationHelper.show(applicationContext, title, body)
+        NotificationHelper.show(applicationContext, title, body, message.data["eventId"])
     }
 }
