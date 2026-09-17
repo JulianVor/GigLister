@@ -45,7 +45,7 @@ export default async function BandDetailPage({ params }: { params: Promise<{ id:
 
       <div className="flex items-start gap-4">
         {canEdit ? (
-          <BandProfileImage band={band} />
+          <BandProfileImage band={band} hasActiveStory={stories.length > 0} />
         ) : stories.length > 0 ? (
           <BandStoryAvatarButton
             bandId={band.id}

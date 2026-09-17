@@ -16,12 +16,17 @@ export function PasteImageUpload({
   placeholderName,
   className,
   textClassName,
+  fit = "cover",
   onUpload,
 }: {
   src: string | null;
   placeholderName: string;
   className: string;
   textClassName?: string;
+  /** "contain" for a logo mark being shown as a stand-in preview (see BandProfileImage's
+   * logoUrl fallback) - cropping a logo via "cover" looks broken, so it gets breathing room
+   * on a bg-surface backdrop instead, same treatment logos get everywhere else on the site. */
+  fit?: "cover" | "contain";
   onUpload: (url: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [pending, startTransition] = useTransition();
@@ -80,7 +85,11 @@ export function PasteImageUpload({
       >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="h-full w-full object-cover" />
+          <img
+            src={src}
+            alt=""
+            className={fit === "contain" ? "h-full w-full bg-surface object-contain p-2" : "h-full w-full object-cover"}
+          />
         ) : (
           <EntityPlaceholder name={placeholderName} className="h-full w-full" textClassName={textClassName} />
         )}
