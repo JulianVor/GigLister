@@ -1,4 +1,4 @@
-import { TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
+import { TEXT_LAYER_BASE_FONT_CQW, textLayerColor, type TextLayer } from "@/lib/storyTextLayers";
 
 const FALLBACK_BG = "#111111";
 
@@ -57,11 +57,12 @@ export function CroppedStoryImage({
       {textLayers.map((layer) => (
         <p
           key={layer.id}
-          className="absolute max-w-[90%] whitespace-pre-wrap break-words text-center font-display font-bold leading-tight text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
+          className="absolute max-w-[90%] whitespace-pre-wrap break-words text-center font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
           style={{
             left: `${layer.centerXPct}%`,
             top: `${layer.centerYPct}%`,
             fontSize: `${layer.scale * TEXT_LAYER_BASE_FONT_CQW}cqw`,
+            color: textLayerColor(layer.colorHue),
             transform: `translate(-50%, -50%) rotate(${layer.rotationDeg}deg)`,
           }}
         >

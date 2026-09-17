@@ -4,7 +4,7 @@ import { useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { uploadImageAction } from "@/actions/uploads";
 import { createBandStoryAction } from "@/actions/bands";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
-import { createTextLayer, serializeTextLayers, TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
+import { createTextLayer, serializeTextLayers, textLayerColor, TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
 
 const TEXT_MAX_LENGTH = 200;
 // Same frame the viewer actually shows the story in (see BandStoryViewer) - the crop only
@@ -315,6 +315,7 @@ function TextLayerOverlay({
     left: `${layer.centerXPct}%`,
     top: `${layer.centerYPct}%`,
     fontSize: `${layer.scale * TEXT_LAYER_BASE_FONT_CQW}cqw`,
+    color: textLayerColor(layer.colorHue),
     transform: `translate(-50%, -50%) rotate(${layer.rotationDeg}deg)`,
   };
 
@@ -333,7 +334,7 @@ function TextLayerOverlay({
         }}
         onPointerDown={(e) => e.stopPropagation()}
         placeholder="Text"
-        className="absolute border-b border-white/70 bg-transparent text-center font-display font-bold leading-tight text-white outline-none placeholder:text-white/50"
+        className="absolute border-b border-white/70 bg-transparent text-center font-display font-bold leading-tight outline-none placeholder:text-white/50"
         style={{ ...style, width: "min(85%, 12em)" }}
       />
     );
@@ -341,7 +342,7 @@ function TextLayerOverlay({
 
   return (
     <p
-      className={`absolute max-w-[85%] cursor-move touch-none select-none whitespace-pre-wrap break-words text-center font-display font-bold leading-tight text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] ${
+      className={`absolute max-w-[85%] cursor-move touch-none select-none whitespace-pre-wrap break-words text-center font-display font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] ${
         selected ? "outline outline-2 outline-dashed outline-offset-4 outline-white/80" : ""
       }`}
       style={style}
@@ -494,6 +495,7 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
   const currentRotation = selectedLayerId === "photo" ? (transform?.rotationDeg ?? 0) : (selectedTextLayer?.rotationDeg ?? 0);
   const sliderMin = selectedLayerId === "photo" ? MIN_PHOTO_SCALE : MIN_TEXT_SCALE;
   const sliderMax = selectedLayerId === "photo" ? MAX_PHOTO_SCALE : MAX_TEXT_SCALE;
+  const currentColorHue = selectedTextLayer?.colorHue ?? 0;
 
   function reset() {
     setOpen(false);
@@ -551,6 +553,10 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
 
   function updateTextLayer(id: string, next: NormalizedTransform) {
     setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, ...next } : l)));
+  }
+
+  function updateTextLayerColor(id: string, colorHue: number) {
+    setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, colorHue } : l)));
   }
 
   function commitTextLayerText(id: string, text: string) {
@@ -722,6 +728,26 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
                   />
                 </label>
               </>
+            )}
+
+            {selectedTextLayer && (
+              <label className="mt-2 flex items-center gap-2" htmlFor="story-text-color">
+                <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Farbe</span>
+                <input
+                  id="story-text-color"
+                  type="range"
+                  min={0}
+                  max={360}
+                  step={1}
+                  value={currentColorHue}
+                  onChange={(e) => updateTextLayerColor(selectedTextLayer.id, Number(e.target.value))}
+                  className="w-full"
+                  style={{
+                    background:
+                      "linear-gradient(to right, hsl(0,85%,60%), hsl(60,85%,60%), hsl(120,85%,60%), hsl(180,85%,60%), hsl(240,85%,60%), hsl(300,85%,60%), hsl(360,85%,60%))",
+                  }}
+                />
+              </label>
             )}
           </>
         )}
