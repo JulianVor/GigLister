@@ -28,7 +28,8 @@ data class BandSummary(
     val logoUrl: String? = null,
     val titleImageUrl: String? = null,
     val linkable: Boolean = false,
-    val genres: List<String> = emptyList()
+    val genres: List<String> = emptyList(),
+    val startTime: String? = null
 )
 
 @Serializable
@@ -42,15 +43,18 @@ data class EventResponse(
     val description: String? = null,
     val ticketUrl: String? = null,
     val titleImageUrl: String? = null,
-    val bandImageDisplay: String,
+    val bandImageDisplay: String = "PHOTO",
     val status: String,
-    val createdBy: Long? = null
+    val createdBy: Long? = null,
+    val eventSeries: FestivalSummary? = null
 ) {
     /** e.g. "Arsen + Fahrtenbuch" - same fallback title Konzerte uses on the web when an
      * event has no explicit title of its own (event.title stays null for almost every
      * event in practice, see eventLineupLabel on the web side). */
     val displayTitle: String
-        get() = title ?: bands.joinToString(" + ") { it.name }.ifBlank { location.name }
+        get() = title?.takeIf { it.isNotBlank() } ?: bands.joinToString(" + ") { it.name }.ifBlank { "Konzert" }
+    val listTitle: String get() = eventSeries?.let { "${it.name} – $displayTitle" } ?: displayTitle
+    val effectiveTicketUrl: String? get() = eventSeries?.ticketUrl?.takeIf { it.isNotBlank() } ?: ticketUrl
 }
 
 /** Just enough of Spring Data's Page<T> JSON shape to read a result list - the response

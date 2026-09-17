@@ -32,16 +32,16 @@ object NotificationHelper {
 
     /** No-ops if the user never granted POST_NOTIFICATIONS (Android 13+) - a missed push
      * is a far smaller problem than crashing on a SecurityException. */
-    fun show(context: Context, title: String, body: String) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+    fun show(context: Context, title: String, body: String, eventId: String? = null) {
+        if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED
         ) {
             return
         }
         val openApp = PendingIntent.getActivity(
-            context, 0,
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-            PendingIntent.FLAG_IMMUTABLE
+            context, eventId?.hashCode() ?: 0,
+            Intent(context, MainActivity::class.java).putExtra("eventId", eventId).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val notification = NotificationCompat.Builder(context, channelId(context))
             .setSmallIcon(R.drawable.ic_launcher_foreground)

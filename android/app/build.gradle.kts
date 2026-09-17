@@ -14,8 +14,9 @@ android {
         applicationId = "com.giglister.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.2"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Overridden per build type below - lets a debug build point at a local/dev
         // backend (e.g. 10.0.2.2 for the emulator, or your machine's LAN IP for a real
@@ -28,14 +29,14 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "API_BASE_URL", "\"https://sandbox.fotosvorju.de\"")
+            buildConfigField("String", "API_BASE_URL", "\"${providers.gradleProperty("giglister.apiBaseUrl").getOrElse("https://sandbox.fotosvorju.de")}\"")
         }
         debug {
             // Points at the live server for now (same as release) while testing against
             // real data - switch this to "http://10.0.2.2:8080" (how an emulator reaches
             // the host machine's own localhost:8080) or your PC's LAN IP once you want to
             // test against a locally-run backend instead.
-            buildConfigField("String", "API_BASE_URL", "\"https://sandbox.fotosvorju.de\"")
+            buildConfigField("String", "API_BASE_URL", "\"${providers.gradleProperty("giglister.apiBaseUrl").getOrElse("https://sandbox.fotosvorju.de")}\"")
         }
     }
 
@@ -66,6 +67,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("androidx.webkit:webkit:1.11.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // Not used for any actual UI (everything here is Compose) - only pulled in because
@@ -80,7 +84,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
-    implementation("androidx.navigation:navigation-compose:2.8.0")
+    implementation("androidx.navigation:navigation-compose:2.8.9")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Networking - the same REST API the web frontend already talks to.
@@ -102,6 +106,13 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging-ktx")
 
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.09.00"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

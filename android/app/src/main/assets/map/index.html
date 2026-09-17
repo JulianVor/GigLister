@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src https://*.tile.openstreetmap.org https://tile.openstreetmap.org data:; connect-src 'none'">
+<link rel="stylesheet" href="leaflet.css"><style>
+html,body{margin:0;width:100%;height:100%;background:#ddd8cb;font-family:sans-serif} #map{width:100%;height:100vh} .venue{background:#15130f;color:#f3f0e8;border:2px solid #f3f0e8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-sizing:border-box} .leaflet-popup-content a{display:block;margin-top:8px;color:#a52c0c;font-weight:bold}
+</style></head><body><div id="map" role="region" aria-label="Konzertkarte"></div><script src="leaflet.js"></script><script>
+let map;
+new ResizeObserver(()=>{if(map)map.invalidateSize()}).observe(document.getElementById('map'));
+function renderMap(data){
+ document.getElementById('map').style.height=(window.innerHeight||330)+'px';
+ if(map)map.remove(); map=L.map('map',{scrollWheelZoom:false}).setView([data.lat,data.lon],12);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+ L.circle([data.lat,data.lon],{radius:data.radius*1000,color:'#e8481c',weight:1,fillOpacity:.04}).addTo(map);
+ L.circleMarker([data.lat,data.lon],{radius:7,color:'#ffffff',weight:2,fillColor:'#e8481c',fillOpacity:1}).addTo(map).bindTooltip('Dein Suchstandort');
+ const bounds=[[data.lat,data.lon]];
+ data.venues.forEach(v=>{
+  const marker=L.marker([v.lat,v.lon],{icon:L.divIcon({className:'venue',html:String(v.count),iconSize:[32,32]}),title:v.name});
+  const popup=document.createElement('div'),name=document.createElement('strong'),link=document.createElement('a');name.textContent=v.name;link.textContent=v.count+' Konzerte anzeigen';link.href='giglister://venue/'+v.id;popup.append(name,link);marker.addTo(map).bindPopup(popup);bounds.push([v.lat,v.lon]);
+ });
+ if(bounds.length>1)map.fitBounds(bounds,{padding:[25,25],maxZoom:14});
+}
+</script></body></html>

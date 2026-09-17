@@ -12,7 +12,7 @@ import java.io.IOException
  * business-rule message (e.g. "Nutzername oder Passwort ist falsch") makes it through
  * instead of a generic "something went wrong". */
 fun errorMessage(e: Throwable): String = when (e) {
-    is HttpException -> {
+    is HttpException -> if (e.code() == 401) "Deine Sitzung ist abgelaufen. Bitte erneut anmelden." else {
         val body = e.response()?.errorBody()?.string()
         val backendMessage = body?.let {
             runCatching { Json.parseToJsonElement(it).jsonObject["message"]?.jsonPrimitive?.content }.getOrNull()

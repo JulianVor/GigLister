@@ -18,7 +18,10 @@ private val LightColors = lightColorScheme(
     surface = LightSurface,
     onSurface = LightForeground,
     surfaceVariant = LightLine,
-    onSurfaceVariant = LightMuted
+    onSurfaceVariant = LightMuted,
+    primaryContainer = LightAccent.copy(alpha = .16f), onPrimaryContainer = LightForeground,
+    secondaryContainer = LightAccent.copy(alpha = .14f), onSecondaryContainer = LightAccent,
+    outline = LightMuted, outlineVariant = LightLine
 )
 
 private val DarkColors = darkColorScheme(
@@ -29,7 +32,10 @@ private val DarkColors = darkColorScheme(
     surface = DarkSurface,
     onSurface = DarkForeground,
     surfaceVariant = DarkLine,
-    onSurfaceVariant = DarkMuted
+    onSurfaceVariant = DarkMuted,
+    primaryContainer = DarkAccent.copy(alpha = .2f), onPrimaryContainer = DarkForeground,
+    secondaryContainer = DarkAccent.copy(alpha = .16f), onSecondaryContainer = DarkAccent,
+    outline = DarkMuted, outlineVariant = DarkLine
 )
 
 @Composable
@@ -51,6 +57,7 @@ fun GigListerTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = GigTypography,
         content = content
     )
 }
