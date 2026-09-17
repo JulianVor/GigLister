@@ -2,6 +2,10 @@
 
 Native Kotlin-/Jetpack-Compose-App für dieselbe REST-API wie die Web-App. Der Ausbau ergänzt den Benutzerbereich; Plattformadministration ist nicht Bestandteil der App.
 
+## Aktualisierung auf Version 1.3
+
+Band-Stories mit 24-Stunden-Ablauf, farbigen Profilrahmen, Vollbild-Viewer, eigenen Profilbildern und nativem Editor für Foto, Texte und Band-Markierungen. Zoom, Drehung, Farben, Hintergründe und EDIT-/MANAGE-Rechte entsprechen den neuen Web-Datenformaten. Analyse und Tests: [Stories-Abgleich](../docs/android-stories-2026-09-17.md).
+
 ## Aktualisierung auf Version 1.2
 
 Der Abgleich vom 16. September ergänzt Festivals und Spielpläne, Act-Merklisten, den persönlichen Startbereich, Genrevorlieben/-filter, Empfehlungen, Konzertvorschläge zur Prüfung, Pflichtpasswortwechsel sowie Löschen und Wiederaktivieren. Die Suche liegt jetzt in der Kopfzeile. Details, Screenshots und Abnahmeumfang: [Änderungsanalyse](../docs/android-aenderungen-2026-09-16.md).

@@ -58,6 +58,7 @@ private val entitySaver = Saver<EntityDetails, String>(save = { Json.encodeToStr
         }
         item { FormField("Website (https://…)", draft.website.orEmpty(), { draft = draft.copy(website = it) }) }
         item { ImageField("Titelbild", draft.titleImageUrl, app, { uploads += if (it) 1 else -1 }) { draft = draft.copy(titleImageUrl = it) } }
+        if (band) item { ImageField("Profilbild", draft.profileImageUrl, app, { uploads += if (it) 1 else -1 }) { draft = draft.copy(profileImageUrl = it) } }
         item { ImageField("Logo", draft.logoUrl, app, { uploads += if (it) 1 else -1 }) { draft = draft.copy(logoUrl = it) } }
         if (canManage) item {
             SectionTitle("Veröffentlichung")
@@ -71,7 +72,7 @@ private val entitySaver = Saver<EntityDetails, String>(save = { Json.encodeToStr
             validateWebUrl(draft.website)
             val id = initial?.id ?: createdId
             val result = if (band) {
-                val input = BandInput(draft.name.trim(), draft.city?.optional(), draft.country?.optional(), draft.shortDescription?.optional(), draft.website?.optional(), draft.logoUrl, draft.titleImageUrl, genres.split(',').map { it.trim() }.filter { it.isNotEmpty() }.distinct())
+                val input = BandInput(draft.name.trim(), draft.city?.optional(), draft.country?.optional(), draft.shortDescription?.optional(), draft.website?.optional(), draft.logoUrl, draft.titleImageUrl, genres.split(',').map { it.trim() }.filter { it.isNotEmpty() }.distinct(), draft.profileImageUrl)
                 if (id == null) ApiClient.api.createBand(input) else ApiClient.api.updateBand(id, input)
             } else {
                 val input = LocationInput(draft.name.trim(), draft.city!!.trim(), draft.address?.optional(), draft.postalCode?.optional(), draft.country?.optional(), draft.website?.optional(), draft.logoUrl, draft.titleImageUrl, draft.latitude, draft.longitude)

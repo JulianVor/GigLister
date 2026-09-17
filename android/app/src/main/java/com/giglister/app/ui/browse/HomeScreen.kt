@@ -41,7 +41,7 @@ import java.time.LocalDate
                     items(me.followedBands, key = { it.id }) { band ->
                         OutlinedCard(onClick = { navigate("bands/${band.id}") }, modifier = Modifier.width(185.dp)) {
                             Column(Modifier.padding(14.dp)) {
-                                if (band.logoUrl != null) AsyncImage(band.logoUrl, null, Modifier.size(48.dp), contentScale = ContentScale.Fit)
+                                StoryAvatar(band.name, band.profileImageUrl, band.logoUrl, band.hasActiveStory) { navigate(if (band.hasActiveStory) "bands/${band.id}/stories" else "bands/${band.id}") }
                                 Text(band.name, style = MaterialTheme.typography.titleMedium)
                                 Text(band.nextEventDate?.let { dateLabel(it) } ?: "Noch kein Termin", style = MaterialTheme.typography.bodySmall)
                             }

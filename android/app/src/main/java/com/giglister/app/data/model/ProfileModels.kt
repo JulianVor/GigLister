@@ -39,7 +39,7 @@ data class ProfileUpdateRequest(
 data class DeviceTokenRequest(val token: String)
 
 @Serializable
-data class FollowedBand(val id: Long, val name: String, val nextEventDate: String? = null, val logoUrl: String? = null)
+data class FollowedBand(val id: Long, val name: String, val nextEventDate: String? = null, val logoUrl: String? = null, val profileImageUrl: String? = null, val hasActiveStory: Boolean = false)
 
 @Serializable
 data class ManagedEntity(val entityType: String, val entityId: Long, val name: String, val permission: String)

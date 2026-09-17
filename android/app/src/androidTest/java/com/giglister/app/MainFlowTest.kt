@@ -75,6 +75,7 @@ class MainFlowTest {
                     "/api/me/submissions" -> if (reviewOnly) """[{"id":74,"status":"PENDING"}]""" else "[]"
                     "/api/auth/login" -> """{"token":"test-token","userId":4,"email":"tester@example.org","username":"tester","platformAdmin":false}"""
                     "/api/me/device-token" -> return MockResponse().setResponseCode(204)
+                    "/api/bands/62/stories" -> "[]"
                     "/api/bands/62" -> band
                     "/api/bands/62/permissions" -> "[]"
                     "/api/locations/9" -> """{"id":9,"name":"Stellwerk Hamburg","city":"Hamburg","address":"Hannoversche Straße 85","status":"PUBLISHED","upcomingEvents":[$event]}"""
@@ -261,6 +262,7 @@ class MainFlowTest {
     @Test fun festivalCreationSendsSelectedTimetableStyle() {
         launch(true); tap("Festivals"); tap("+ Festival")
         compose.onNodeWithText("Name *").performTextInput("MusicNight")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Raster")); tap("Raster")
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Festival speichern")); tap("Festival speichern")
         awaitText("KONZERTE DIESES FESTIVALS")
@@ -291,5 +293,3 @@ class MainFlowTest {
         compose.onNodeWithText("Zeit").assertDoesNotExist()
     }
 }
-
-

@@ -31,7 +31,7 @@ import com.giglister.app.ui.components.*
     val isMain = tabs.any { it.first == current }
     val snack = remember { SnackbarHostState() }
     val navigate: (String) -> Unit = { route -> nav.navigate(route) { launchSingleTop = true; if (route == "home") popUpTo("home") { inclusive = false } } }
-    LaunchedEffect(incomingRoute) { if (incomingRoute != null) { nav.navigate(incomingRoute) { launchSingleTop = true }; consumeRoute() } }
+    LaunchedEffect(incomingRoute, entry) { if (incomingRoute != null && entry != null && app.me?.mustChangePassword != true) { nav.navigate(incomingRoute) { launchSingleTop = true }; consumeRoute() } }
     LaunchedEffect(app.notice) { app.notice?.let { val message = it; snack.showSnackbar(message); if (app.notice == message) app.notice = null } }
     if (app.me?.mustChangePassword == true) {
         Scaffold(snackbarHost = { SnackbarHost(snack) }) { padding -> Box(Modifier.padding(padding)) { PasswordScreen(app, required = true) } }
@@ -60,6 +60,8 @@ import com.giglister.app.ui.components.*
         } }
     ) { padding ->
         NavHost(nav, startDestination = "home", modifier = Modifier.padding(padding)) {
+            composable("bands/{id}/stories", arguments = listOf(navArgument("id") { type = NavType.LongType })) { StoryViewerScreen(it.arguments!!.getLong("id"), app, navigate) { nav.popBackStack() } }
+            composable("bands/{id}/stories/new", arguments = listOf(navArgument("id") { type = NavType.LongType })) { AuthGate(app, navigate) { StoryEditorScreen(it.arguments!!.getLong("id"), app) { nav.popBackStack() } } }
             composable("home") { HomeScreen(app, navigate) }
             composable("festivals") { FestivalsScreen(app, navigate) }
             composable("festivals/new") { AuthGate(app, navigate) { FestivalEditor(null, app, navigate) } }

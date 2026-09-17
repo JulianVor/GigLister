@@ -8,6 +8,7 @@ data class EntityDetails(
     val id: Long, val name: String, val city: String? = null,
     val country: String? = null, val shortDescription: String? = null,
     val website: String? = null, val logoUrl: String? = null, val titleImageUrl: String? = null,
+    val profileImageUrl: String? = null,
     val genres: List<String> = emptyList(), val status: String = "PUBLISHED", val unclaimed: Boolean = false,
     val address: String? = null, val postalCode: String? = null,
     val latitude: Double? = null, val longitude: Double? = null,
@@ -38,7 +39,7 @@ data class EventInput(
     val eventSeriesId: Long? = null
 )
 @Serializable
-data class BandInput(val name: String, val city: String?, val country: String?, val shortDescription: String?, val website: String?, val logoUrl: String?, val titleImageUrl: String?, val genres: List<String>)
+data class BandInput(val name: String, val city: String?, val country: String?, val shortDescription: String?, val website: String?, val logoUrl: String?, val titleImageUrl: String?, val genres: List<String>, val profileImageUrl: String? = null)
 @Serializable
 data class LocationInput(val name: String, val city: String, val address: String?, val postalCode: String?, val country: String?, val website: String?, val logoUrl: String?, val titleImageUrl: String?, val latitude: Double?, val longitude: Double?)
 @Serializable
