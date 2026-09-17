@@ -61,7 +61,8 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/events/**", "/api/locations/**", "/api/bands/**", "/api/event-series/**",
-                                "/api/search/**", "/api/discover/**", "/api/genres/**", "/uploads/**").permitAll()
+                                "/api/search/**", "/api/discover/**", "/api/genres/**", "/uploads/**",
+                                "/api/app/download").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // The GPT-skill integration: can only ever propose a submission, never
                         // create/change a Band/Location/Event directly (see GptSkillAuthFilter).

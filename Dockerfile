@@ -12,6 +12,10 @@ RUN mvn -q -B package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
+# Same relative path (android/release/app.apk) application.yml's default
+# giglister.app.download-path already expects, so no env var override is
+# needed here either - see AppDownloadController.
+COPY android/release/app.apk ./android/release/app.apk
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

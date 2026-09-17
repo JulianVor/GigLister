@@ -24,6 +24,11 @@ giglister:
     max-size-mb: 5
   public:
     base-url: http://localhost:8080
+  app:
+    # Same relative path as the real default (see application.yml) - the real
+    # android/release/app.apk is exactly where this resolves to when tests run
+    # from the repo root, same as `mvn spring-boot:run` does.
+    download-path: android/release/app.apk
   gpt-skill:
     token: test-only-gpt-skill-token
   geocoding:

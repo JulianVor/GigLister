@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { logoutAction } from "@/actions/auth";
 
-/** Bundles the account-level links (Verwaltung, Einstellungen, Admin, Abmelden) behind
- * one dropdown instead of five separate items competing for header space - same
+// Same pattern as EntityPicker: an absolute URL the browser can reach directly,
+// distinct from the server-only API_BASE_URL used for Docker-internal calls.
+const PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+/** Bundles the account-level links (Verwaltung, Einstellungen, App, Admin, Abmelden) behind
+ * one dropdown instead of six separate items competing for header space - same
  * click-to-toggle popover LocationPicker already uses, for a consistent header. */
 export function UserMenu({ username, isAdmin }: { username: string; isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
@@ -38,6 +42,13 @@ export function UserMenu({ username, isAdmin }: { username: string; isAdmin: boo
           >
             Einstellungen
           </Link>
+          <a
+            href={`${PUBLIC_API_URL}/api/app/download`}
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2 font-meta text-sm hover:bg-bg hover:text-accent"
+          >
+            App herunterladen
+          </a>
           {isAdmin && (
             <Link
               href="/admin"

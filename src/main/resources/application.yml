@@ -57,6 +57,14 @@ giglister:
     # uploaded image's URL, once baked into logoUrl/titleImageUrl, resolves
     # for anyone viewing the page, not just from inside the Docker network.
     base-url: ${GIGLISTER_PUBLIC_API_URL:http://localhost:8080}
+  app:
+    # Resolved relative to the process's own working directory, deliberately the
+    # same relative path in both places it needs to work: `mvn spring-boot:run`
+    # runs with the repo root as CWD, where this is just the real file already
+    # in the checkout; the Dockerfile copies it to this identical relative path
+    # under its own WORKDIR for the same reason - one default covers both
+    # without an env var override in either. See AppDownloadController.
+    download-path: ${GIGLISTER_APK_PATH:android/release/app.apk}
   gpt-skill:
     # Shared secret for the external GPT-skill integration (POST /api/submissions
     # only - see SecurityConfig/GptSkillAuthFilter). Empty by default: unset means
