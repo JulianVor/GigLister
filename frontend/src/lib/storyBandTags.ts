@@ -1,3 +1,5 @@
+import { colorFromSliderPos } from "@/lib/storyColor";
+
 /** A freely positioned/scaled/rotated tag for another band on a story's photo (see
  * BandStoryComposer's "+ Band") - a square picture plus the band's name, clickable through to
  * that band's profile wherever the story is shown (see CroppedStoryImage). Same
@@ -15,6 +17,10 @@ export interface BandTagLayer {
   centerYPct: number;
   scale: number;
   rotationDeg: number;
+  /** Position (0-100) on the color slider's white-to-black gradient (see storyColor.ts) for
+   * the displayed band name - the picture itself is never recolored, only the name is a label
+   * like a text layer's. Null means "no color chosen yet" -> renders white. */
+  colorPos: number | null;
 }
 
 // Same unit as TEXT_LAYER_BASE_FONT_CQW (% of the frame's own width) - the chip's square
@@ -38,7 +44,13 @@ export function createBandTagLayer(band: {
     centerYPct: 50,
     scale: 1,
     rotationDeg: 0,
+    colorPos: null,
   };
+}
+
+/** The actual CSS color for a band tag's chosen slider position - see colorFromSliderPos. */
+export function bandTagColor(colorPos: number | null | undefined): string {
+  return colorFromSliderPos(colorPos);
 }
 
 export function serializeBandTags(tags: BandTagLayer[]): string | undefined {
@@ -60,8 +72,11 @@ export function parseBandTags(json: string | null | undefined): BandTagLayer[] {
         typeof (t as BandTagLayer).centerXPct === "number" &&
         typeof (t as BandTagLayer).centerYPct === "number" &&
         typeof (t as BandTagLayer).scale === "number" &&
-        typeof (t as BandTagLayer).rotationDeg === "number"
-    );
+        typeof (t as BandTagLayer).rotationDeg === "number" &&
+        ((t as BandTagLayer).colorPos === null ||
+          (t as BandTagLayer).colorPos === undefined ||
+          typeof (t as BandTagLayer).colorPos === "number")
+    ).map((t) => ({ ...t, colorPos: typeof t.colorPos === "number" ? t.colorPos : null }));
   } catch {
     return [];
   }

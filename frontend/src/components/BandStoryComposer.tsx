@@ -6,7 +6,8 @@ import { createBandStoryAction } from "@/actions/bands";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
 import { createTextLayer, serializeTextLayers, textLayerColor, TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
-import { createBandTagLayer, serializeBandTags, BAND_TAG_BASE_FONT_CQW, type BandTagLayer } from "@/lib/storyBandTags";
+import { createBandTagLayer, serializeBandTags, bandTagColor, BAND_TAG_BASE_FONT_CQW, type BandTagLayer } from "@/lib/storyBandTags";
+import { COLOR_SLIDER_GRADIENT_CSS } from "@/lib/storyColor";
 import type { BandTagOption } from "@/lib/types";
 
 // Same pattern as BandStoryAvatarButton/EntityPicker: a client component fetching directly
@@ -324,7 +325,7 @@ function TextLayerOverlay({
     left: `${layer.centerXPct}%`,
     top: `${layer.centerYPct}%`,
     fontSize: `${layer.scale * TEXT_LAYER_BASE_FONT_CQW}cqw`,
-    color: textLayerColor(layer.colorHue),
+    color: textLayerColor(layer.colorPos),
     transform: `translate(-50%, -50%) rotate(${layer.rotationDeg}deg)`,
   };
 
@@ -425,7 +426,10 @@ function BandTagOverlay({
           <EntityPlaceholder name={tag.bandName} className="h-full w-full" textClassName="text-[0.9em]" />
         )}
       </span>
-      <span className="truncate font-display text-[0.85em] font-bold leading-tight text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]">
+      <span
+        className="truncate font-display text-[0.85em] font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
+        style={{ color: bandTagColor(tag.colorPos) }}
+      >
         {tag.bandName}
       </span>
     </div>
@@ -619,7 +623,7 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     selectedLayerId === "photo" ? (transform?.rotationDeg ?? 0) : (selectedTextLayer?.rotationDeg ?? selectedBandTag?.rotationDeg ?? 0);
   const sliderMin = selectedLayerId === "photo" ? MIN_PHOTO_SCALE : MIN_TEXT_SCALE;
   const sliderMax = selectedLayerId === "photo" ? MAX_PHOTO_SCALE : MAX_TEXT_SCALE;
-  const currentColorHue = selectedTextLayer?.colorHue ?? 0;
+  const currentColorPos = selectedTextLayer?.colorPos ?? selectedBandTag?.colorPos ?? 0;
 
   function reset() {
     setOpen(false);
@@ -683,8 +687,8 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, ...next } : l)));
   }
 
-  function updateTextLayerColor(id: string, colorHue: number) {
-    setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, colorHue } : l)));
+  function updateTextLayerColor(id: string, colorPos: number) {
+    setTextLayers((prev) => prev.map((l) => (l.id === id ? { ...l, colorPos } : l)));
   }
 
   function addBandTag(option: BandTagOption) {
@@ -698,6 +702,10 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
 
   function updateBandTag(id: string, next: NormalizedTransform) {
     setBandTags((prev) => prev.map((t) => (t.id === id ? { ...t, ...next } : t)));
+  }
+
+  function updateBandTagColor(id: string, colorPos: number) {
+    setBandTags((prev) => prev.map((t) => (t.id === id ? { ...t, colorPos } : t)));
   }
 
   function commitTextLayerText(id: string, text: string) {
@@ -932,22 +940,23 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
               </>
             )}
 
-            {selectedTextLayer && (
-              <label className="mt-2 flex items-center gap-2" htmlFor="story-text-color">
+            {(selectedTextLayer || selectedBandTag) && (
+              <label className="mt-2 flex items-center gap-2" htmlFor="story-object-color">
                 <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Farbe</span>
                 <input
-                  id="story-text-color"
+                  id="story-object-color"
                   type="range"
                   min={0}
-                  max={360}
+                  max={100}
                   step={1}
-                  value={currentColorHue}
-                  onChange={(e) => updateTextLayerColor(selectedTextLayer.id, Number(e.target.value))}
-                  className="w-full"
-                  style={{
-                    background:
-                      "linear-gradient(to right, hsl(0,85%,60%), hsl(60,85%,60%), hsl(120,85%,60%), hsl(180,85%,60%), hsl(240,85%,60%), hsl(300,85%,60%), hsl(360,85%,60%))",
+                  value={currentColorPos}
+                  onChange={(e) => {
+                    const pos = Number(e.target.value);
+                    if (selectedTextLayer) updateTextLayerColor(selectedTextLayer.id, pos);
+                    else if (selectedBandTag) updateBandTagColor(selectedBandTag.id, pos);
                   }}
+                  className="w-full"
+                  style={{ background: COLOR_SLIDER_GRADIENT_CSS }}
                 />
               </label>
             )}

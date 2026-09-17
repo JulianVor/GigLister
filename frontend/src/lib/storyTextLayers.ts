@@ -1,3 +1,5 @@
+import { colorFromSliderPos } from "@/lib/storyColor";
+
 /** A freely positioned/scaled/rotated text overlay on a band's story photo (see
  * BandStoryComposer's "+ Text") - as many as a band wants, each independently draggable and
  * resizable. Entirely opaque to the backend (see BandStory.textLayersJson): built, parsed and
@@ -10,8 +12,9 @@ export interface TextLayer {
   centerYPct: number;
   scale: number;
   rotationDeg: number;
-  /** Hue (0-360) for the text color slider; null means "no color chosen yet" -> renders white. */
-  colorHue: number | null;
+  /** Position (0-100) on the color slider's white-to-black gradient - see storyColor.ts;
+   * null means "no color chosen yet" -> renders white. */
+  colorPos: number | null;
 }
 
 // 1 scale unit = this many cqw (% of the frame's own width, via CSS container query units) -
@@ -28,14 +31,13 @@ export function createTextLayer(): TextLayer {
     centerYPct: 50,
     scale: 1,
     rotationDeg: 0,
-    colorHue: null,
+    colorPos: null,
   };
 }
 
-/** The actual CSS color for a text layer's chosen hue - null (untouched slider) stays white,
- * matching the color the text already had before this slider existed. */
-export function textLayerColor(colorHue: number | null | undefined): string {
-  return colorHue == null ? "#ffffff" : `hsl(${colorHue}, 85%, 60%)`;
+/** The actual CSS color for a text layer's chosen slider position - see colorFromSliderPos. */
+export function textLayerColor(colorPos: number | null | undefined): string {
+  return colorFromSliderPos(colorPos);
 }
 
 /** Drops any layer nobody actually typed into (an added-then-abandoned empty one) - never
@@ -61,10 +63,10 @@ export function parseTextLayers(json: string | null | undefined): TextLayer[] {
         typeof (l as TextLayer).centerYPct === "number" &&
         typeof (l as TextLayer).scale === "number" &&
         typeof (l as TextLayer).rotationDeg === "number" &&
-        ((l as TextLayer).colorHue === null ||
-          (l as TextLayer).colorHue === undefined ||
-          typeof (l as TextLayer).colorHue === "number")
-    ).map((l) => ({ ...l, colorHue: typeof l.colorHue === "number" ? l.colorHue : null }));
+        ((l as TextLayer).colorPos === null ||
+          (l as TextLayer).colorPos === undefined ||
+          typeof (l as TextLayer).colorPos === "number")
+    ).map((l) => ({ ...l, colorPos: typeof l.colorPos === "number" ? l.colorPos : null }));
   } catch {
     return [];
   }

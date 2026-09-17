@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 import { TEXT_LAYER_BASE_FONT_CQW, textLayerColor, type TextLayer } from "@/lib/storyTextLayers";
-import { BAND_TAG_BASE_FONT_CQW, type BandTagLayer } from "@/lib/storyBandTags";
+import { BAND_TAG_BASE_FONT_CQW, bandTagColor, type BandTagLayer } from "@/lib/storyBandTags";
 
 const FALLBACK_BG = "#111111";
 
@@ -67,7 +67,7 @@ export function CroppedStoryImage({
             left: `${layer.centerXPct}%`,
             top: `${layer.centerYPct}%`,
             fontSize: `${layer.scale * TEXT_LAYER_BASE_FONT_CQW}cqw`,
-            color: textLayerColor(layer.colorHue),
+            color: textLayerColor(layer.colorPos),
             transform: `translate(-50%, -50%) rotate(${layer.rotationDeg}deg)`,
           }}
         >
@@ -100,7 +100,10 @@ export function CroppedStoryImage({
               <EntityPlaceholder name={tag.bandName} className="h-full w-full" textClassName="text-[0.9em]" />
             )}
           </span>
-          <span className="truncate font-display text-[0.85em] font-bold leading-tight text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]">
+          <span
+            className="truncate font-display text-[0.85em] font-bold leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]"
+            style={{ color: bandTagColor(tag.colorPos) }}
+          >
             {tag.bandName}
           </span>
         </Link>
