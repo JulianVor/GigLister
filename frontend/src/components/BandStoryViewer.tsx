@@ -12,6 +12,17 @@ import type { BandStory } from "@/lib/types";
 const STORY_DURATION_MS = 6000;
 const PROGRESS_TICK_MS = 50;
 
+/** "5 Min." for the first hour, then "3 Std." - matches the same "how old is this status"
+ * glance Instagram/WhatsApp Status give, and the band's explicit ask for a minutes/hours
+ * switchover at the one-hour mark. Recomputed on every render (there's no ticking timer for
+ * this alone) - accurate enough since the viewer already re-renders on every story advance,
+ * and nobody needs second-level precision on "how old is this status". */
+function formatStoryAge(createdAt: string): string {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000));
+  if (minutes < 60) return `${minutes} Min.`;
+  return `${Math.floor(minutes / 60)} Std.`;
+}
+
 /** One segment of the top progress-bar row, and the timer that drives it. Only ticks while
  * `active` (the current story) - `isPast` segments just render full without ever running
  * their own timer, so there's nothing to reset when `index` moves on: each segment's own
@@ -131,7 +142,7 @@ export function BandStoryViewer({
 
   return (
     <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90"
+      className="fixed inset-0 z-[2000] flex select-none items-center justify-center bg-black/90 [-webkit-touch-callout:none]"
       role="dialog"
       aria-modal="true"
       aria-label={`Status von ${bandName}`}
@@ -170,6 +181,7 @@ export function BandStoryViewer({
               )}
             </span>
             <span className="truncate font-meta text-sm font-medium text-white drop-shadow">{bandName}</span>
+            <span className="flex-none font-meta text-xs text-white/70 drop-shadow">· {formatStoryAge(story.createdAt)}</span>
           </Link>
           <div className="flex items-center gap-3">
             {canManage && (
