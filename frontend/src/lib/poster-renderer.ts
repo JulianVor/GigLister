@@ -57,16 +57,26 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
   } else {
     ctx.save(); ctx.translate(bg.x, bg.y); ctx.rotate(bg.rotation * Math.PI / 180); ctx.scale(bg.scale, bg.scale); ctx.translate(-W / 2, -H / 2);
     ctx.globalAlpha = bg.patternOpacity; ctx.fillStyle = bg.patternColor; ctx.strokeStyle = bg.patternColor;
-    if (bg.pattern === "Strahlen") for (let i = 0; i < 18; i++) {
-      const angle = i * Math.PI / 9 + bg.seed / 100;
-      ctx.beginPath(); ctx.moveTo(W * .5, H * .32); ctx.lineTo(W * .5 + Math.cos(angle) * 2200, H * .32 + Math.sin(angle) * 2200); ctx.lineTo(W * .5 + Math.cos(angle + .13) * 2200, H * .32 + Math.sin(angle + .13) * 2200); ctx.fill();
+    // "Musterdichte" scales each pattern's own notion of spacing/count/coil-tightness, so one
+    // slider reads as "more/less of it" no matter which generator is active.
+    const density = bg.patternDensity;
+    if (bg.pattern === "Strahlen") {
+      const count = Math.max(6, Math.round(18 * density)), step = Math.PI * 2 / count, width = step * .37;
+      for (let i = 0; i < count; i++) {
+        const angle = i * step + bg.seed / 100;
+        ctx.beginPath(); ctx.moveTo(W * .5, H * .32); ctx.lineTo(W * .5 + Math.cos(angle) * 2200, H * .32 + Math.sin(angle) * 2200); ctx.lineTo(W * .5 + Math.cos(angle + width) * 2200, H * .32 + Math.sin(angle + width) * 2200); ctx.fill();
+      }
     }
-    if (bg.pattern === "Streifen") { ctx.rotate(-.5); for (let x = -1500; x < 2500; x += 90) ctx.fillRect(x, -1500, 24, 4000); }
-    if (bg.pattern === "Punkte") for (let y = 0; y < H; y += 52) for (let x = 0; x < W; x += 52) { ctx.beginPath(); ctx.arc(x + (y % 104 ? 26 : 0), y, 4, 0, Math.PI * 2); ctx.fill(); }
-    if (bg.pattern === "Körnung") { const rand = seededRandom(bg.seed); for (let i = 0; i < 13000; i++) ctx.fillRect(rand() * W, rand() * H, 2, 2); }
+    if (bg.pattern === "Streifen") { ctx.rotate(-.5); const step = 90 / density; for (let x = -1500; x < 2500; x += step) ctx.fillRect(x, -1500, 24, 4000); }
+    if (bg.pattern === "Punkte") {
+      const step = 52 / density;
+      for (let row = 0, y = 0; y < H; y += step, row++) for (let x = 0; x < W; x += step) { ctx.beginPath(); ctx.arc(x + (row % 2 ? step / 2 : 0), y, 4, 0, Math.PI * 2); ctx.fill(); }
+    }
+    if (bg.pattern === "Körnung") { const rand = seededRandom(bg.seed); const n = Math.round(13000 * density); for (let i = 0; i < n; i++) ctx.fillRect(rand() * W, rand() * H, 2, 2); }
     if (bg.pattern === "Blitze") {
       const rand = seededRandom(bg.seed); ctx.lineWidth = 14; ctx.lineJoin = "miter";
-      for (let i = 0; i < 8; i++) {
+      const n = Math.max(2, Math.round(8 * density));
+      for (let i = 0; i < n; i++) {
         let x = rand() * W * 1.2 - W * .1, y = -60;
         ctx.beginPath(); ctx.moveTo(x, y);
         while (y < H + 60) { x += (rand() - .5) * 240; y += rand() * 140 + 90; ctx.lineTo(x, y); }
@@ -74,8 +84,8 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
       }
     }
     if (bg.pattern === "Spritzer") {
-      const rand = seededRandom(bg.seed);
-      for (let i = 0; i < 22; i++) {
+      const rand = seededRandom(bg.seed); const n = Math.max(4, Math.round(22 * density));
+      for (let i = 0; i < n; i++) {
         const cx = rand() * W, cy = rand() * H, r = rand() * 46 + 14;
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
         for (let d = Math.floor(rand() * 5) + 2; d > 0; d--) {
@@ -85,8 +95,8 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
       }
     }
     if (bg.pattern === "Risse") {
-      const rand = seededRandom(bg.seed); ctx.lineWidth = 3;
-      for (let c = 0; c < 4; c++) {
+      const rand = seededRandom(bg.seed); ctx.lineWidth = 3; const clusters = Math.max(1, Math.round(4 * density));
+      for (let c = 0; c < clusters; c++) {
         const cx = rand() * W, cy = rand() * H;
         for (let b = Math.floor(rand() * 5) + 6; b > 0; b--) {
           let angle = rand() * Math.PI * 2, x = cx, y = cy;
@@ -97,17 +107,58 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
       }
     }
     if (bg.pattern === "Schachbrett") {
-      ctx.rotate(-.4); const size = 70;
+      ctx.rotate(-.4); const size = 70 / density;
       for (let row = 0, y = -1600; y < 2400; y += size, row++) for (let col = 0, x = -1600; x < 2600; x += size, col++) if ((row + col) % 2 === 0) ctx.fillRect(x, y, size, size);
     }
     if (bg.pattern === "Wirbel") {
-      ctx.lineWidth = 16;
+      ctx.lineWidth = 16; const spread = 16 / density;
       for (let arm = 0; arm < 3; arm++) {
         ctx.beginPath();
         for (let t = 0; t < 60; t++) {
-          const theta = t * .25 + arm * (Math.PI * 2 / 3) + bg.seed / 50, r = t * 16;
+          const theta = t * .25 + arm * (Math.PI * 2 / 3) + bg.seed / 50, r = t * spread;
           const x = W / 2 + Math.cos(theta) * r, y = H * .42 + Math.sin(theta) * r;
           if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    }
+    // Concentric, noise-wobbled rings around a handful of random "peaks" - reads as a
+    // topographic elevation map. Two summed sine harmonics per peak keep each ring irregular
+    // instead of a plain circle, without needing an actual 2D noise field.
+    if (bg.pattern === "Höhenlinien") {
+      const rand = seededRandom(bg.seed); ctx.lineWidth = 2.5;
+      const peaks = Math.max(2, Math.round(3 * density)), rings = Math.max(3, Math.round(9 * density));
+      for (let p = 0; p < peaks; p++) {
+        const cx = rand() * W, cy = rand() * H * .9 + H * .05, step = 60 + rand() * 50;
+        const h1 = { f: 2 + Math.floor(rand() * 3), a: rand() * 18 + 6, p: rand() * Math.PI * 2 };
+        const h2 = { f: 2 + Math.floor(rand() * 3), a: rand() * 14 + 4, p: rand() * Math.PI * 2 };
+        for (let r = 1; r <= rings; r++) {
+          const base = r * step;
+          ctx.beginPath();
+          for (let a = 0; a <= 64; a++) {
+            const theta = a / 64 * Math.PI * 2;
+            const rr = base + Math.sin(theta * h1.f + h1.p) * h1.a + Math.sin(theta * h2.f + h2.p) * h2.a;
+            const x = cx + Math.cos(theta) * rr, y = cy + Math.sin(theta) * rr;
+            if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.closePath(); ctx.stroke();
+        }
+      }
+    }
+    // Flowing, roughly horizontal veins built from two summed sine waves per line (a cheap
+    // stand-in for turbulence/domain-warped noise) - reads as marbled/wood-grain streaks.
+    if (bg.pattern === "Marmor") {
+      const rand = seededRandom(bg.seed); ctx.lineWidth = 2;
+      const veins = Math.max(6, Math.round(14 * density));
+      const h1 = { f: rand() * 3 + 1.5, a: rand() * 70 + 40, p: rand() * Math.PI * 2 };
+      const h2 = { f: rand() * 6 + 3, a: rand() * 30 + 10, p: rand() * Math.PI * 2 };
+      for (let v = 0; v < veins; v++) {
+        const baseY = (v + .5) / veins * H;
+        ctx.beginPath();
+        for (let x = -40; x <= W + 40; x += 20) {
+          const t = x / W * Math.PI * 2;
+          const y = baseY + Math.sin(t * h1.f + h1.p + v * .4) * h1.a + Math.sin(t * h2.f + h2.p + v * .7) * h2.a;
+          if (x === -40) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
         ctx.stroke();
       }

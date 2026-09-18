@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { initialPoster, restorePoster, hitLayer, posterDate, ticketProviderLabel, luminanceTextColor, backgroundGradientLuminance } from '../src/lib/poster.ts';
+import { initialPoster, restorePoster, hitLayer, posterDate, ticketProviderLabel, luminanceTextColor, backgroundGradientLuminance, patterns } from '../src/lib/poster.ts';
 const event = (count, title = 'Rails on Fire', ticketUrl = null) => ({ id: 7, title, date: '2026-09-17', startTime: '20:00:00', location: { name: 'Stellwerk Hamburg' }, ticketUrl, bands: Array.from({ length: count }, (_, i) => ({ id: i + 1, name: `Band ${i + 1}`, logoUrl: i ? null : '/uploads/logo.png', genres: ['Rock', 'Punk'] })) });
 test('optional event name and first genre are taken from concert data', () => {
   const draft = initialPoster(event(3, null));
@@ -99,4 +99,22 @@ test('pattern color and strength persist, and old drafts receive the previous fi
   assert.equal(legacy.background.patternColor, '#ffffff'); assert.equal(legacy.background.patternOpacity, .17);
   draft.background.patternColor = 'not-a-color'; assert.throws(() => restorePoster(JSON.stringify(draft), current));
   draft.background.patternColor = '#ffffff'; draft.background.patternOpacity = 2; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+});
+test('pattern density persists, defaults to 1x for old drafts, and rejects out-of-range values', () => {
+  const current = event(2); const draft = initialPoster(current);
+  assert.equal(draft.background.patternDensity, 1);
+  draft.background.patternDensity = 2.4;
+  assert.equal(restorePoster(JSON.stringify(draft), current).background.patternDensity, 2.4);
+  delete draft.background.patternDensity;
+  assert.equal(restorePoster(JSON.stringify(draft), current).background.patternDensity, 1);
+  draft.background.patternDensity = 5; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+});
+test('all twelve patterns are valid restorable values, including the two newest', () => {
+  const current = event(2); const draft = initialPoster(current);
+  assert.equal(patterns.length, 12);
+  assert.ok(patterns.includes('Höhenlinien')); assert.ok(patterns.includes('Marmor'));
+  for (const pattern of patterns) {
+    draft.background.pattern = pattern;
+    assert.equal(restorePoster(JSON.stringify(draft), current).background.pattern, pattern);
+  }
 });
