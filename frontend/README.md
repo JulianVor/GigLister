@@ -70,3 +70,7 @@ Mirrors the concept's information architecture directly:
   flow needs a small backend addition first.
 - Genre filtering on `/konzerte` isn't wired up — the backend's event list
   endpoint doesn't take a genre parameter yet.
+
+## Plakat-Designer
+
+Konzert-Bearbeiter können über „Plakat gestalten“ einen Hintergrund importieren oder aus Farben/Mustern erzeugen, das automatische Line-up bearbeiten und ein A4-PNG herunterladen. Entwürfe bleiben im Browser. [Bedienung, Technik und Testnachweise](../docs/plakat-designer.md).

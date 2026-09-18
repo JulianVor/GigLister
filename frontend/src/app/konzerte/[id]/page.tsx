@@ -108,6 +108,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             Bearbeiten
           </Link>
         )}
+        {canEdit && <Link href={`/konzerte/${event.id}/plakat`} className="border border-line px-5 py-2 font-meta text-sm hover:border-fg">Plakat gestalten</Link>}
         {canEdit && <CancelEventButton eventId={event.id} status={event.status} />}
         {canEdit && <DeleteButton entityType="event" entityId={event.id} redirectTo="/konzerte" />}
       </div>
