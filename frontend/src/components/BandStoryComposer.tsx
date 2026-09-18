@@ -886,21 +886,20 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
               onStopEditing={stopEditingLayer}
             />
 
-            {/* Right-edge bubble toolbar - "Text"/"Band", each a label plus a circular icon
-                button, per the band's own reference (Instagram's story editor sidebar). A
-                deliberate exception to the site's square-corners look elsewhere: asked for by
-                name against that exact reference. */}
+            {/* Right-edge toolbar - "Text"/"Band", each a label plus a square icon button
+                (matching the site's square look everywhere else), per the band's own
+                reference (Instagram's story editor sidebar) for the layout/placement. */}
             <div className="absolute right-3 top-1/2 z-20 flex -translate-y-1/2 flex-col items-end gap-5">
               <button type="button" onClick={addTextLayer} className="flex items-center gap-2">
                 <span className="font-meta text-sm text-white drop-shadow">Text</span>
-                <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-black/45 font-display text-base font-bold text-white backdrop-blur">
+                <span className="flex h-11 w-11 flex-none items-center justify-center bg-black/45 font-display text-base font-bold text-white backdrop-blur">
                   Aa
                 </span>
               </button>
               <div className="relative">
                 <button type="button" onClick={() => setShowBandPicker((v) => !v)} className="flex items-center gap-2">
                   <span className="font-meta text-sm text-white drop-shadow">Band</span>
-                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-black/45 text-lg font-bold text-white backdrop-blur">
+                  <span className="flex h-11 w-11 flex-none items-center justify-center bg-black/45 text-lg font-bold text-white backdrop-blur">
                     @
                   </span>
                 </button>
