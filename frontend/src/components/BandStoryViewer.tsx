@@ -12,6 +12,11 @@ import type { BandStory } from "@/lib/types";
 
 const STORY_DURATION_MS = 6000;
 const PROGRESS_TICK_MS = 50;
+// How far down (px) a swipe needs to travel before it closes the viewer, rather than snapping
+// back - the classic Instagram/WhatsApp Status gesture.
+const SWIPE_CLOSE_THRESHOLD_PX = 110;
+// Below this, a touch is still a tap (for the prev/next buttons) rather than a drag.
+const SWIPE_START_THRESHOLD_PX = 8;
 
 /** "5 Min." for the first hour, then "3 Std." - matches the same "how old is this status"
  * glance Instagram/WhatsApp Status give, and the band's explicit ask for a minutes/hours
@@ -93,6 +98,69 @@ export function BandStoryViewer({
   const pausedRef = useRef(false);
   useLockBodyScroll(true);
 
+  // Swipe-down-to-close (the classic Instagram/WhatsApp Status gesture): tracked as a ref (not
+  // state) while it's just a candidate drag, since most pointer-downs are actually taps on the
+  // prev/next buttons and never need a re-render. `dragOffsetY` (state) only starts changing
+  // once a move is unambiguously a downward drag, which is also what the frame's live
+  // follow-the-finger transform below is driven by.
+  const swipeRef = useRef({ active: false, startX: 0, startY: 0, dragging: false });
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  // Set for exactly one click after a genuine drag, so the prev/next buttons' own onClick
+  // (which the browser still fires right after a drag's pointerup, on whichever button the
+  // finger happened to be over) doesn't also turn that release into a spurious page change.
+  const suppressNextClickRef = useRef(false);
+
+  function onFramePointerDown(e: React.PointerEvent) {
+    swipeRef.current = { active: true, startX: e.clientX, startY: e.clientY, dragging: false };
+    pause();
+  }
+
+  function onFramePointerMove(e: React.PointerEvent) {
+    const swipe = swipeRef.current;
+    if (!swipe.active) return;
+    const dx = e.clientX - swipe.startX;
+    const dy = e.clientY - swipe.startY;
+    if (!swipe.dragging) {
+      if (Math.abs(dy) < SWIPE_START_THRESHOLD_PX && Math.abs(dx) < SWIPE_START_THRESHOLD_PX) return;
+      // Only claims the gesture once it's clearly more vertical-downward than sideways -
+      // anything else (a horizontal or upward move) stays a normal tap/prev/next.
+      if (dy <= 0 || dy < Math.abs(dx)) return;
+      swipe.dragging = true;
+    }
+    setDragOffsetY(Math.max(0, dy));
+  }
+
+  function onFramePointerUp() {
+    const swipe = swipeRef.current;
+    const wasDragging = swipe.dragging;
+    swipe.active = false;
+    swipe.dragging = false;
+    if (wasDragging) {
+      suppressNextClickRef.current = true;
+      if (dragOffsetY > SWIPE_CLOSE_THRESHOLD_PX) {
+        onClose();
+        return;
+      }
+      setDragOffsetY(0);
+    }
+    resume();
+  }
+
+  function onFrameClickCapture(e: React.MouseEvent) {
+    if (!suppressNextClickRef.current) return;
+    suppressNextClickRef.current = false;
+    e.stopPropagation();
+  }
+
+  // A cancelled/interrupted gesture (finger left the frame, browser took over) always just
+  // snaps back - never closes, unlike a clean release past the threshold.
+  function onFrameGestureAbort() {
+    swipeRef.current.active = false;
+    swipeRef.current.dragging = false;
+    setDragOffsetY(0);
+    resume();
+  }
+
   const goNext = useCallback(() => {
     setIndex((i) => (i < stories.length - 1 ? i + 1 : i));
     if (index >= stories.length - 1) onClose();
@@ -159,7 +227,20 @@ export function BandStoryViewer({
           hidden bar frees up just shows as more of the backdrop above/below instead of
           stretching the frame - centered here by the parent's items-center, matching the
           image's own dominant color set as that backdrop above. */}
-      <div className="relative aspect-[9/16] h-[100svh] max-h-[900px] max-w-full overflow-hidden bg-black sm:h-[85svh]">
+      <div
+        className="relative aspect-[9/16] h-[100svh] max-h-[900px] max-w-full touch-none overflow-hidden bg-black sm:h-[85svh]"
+        style={{
+          transform: dragOffsetY > 0 ? `translateY(${dragOffsetY}px)` : undefined,
+          opacity: dragOffsetY > 0 ? Math.max(0.5, 1 - dragOffsetY / 500) : 1,
+          transition: dragOffsetY === 0 ? "transform 0.2s ease-out, opacity 0.2s ease-out" : undefined,
+        }}
+        onPointerDown={onFramePointerDown}
+        onPointerMove={onFramePointerMove}
+        onPointerUp={onFramePointerUp}
+        onPointerCancel={onFrameGestureAbort}
+        onPointerLeave={onFrameGestureAbort}
+        onClickCapture={onFrameClickCapture}
+      >
         <div className="absolute inset-x-0 top-0 z-10 flex gap-1 p-2">
           {stories.map((s, i) => (
             <StoryProgressSegment
