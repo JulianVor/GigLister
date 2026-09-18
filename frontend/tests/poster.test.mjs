@@ -88,3 +88,15 @@ test('suggested text color reads black or white off the gradient/dim combination
   assert.equal(luminanceTextColor(backgroundGradientLuminance({ color1: '#000000', color2: '#000000' }), 0), '#ffffff');
   assert.equal(luminanceTextColor(backgroundGradientLuminance({ color1: '#ffffff', color2: '#ffffff' }), .8), '#ffffff');
 });
+test('pattern color and strength persist, and old drafts receive the previous fixed look', () => {
+  const current = event(2); const draft = initialPoster(current);
+  assert.equal(draft.background.patternColor, '#ffffff'); assert.equal(draft.background.patternOpacity, .17);
+  draft.background.patternColor = '#ff2266'; draft.background.patternOpacity = .55;
+  const restored = restorePoster(JSON.stringify(draft), current);
+  assert.equal(restored.background.patternColor, '#ff2266'); assert.equal(restored.background.patternOpacity, .55);
+  delete draft.background.patternColor; delete draft.background.patternOpacity;
+  const legacy = restorePoster(JSON.stringify(draft), current);
+  assert.equal(legacy.background.patternColor, '#ffffff'); assert.equal(legacy.background.patternOpacity, .17);
+  draft.background.patternColor = 'not-a-color'; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+  draft.background.patternColor = '#ffffff'; draft.background.patternOpacity = 2; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+});

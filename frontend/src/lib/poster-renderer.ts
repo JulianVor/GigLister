@@ -56,7 +56,7 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
     ctx.drawImage(img, -img.naturalWidth * fit / 2, -img.naturalHeight * fit / 2, img.naturalWidth * fit, img.naturalHeight * fit); ctx.restore();
   } else {
     ctx.save(); ctx.translate(bg.x, bg.y); ctx.rotate(bg.rotation * Math.PI / 180); ctx.scale(bg.scale, bg.scale); ctx.translate(-W / 2, -H / 2);
-    ctx.globalAlpha = .17; ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#ffffff";
+    ctx.globalAlpha = bg.patternOpacity; ctx.fillStyle = bg.patternColor; ctx.strokeStyle = bg.patternColor;
     if (bg.pattern === "Strahlen") for (let i = 0; i < 18; i++) {
       const angle = i * Math.PI / 9 + bg.seed / 100;
       ctx.beginPath(); ctx.moveTo(W * .5, H * .32); ctx.lineTo(W * .5 + Math.cos(angle) * 2200, H * .32 + Math.sin(angle) * 2200); ctx.lineTo(W * .5 + Math.cos(angle + .13) * 2200, H * .32 + Math.sin(angle + .13) * 2200); ctx.fill();

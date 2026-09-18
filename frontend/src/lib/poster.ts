@@ -13,7 +13,7 @@ export interface PosterLayer {
 }
 export interface PosterDraft {
   version: 1; eventId: number;
-  background: { image: string | null; color1: string; color2: string; pattern: Pattern; seed: number; scale: number; x: number; y: number; rotation: number; dim: number };
+  background: { image: string | null; color1: string; color2: string; pattern: Pattern; patternColor: string; patternOpacity: number; seed: number; scale: number; x: number; y: number; rotation: number; dim: number };
   footerOpacity: number; cornerRadius: number; ticketLabel: string | null; layers: PosterLayer[];
 }
 export function posterDate(date: string, time: string | null): string {
@@ -80,7 +80,7 @@ export function initialPoster(event: EventResponse): PosterDraft {
   const footerY = ticketLabel ? 1294 - TICKET_LABEL_GAP : 1294;
   layers.push({ ...base, id: "footer", kind: "footer", label: "Ort & Termin", text: event.location.name,
     genre: posterDate(event.date, event.startTime), x: 500, y: footerY, width: 1000, height: 240 });
-  return { version: 1, eventId: event.id, background: { image: null, color1: "#171f2c", color2: "#c84b24", pattern: "Körnung", seed: 42, scale: 1, x: 500, y: 707, rotation: 0, dim: .12 }, footerOpacity: .65, cornerRadius: 0, ticketLabel, layers };
+  return { version: 1, eventId: event.id, background: { image: null, color1: "#171f2c", color2: "#c84b24", pattern: "Körnung", patternColor: "#ffffff", patternOpacity: .17, seed: 42, scale: 1, x: 500, y: 707, rotation: 0, dim: .12 }, footerOpacity: .65, cornerRadius: 0, ticketLabel, layers };
 }
 export function hitLayer(layer: PosterLayer, x: number, y: number): boolean {
   const angle = -layer.rotation * Math.PI / 180;
@@ -95,6 +95,10 @@ export function restorePoster(raw: string, event: EventResponse): PosterDraft {
   if (d?.version !== 1 || d.eventId !== event.id || !Array.isArray(d.layers) || d.layers.length > 200 || !d.background) throw Error("Dieser Entwurf passt nicht zum Konzert.");
   const b = d.background;
   if (!validColor(b.color1) || !validColor(b.color2) || !patterns.includes(b.pattern) || !finite(b.seed, 0, 1e9) || !finite(b.scale, .4, 5) || !finite(b.rotation, -360, 360) || !finite(b.x, -1000, 2000) || !finite(b.y, -1414, 2828) || !finite(b.dim, 0, .85) || !finite(d.footerOpacity, 0, 1)) throw Error("Der gespeicherte Hintergrund ist ungültig.");
+  if (b.patternColor !== undefined && !validColor(b.patternColor)) throw Error("Die gespeicherte Musterfarbe ist ungültig.");
+  b.patternColor ??= "#ffffff";
+  if (b.patternOpacity !== undefined && !finite(b.patternOpacity, .05, .9)) throw Error("Die gespeicherte Musterstärke ist ungültig.");
+  b.patternOpacity ??= .17;
   if (d.cornerRadius !== undefined && !finite(d.cornerRadius, 0, 80)) throw Error("Der gespeicherte Eckenradius ist ungültig.");
   d.cornerRadius ??= 0;
   // Event-owned, like logoUrl below - never trust a saved ticket label, always re-derive it.
