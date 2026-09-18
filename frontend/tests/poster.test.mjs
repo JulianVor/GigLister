@@ -84,9 +84,12 @@ test('a restored draft always re-derives the ticket label and corner radius from
   draft.cornerRadius = 500; assert.throws(() => restorePoster(JSON.stringify(draft), current));
 });
 test('suggested text color reads black or white off the gradient/dim combination', () => {
-  assert.equal(luminanceTextColor(backgroundGradientLuminance({ color1: '#ffffff', color2: '#ffffff' }), 0), '#000000');
-  assert.equal(luminanceTextColor(backgroundGradientLuminance({ color1: '#000000', color2: '#000000' }), 0), '#ffffff');
-  assert.equal(luminanceTextColor(backgroundGradientLuminance({ color1: '#ffffff', color2: '#ffffff' }), .8), '#ffffff');
+  const stops = (...colors) => ({ colors: colors.map((color, i) => ({ color, stop: i / (colors.length - 1) })) });
+  assert.equal(luminanceTextColor(backgroundGradientLuminance(stops('#ffffff', '#ffffff')), 0), '#000000');
+  assert.equal(luminanceTextColor(backgroundGradientLuminance(stops('#000000', '#000000')), 0), '#ffffff');
+  assert.equal(luminanceTextColor(backgroundGradientLuminance(stops('#ffffff', '#ffffff')), .8), '#ffffff');
+  // A third, brighter stop pulls the average luminance up, same as two stops with a brighter color1/color2 would.
+  assert.equal(luminanceTextColor(backgroundGradientLuminance(stops('#000000', '#000000', '#ffffff')), 0), '#ffffff');
 });
 test('pattern color and strength persist, and old drafts receive the previous fixed look', () => {
   const current = event(2); const draft = initialPoster(current);
@@ -130,4 +133,28 @@ test('stroke, chaos and blend mode persist, default to the previous fixed look, 
   draft.background.patternStroke = 10; assert.throws(() => restorePoster(JSON.stringify(draft), current));
   draft.background.patternStroke = 1; draft.background.patternChaos = -1; assert.throws(() => restorePoster(JSON.stringify(draft), current));
   draft.background.patternChaos = 1; draft.background.patternBlend = 'hue'; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+});
+test('chaos goes up to 5, not just 2', () => {
+  const current = event(2); const draft = initialPoster(current);
+  draft.background.patternChaos = 5;
+  assert.equal(restorePoster(JSON.stringify(draft), current).background.patternChaos, 5);
+  draft.background.patternChaos = 5.1; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+});
+test('gradients can have more than two color stops, persist, and validate', () => {
+  const current = event(2); const draft = initialPoster(current);
+  assert.deepEqual(draft.background.colors, [{ color: '#171f2c', stop: 0 }, { color: '#c84b24', stop: 1 }]);
+  draft.background.colors = [{ color: '#ff0000', stop: 0 }, { color: '#00ff00', stop: .4 }, { color: '#0000ff', stop: 1 }];
+  const restored = restorePoster(JSON.stringify(draft), current);
+  assert.equal(restored.background.colors.length, 3); assert.equal(restored.background.colors[1].color, '#00ff00'); assert.equal(restored.background.colors[1].stop, .4);
+  draft.background.colors = [{ color: '#ffffff', stop: 0 }]; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+  draft.background.colors = Array.from({ length: 9 }, (_, i) => ({ color: '#ffffff', stop: i / 8 })); assert.throws(() => restorePoster(JSON.stringify(draft), current));
+  draft.background.colors = [{ color: 'not-a-color', stop: 0 }, { color: '#ffffff', stop: 1 }]; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+  draft.background.colors = [{ color: '#ffffff', stop: 2 }, { color: '#000000', stop: 1 }]; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+});
+test('drafts saved before multi-stop gradients (bare color1/color2) migrate into a two-stop gradient', () => {
+  const current = event(2); const draft = initialPoster(current);
+  const legacyRaw = JSON.stringify({ ...draft, background: { ...draft.background, colors: undefined, color1: '#123456', color2: '#abcdef' } });
+  const restored = restorePoster(legacyRaw, current);
+  assert.deepEqual(restored.background.colors, [{ color: '#123456', stop: 0 }, { color: '#abcdef', stop: 1 }]);
+  assert.equal('color1' in restored.background, false); assert.equal('color2' in restored.background, false);
 });

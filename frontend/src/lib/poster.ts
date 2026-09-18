@@ -8,6 +8,9 @@ export type Pattern = typeof patterns[number];
 // gradient/photo instead of the full (much longer, mostly redundant-looking) browser list.
 export const blendModes = ["source-over", "multiply", "screen", "overlay", "difference", "color-dodge", "exclusion"] as const;
 export type BlendMode = typeof blendModes[number];
+// A linear-gradient color stop; "stop" is the 0-1 position along the gradient, matching
+// CanvasGradient.addColorStop. At least two stops are required (a start and an end).
+export interface GradientStop { color: string; stop: number }
 export interface PosterLayer {
   id: string; kind: "title" | "band" | "footer"; label: string;
   x: number; y: number; width: number; height: number; scale: number; rotation: number;
@@ -17,7 +20,7 @@ export interface PosterLayer {
 }
 export interface PosterDraft {
   version: 1; eventId: number;
-  background: { image: string | null; color1: string; color2: string; pattern: Pattern; patternColor: string; patternOpacity: number; patternDensity: number; patternStroke: number; patternChaos: number; patternBlend: BlendMode; seed: number; scale: number; x: number; y: number; rotation: number; dim: number };
+  background: { image: string | null; colors: GradientStop[]; pattern: Pattern; patternColor: string; patternOpacity: number; patternDensity: number; patternStroke: number; patternChaos: number; patternBlend: BlendMode; seed: number; scale: number; x: number; y: number; rotation: number; dim: number };
   footerOpacity: number; cornerRadius: number; ticketLabel: string | null; layers: PosterLayer[];
 }
 export function posterDate(date: string, time: string | null): string {
@@ -54,8 +57,8 @@ function relativeLuminance(hex: string): number {
 export function luminanceTextColor(luminance: number, dim: number): string {
   return luminance * (1 - dim) > .4 ? "#000000" : "#ffffff";
 }
-export function backgroundGradientLuminance(background: Pick<PosterDraft["background"], "color1" | "color2">): number {
-  return (relativeLuminance(background.color1) + relativeLuminance(background.color2)) / 2;
+export function backgroundGradientLuminance(background: Pick<PosterDraft["background"], "colors">): number {
+  return background.colors.reduce((sum, stop) => sum + relativeLuminance(stop.color), 0) / background.colors.length;
 }
 export function initialPoster(event: EventResponse): PosterDraft {
   const title = event.title?.trim();
@@ -84,7 +87,7 @@ export function initialPoster(event: EventResponse): PosterDraft {
   const footerY = ticketLabel ? 1294 - TICKET_LABEL_GAP : 1294;
   layers.push({ ...base, id: "footer", kind: "footer", label: "Ort & Termin", text: event.location.name,
     genre: posterDate(event.date, event.startTime), x: 500, y: footerY, width: 1000, height: 240 });
-  return { version: 1, eventId: event.id, background: { image: null, color1: "#171f2c", color2: "#c84b24", pattern: "Körnung", patternColor: "#ffffff", patternOpacity: .17, patternDensity: 1, patternStroke: 1, patternChaos: 1, patternBlend: "source-over", seed: 42, scale: 1, x: 500, y: 707, rotation: 0, dim: .12 }, footerOpacity: .65, cornerRadius: 0, ticketLabel, layers };
+  return { version: 1, eventId: event.id, background: { image: null, colors: [{ color: "#171f2c", stop: 0 }, { color: "#c84b24", stop: 1 }], pattern: "Körnung", patternColor: "#ffffff", patternOpacity: .17, patternDensity: 1, patternStroke: 1, patternChaos: 1, patternBlend: "source-over", seed: 42, scale: 1, x: 500, y: 707, rotation: 0, dim: .12 }, footerOpacity: .65, cornerRadius: 0, ticketLabel, layers };
 }
 export function hitLayer(layer: PosterLayer, x: number, y: number): boolean {
   const angle = -layer.rotation * Math.PI / 180;
@@ -98,7 +101,13 @@ export function restorePoster(raw: string, event: EventResponse): PosterDraft {
   const finite = (n: unknown, low: number, high: number) => typeof n === "number" && Number.isFinite(n) && n >= low && n <= high;
   if (d?.version !== 1 || d.eventId !== event.id || !Array.isArray(d.layers) || d.layers.length > 200 || !d.background) throw Error("Dieser Entwurf passt nicht zum Konzert.");
   const b = d.background;
-  if (!validColor(b.color1) || !validColor(b.color2) || !patterns.includes(b.pattern) || !finite(b.seed, 0, 1e9) || !finite(b.scale, .4, 5) || !finite(b.rotation, -360, 360) || !finite(b.x, -1000, 2000) || !finite(b.y, -1414, 2828) || !finite(b.dim, 0, .85) || !finite(d.footerOpacity, 0, 1)) throw Error("Der gespeicherte Hintergrund ist ungültig.");
+  // Drafts saved before multi-stop gradients only ever had color1/color2 - fold those into a
+  // two-stop gradient so they keep looking exactly as before.
+  const legacy = b as unknown as { color1?: unknown; color2?: unknown };
+  if (!Array.isArray(b.colors) && validColor(legacy.color1) && validColor(legacy.color2)) b.colors = [{ color: legacy.color1 as string, stop: 0 }, { color: legacy.color2 as string, stop: 1 }];
+  delete legacy.color1; delete legacy.color2;
+  if (!Array.isArray(b.colors) || b.colors.length < 2 || b.colors.length > 8 || b.colors.some(s => !s || !validColor(s.color) || !finite(s.stop, 0, 1))) throw Error("Der gespeicherte Farbverlauf ist ungültig.");
+  if (!patterns.includes(b.pattern) || !finite(b.seed, 0, 1e9) || !finite(b.scale, .4, 5) || !finite(b.rotation, -360, 360) || !finite(b.x, -1000, 2000) || !finite(b.y, -1414, 2828) || !finite(b.dim, 0, .85) || !finite(d.footerOpacity, 0, 1)) throw Error("Der gespeicherte Hintergrund ist ungültig.");
   if (b.patternColor !== undefined && !validColor(b.patternColor)) throw Error("Die gespeicherte Musterfarbe ist ungültig.");
   b.patternColor ??= "#ffffff";
   if (b.patternOpacity !== undefined && !finite(b.patternOpacity, .05, .9)) throw Error("Die gespeicherte Musterstärke ist ungültig.");
@@ -107,7 +116,7 @@ export function restorePoster(raw: string, event: EventResponse): PosterDraft {
   b.patternDensity ??= 1;
   if (b.patternStroke !== undefined && !finite(b.patternStroke, .3, 3)) throw Error("Die gespeicherte Strichstärke ist ungültig.");
   b.patternStroke ??= 1;
-  if (b.patternChaos !== undefined && !finite(b.patternChaos, 0, 2)) throw Error("Das gespeicherte Chaos ist ungültig.");
+  if (b.patternChaos !== undefined && !finite(b.patternChaos, 0, 5)) throw Error("Das gespeicherte Chaos ist ungültig.");
   b.patternChaos ??= 1;
   if (b.patternBlend !== undefined && !blendModes.includes(b.patternBlend)) throw Error("Der gespeicherte Mischmodus ist ungültig.");
   b.patternBlend ??= "source-over";

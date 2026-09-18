@@ -47,7 +47,7 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
   ctx.save(); ctx.scale(canvas.width / W, canvas.height / H);
   const bg = draft.background;
   const gradient = ctx.createLinearGradient(0, 0, W, H);
-  gradient.addColorStop(0, bg.color1); gradient.addColorStop(1, bg.color2);
+  for (const stop of bg.colors) gradient.addColorStop(stop.stop, stop.color);
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, W, H);
   if (bg.image && images.has(bg.image)) {
     const img = images.get(bg.image)!;
@@ -59,18 +59,20 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
     ctx.globalAlpha = bg.patternOpacity; ctx.fillStyle = bg.patternColor; ctx.strokeStyle = bg.patternColor;
     ctx.globalCompositeOperation = bg.patternBlend;
     // "Musterdichte" scales each pattern's own notion of spacing/count/coil-tightness;
-    // "Strichstärke" scales every line width and dot/blob radius; "Chaos" scales each pattern's
-    // own random amplitude terms (0 = as regular as that generator gets, 1 = today's default
-    // look, 2 = wilder). Patterns with no randomness of their own (Strahlen, Streifen, Punkte,
-    // Schachbrett, Wirbel) instead gain a brand-new jitter term that only kicks in above 1, so a
-    // saved draft's default chaos=1 reproduces today's exact, unjittered look.
+    // "Strichstärke" scales every line width and dot/blob radius; "Chaos" (0-5) scales each
+    // pattern's own random amplitude terms - 0 is as regular as that generator gets, 1 is
+    // today's default look, higher gets progressively wilder. Patterns with no randomness of
+    // their own (Strahlen, Streifen, Punkte, Schachbrett, Wirbel) instead gain a brand-new
+    // jitter term that only kicks in above 1, so a saved draft's default chaos=1 reproduces
+    // today's exact, unjittered look.
     const density = bg.patternDensity, stroke = bg.patternStroke, chaos = bg.patternChaos, extraChaos = Math.max(0, chaos - 1);
     if (bg.pattern === "Strahlen") {
       const rand = seededRandom(bg.seed);
       const count = Math.max(6, Math.round(18 * density)), step = Math.PI * 2 / count, width = step * .37 * stroke;
       for (let i = 0; i < count; i++) {
         const angle = i * step + bg.seed / 100 + (rand() - .5) * extraChaos * step;
-        const reach = 2200 * (1 - rand() * extraChaos * .4);
+        // Clamped so a high chaos value can never flip the ray onto the wrong side of its origin.
+        const reach = 2200 * Math.max(.15, 1 - rand() * extraChaos * .4);
         ctx.beginPath(); ctx.moveTo(W * .5, H * .32); ctx.lineTo(W * .5 + Math.cos(angle) * reach, H * .32 + Math.sin(angle) * reach); ctx.lineTo(W * .5 + Math.cos(angle + width) * reach, H * .32 + Math.sin(angle + width) * reach); ctx.fill();
       }
     }
@@ -95,7 +97,7 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
     }
     if (bg.pattern === "Körnung") {
       const rand = seededRandom(bg.seed); const n = Math.round(13000 * density), size = 2 * stroke;
-      for (let i = 0; i < n; i++) { const jitter = extraChaos ? 1 + (rand() - .5) * extraChaos : 1; ctx.fillRect(rand() * W, rand() * H, size * jitter, size * jitter); }
+      for (let i = 0; i < n; i++) { const jitter = extraChaos ? Math.max(.2, 1 + (rand() - .5) * extraChaos) : 1; ctx.fillRect(rand() * W, rand() * H, size * jitter, size * jitter); }
     }
     if (bg.pattern === "Blitze") {
       const rand = seededRandom(bg.seed); ctx.lineWidth = 14 * stroke; ctx.lineJoin = "miter";
