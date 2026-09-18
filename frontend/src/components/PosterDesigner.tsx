@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { detectLogoTransparency, type LogoTransparency } from "@/lib/logo-transparency";
 import type { EventResponse } from "@/lib/types";
-import { initialPoster, hitLayer, patterns, restorePoster, POSTER_WIDTH as W, POSTER_HEIGHT as H, type PosterDraft } from "@/lib/poster";
+import { initialPoster, hitLayer, patterns, blendModes, restorePoster, POSTER_WIDTH as W, POSTER_HEIGHT as H, type PosterDraft } from "@/lib/poster";
 import { drawPoster, suggestTextColor, type PosterImages, type PosterFonts } from "@/lib/poster-renderer";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
 
 const button = "border border-line px-3 py-2 font-meta text-sm hover:border-fg disabled:opacity-40 disabled:cursor-not-allowed";
 const primary = `${button} border-accent bg-accent text-accent-fg`;
 const clamp = (n: number, a: number, b: number) => Math.min(b, Math.max(a, n));
+const blendLabels: Record<PosterDraft["background"]["patternBlend"], string> = { "source-over": "Normal", multiply: "Multiplizieren", screen: "Negativ multiplizieren", overlay: "Ineinanderkopieren", difference: "Differenz", "color-dodge": "Abwedeln", exclusion: "Ausschluss" };
 type Point = { x: number; y: number };
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = () => reject(Error("Bild konnte nicht geladen werden.")); image.src = src; });
@@ -144,6 +145,9 @@ export function PosterDesigner({ event }: { event: EventResponse }) {
       <label className="block font-meta text-sm">Musterfarbe<input aria-label="Musterfarbe" type="color" className="mt-1 h-10 w-full cursor-pointer" value={draft.background.patternColor} onChange={e => change({ ...draft, background: { ...draft.background, patternColor: e.target.value } })} /></label>
       <label className="block font-meta text-sm">Musterstärke · {Math.round(draft.background.patternOpacity * 100)} %<input aria-label="Musterstärke" className="mt-2 w-full accent-[var(--accent)]" type="range" min="0.05" max="0.9" step="0.01" value={draft.background.patternOpacity} onChange={e => change({ ...draft, background: { ...draft.background, patternOpacity: Number(e.target.value) } })} /></label>
       <label className="block font-meta text-sm">Musterdichte · {draft.background.patternDensity.toFixed(1)}×<input aria-label="Musterdichte" className="mt-2 w-full accent-[var(--accent)]" type="range" min="0.3" max="3" step="0.1" value={draft.background.patternDensity} onChange={e => change({ ...draft, background: { ...draft.background, patternDensity: Number(e.target.value) } })} /></label>
+      <label className="block font-meta text-sm">Strichstärke · {draft.background.patternStroke.toFixed(1)}×<input aria-label="Strichstärke" className="mt-2 w-full accent-[var(--accent)]" type="range" min="0.3" max="3" step="0.1" value={draft.background.patternStroke} onChange={e => change({ ...draft, background: { ...draft.background, patternStroke: Number(e.target.value) } })} /></label>
+      <label className="block font-meta text-sm">Chaos · {draft.background.patternChaos.toFixed(1)}<input aria-label="Chaos" className="mt-2 w-full accent-[var(--accent)]" type="range" min="0" max="2" step="0.1" value={draft.background.patternChaos} onChange={e => change({ ...draft, background: { ...draft.background, patternChaos: Number(e.target.value) } })} /></label>
+      <label className="block font-meta text-sm">Mischmodus<select aria-label="Mischmodus" className="input mt-1" value={draft.background.patternBlend} onChange={e => change({ ...draft, background: { ...draft.background, patternBlend: e.target.value as PosterDraft["background"]["patternBlend"] } })}>{blendModes.map(mode => <option key={mode} value={mode}>{blendLabels[mode]}</option>)}</select></label>
       <button className={button} onClick={() => { const palettes = [["#171f2c", "#c84b24"], ["#0b3535", "#9a7b27"], ["#261533", "#ad355a"], ["#111111", "#626262"]]; const colors = palettes[Math.floor(Math.random() * palettes.length)]; change({ ...draft, background: { ...draft.background, color1: colors[0], color2: colors[1], seed: Math.floor(Math.random() * 1e6) } }); }}>Neue Farbstimmung</button>
     </>}
     <label className="block font-meta text-sm">Abdunkeln · {Math.round(draft.background.dim * 100)} %<input className="mt-2 w-full accent-[var(--accent)]" type="range" min="0" max="0.85" step="0.01" value={draft.background.dim} onChange={e => change({ ...draft, background: { ...draft.background, dim: Number(e.target.value) } })} /></label>

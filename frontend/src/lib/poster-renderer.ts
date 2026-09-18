@@ -57,65 +57,92 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
   } else {
     ctx.save(); ctx.translate(bg.x, bg.y); ctx.rotate(bg.rotation * Math.PI / 180); ctx.scale(bg.scale, bg.scale); ctx.translate(-W / 2, -H / 2);
     ctx.globalAlpha = bg.patternOpacity; ctx.fillStyle = bg.patternColor; ctx.strokeStyle = bg.patternColor;
-    // "Musterdichte" scales each pattern's own notion of spacing/count/coil-tightness, so one
-    // slider reads as "more/less of it" no matter which generator is active.
-    const density = bg.patternDensity;
+    ctx.globalCompositeOperation = bg.patternBlend;
+    // "Musterdichte" scales each pattern's own notion of spacing/count/coil-tightness;
+    // "Strichstärke" scales every line width and dot/blob radius; "Chaos" scales each pattern's
+    // own random amplitude terms (0 = as regular as that generator gets, 1 = today's default
+    // look, 2 = wilder). Patterns with no randomness of their own (Strahlen, Streifen, Punkte,
+    // Schachbrett, Wirbel) instead gain a brand-new jitter term that only kicks in above 1, so a
+    // saved draft's default chaos=1 reproduces today's exact, unjittered look.
+    const density = bg.patternDensity, stroke = bg.patternStroke, chaos = bg.patternChaos, extraChaos = Math.max(0, chaos - 1);
     if (bg.pattern === "Strahlen") {
-      const count = Math.max(6, Math.round(18 * density)), step = Math.PI * 2 / count, width = step * .37;
+      const rand = seededRandom(bg.seed);
+      const count = Math.max(6, Math.round(18 * density)), step = Math.PI * 2 / count, width = step * .37 * stroke;
       for (let i = 0; i < count; i++) {
-        const angle = i * step + bg.seed / 100;
-        ctx.beginPath(); ctx.moveTo(W * .5, H * .32); ctx.lineTo(W * .5 + Math.cos(angle) * 2200, H * .32 + Math.sin(angle) * 2200); ctx.lineTo(W * .5 + Math.cos(angle + width) * 2200, H * .32 + Math.sin(angle + width) * 2200); ctx.fill();
+        const angle = i * step + bg.seed / 100 + (rand() - .5) * extraChaos * step;
+        const reach = 2200 * (1 - rand() * extraChaos * .4);
+        ctx.beginPath(); ctx.moveTo(W * .5, H * .32); ctx.lineTo(W * .5 + Math.cos(angle) * reach, H * .32 + Math.sin(angle) * reach); ctx.lineTo(W * .5 + Math.cos(angle + width) * reach, H * .32 + Math.sin(angle + width) * reach); ctx.fill();
       }
     }
-    if (bg.pattern === "Streifen") { ctx.rotate(-.5); const step = 90 / density; for (let x = -1500; x < 2500; x += step) ctx.fillRect(x, -1500, 24, 4000); }
-    if (bg.pattern === "Punkte") {
-      const step = 52 / density;
-      for (let row = 0, y = 0; y < H; y += step, row++) for (let x = 0; x < W; x += step) { ctx.beginPath(); ctx.arc(x + (row % 2 ? step / 2 : 0), y, 4, 0, Math.PI * 2); ctx.fill(); }
+    if (bg.pattern === "Streifen") {
+      ctx.rotate(-.5); const step = 90 / density, width = 24 * stroke, rand = seededRandom(bg.seed);
+      for (let x = -1500; x < 2500; x += step) {
+        if (!extraChaos) { ctx.fillRect(x, -1500, width, 4000); continue; }
+        const amp = extraChaos * 45, freq = .004 + rand() * .01, phase = rand() * Math.PI * 2;
+        ctx.beginPath();
+        for (let y = -1500; y <= 2500; y += 60) { const dx = Math.sin(y * freq + phase) * amp; if (y === -1500) ctx.moveTo(x + dx, y); else ctx.lineTo(x + dx, y); }
+        for (let y = 2500; y >= -1500; y -= 60) { const dx = Math.sin(y * freq + phase) * amp; ctx.lineTo(x + width + dx, y); }
+        ctx.closePath(); ctx.fill();
+      }
     }
-    if (bg.pattern === "Körnung") { const rand = seededRandom(bg.seed); const n = Math.round(13000 * density); for (let i = 0; i < n; i++) ctx.fillRect(rand() * W, rand() * H, 2, 2); }
+    if (bg.pattern === "Punkte") {
+      const step = 52 / density, radius = 4 * stroke, rand = seededRandom(bg.seed);
+      for (let row = 0, y = 0; y < H; y += step, row++) for (let x = 0; x < W; x += step) {
+        const ox = x + (row % 2 ? step / 2 : 0) + (extraChaos ? (rand() - .5) * step * .7 * extraChaos : 0);
+        const oy = y + (extraChaos ? (rand() - .5) * step * .7 * extraChaos : 0);
+        ctx.beginPath(); ctx.arc(ox, oy, Math.max(.5, radius), 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    if (bg.pattern === "Körnung") {
+      const rand = seededRandom(bg.seed); const n = Math.round(13000 * density), size = 2 * stroke;
+      for (let i = 0; i < n; i++) { const jitter = extraChaos ? 1 + (rand() - .5) * extraChaos : 1; ctx.fillRect(rand() * W, rand() * H, size * jitter, size * jitter); }
+    }
     if (bg.pattern === "Blitze") {
-      const rand = seededRandom(bg.seed); ctx.lineWidth = 14; ctx.lineJoin = "miter";
+      const rand = seededRandom(bg.seed); ctx.lineWidth = 14 * stroke; ctx.lineJoin = "miter";
       const n = Math.max(2, Math.round(8 * density));
       for (let i = 0; i < n; i++) {
         let x = rand() * W * 1.2 - W * .1, y = -60;
         ctx.beginPath(); ctx.moveTo(x, y);
-        while (y < H + 60) { x += (rand() - .5) * 240; y += rand() * 140 + 90; ctx.lineTo(x, y); }
+        while (y < H + 60) { x += (rand() - .5) * 240 * chaos; y += rand() * 140 + 90; ctx.lineTo(x, y); }
         ctx.stroke();
       }
     }
     if (bg.pattern === "Spritzer") {
       const rand = seededRandom(bg.seed); const n = Math.max(4, Math.round(22 * density));
       for (let i = 0; i < n; i++) {
-        const cx = rand() * W, cy = rand() * H, r = rand() * 46 + 14;
+        const cx = rand() * W, cy = rand() * H, r = (14 + rand() * 46 * chaos) * stroke;
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
         for (let d = Math.floor(rand() * 5) + 2; d > 0; d--) {
-          const angle = rand() * Math.PI * 2, dist = r + rand() * 70;
-          ctx.beginPath(); ctx.arc(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, rand() * 8 + 2, 0, Math.PI * 2); ctx.fill();
+          const angle = rand() * Math.PI * 2, dist = r + rand() * 70 * chaos;
+          ctx.beginPath(); ctx.arc(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, (2 + rand() * 8 * chaos) * stroke, 0, Math.PI * 2); ctx.fill();
         }
       }
     }
     if (bg.pattern === "Risse") {
-      const rand = seededRandom(bg.seed); ctx.lineWidth = 3; const clusters = Math.max(1, Math.round(4 * density));
+      const rand = seededRandom(bg.seed); ctx.lineWidth = 3 * stroke; const clusters = Math.max(1, Math.round(4 * density));
       for (let c = 0; c < clusters; c++) {
         const cx = rand() * W, cy = rand() * H;
         for (let b = Math.floor(rand() * 5) + 6; b > 0; b--) {
           let angle = rand() * Math.PI * 2, x = cx, y = cy;
           ctx.beginPath(); ctx.moveTo(x, y);
-          for (let s = Math.floor(rand() * 4) + 3; s > 0; s--) { angle += (rand() - .5) * 1.1; const len = rand() * 90 + 40; x += Math.cos(angle) * len; y += Math.sin(angle) * len; ctx.lineTo(x, y); }
+          for (let s = Math.floor(rand() * 4) + 3; s > 0; s--) { angle += (rand() - .5) * 1.1 * chaos; const len = 40 + rand() * 90 * chaos; x += Math.cos(angle) * len; y += Math.sin(angle) * len; ctx.lineTo(x, y); }
           ctx.stroke();
         }
       }
     }
     if (bg.pattern === "Schachbrett") {
-      ctx.rotate(-.4); const size = 70 / density;
-      for (let row = 0, y = -1600; y < 2400; y += size, row++) for (let col = 0, x = -1600; x < 2600; x += size, col++) if ((row + col) % 2 === 0) ctx.fillRect(x, y, size, size);
+      ctx.rotate(-.4); const size = 70 / density, rand = seededRandom(bg.seed);
+      for (let row = 0, y = -1600; y < 2400; y += size, row++) for (let col = 0, x = -1600; x < 2600; x += size, col++) if ((row + col) % 2 === 0) {
+        const ox = extraChaos ? (rand() - .5) * extraChaos * size * .4 : 0, oy = extraChaos ? (rand() - .5) * extraChaos * size * .4 : 0;
+        ctx.fillRect(x + ox, y + oy, size * stroke, size * stroke);
+      }
     }
     if (bg.pattern === "Wirbel") {
-      ctx.lineWidth = 16; const spread = 16 / density;
+      ctx.lineWidth = 16 * stroke; const spread = 16 / density, rand = seededRandom(bg.seed);
       for (let arm = 0; arm < 3; arm++) {
         ctx.beginPath();
         for (let t = 0; t < 60; t++) {
-          const theta = t * .25 + arm * (Math.PI * 2 / 3) + bg.seed / 50, r = t * spread;
+          const theta = t * .25 + arm * (Math.PI * 2 / 3) + bg.seed / 50, r = t * spread + (extraChaos ? (rand() - .5) * 45 * extraChaos : 0);
           const x = W / 2 + Math.cos(theta) * r, y = H * .42 + Math.sin(theta) * r;
           if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
@@ -126,12 +153,12 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
     // topographic elevation map. Two summed sine harmonics per peak keep each ring irregular
     // instead of a plain circle, without needing an actual 2D noise field.
     if (bg.pattern === "Höhenlinien") {
-      const rand = seededRandom(bg.seed); ctx.lineWidth = 2.5;
+      const rand = seededRandom(bg.seed); ctx.lineWidth = 2.5 * stroke;
       const peaks = Math.max(2, Math.round(3 * density)), rings = Math.max(3, Math.round(9 * density));
       for (let p = 0; p < peaks; p++) {
         const cx = rand() * W, cy = rand() * H * .9 + H * .05, step = 60 + rand() * 50;
-        const h1 = { f: 2 + Math.floor(rand() * 3), a: rand() * 18 + 6, p: rand() * Math.PI * 2 };
-        const h2 = { f: 2 + Math.floor(rand() * 3), a: rand() * 14 + 4, p: rand() * Math.PI * 2 };
+        const h1 = { f: 2 + Math.floor(rand() * 3), a: (6 + rand() * 18) * chaos, p: rand() * Math.PI * 2 };
+        const h2 = { f: 2 + Math.floor(rand() * 3), a: (4 + rand() * 14) * chaos, p: rand() * Math.PI * 2 };
         for (let r = 1; r <= rings; r++) {
           const base = r * step;
           ctx.beginPath();
@@ -148,10 +175,10 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
     // Flowing, roughly horizontal veins built from two summed sine waves per line (a cheap
     // stand-in for turbulence/domain-warped noise) - reads as marbled/wood-grain streaks.
     if (bg.pattern === "Marmor") {
-      const rand = seededRandom(bg.seed); ctx.lineWidth = 2;
+      const rand = seededRandom(bg.seed); ctx.lineWidth = 2 * stroke;
       const veins = Math.max(6, Math.round(14 * density));
-      const h1 = { f: rand() * 3 + 1.5, a: rand() * 70 + 40, p: rand() * Math.PI * 2 };
-      const h2 = { f: rand() * 6 + 3, a: rand() * 30 + 10, p: rand() * Math.PI * 2 };
+      const h1 = { f: rand() * 3 + 1.5, a: (40 + rand() * 70) * chaos, p: rand() * Math.PI * 2 };
+      const h2 = { f: rand() * 6 + 3, a: (10 + rand() * 30) * chaos, p: rand() * Math.PI * 2 };
       for (let v = 0; v < veins; v++) {
         const baseY = (v + .5) / veins * H;
         ctx.beginPath();

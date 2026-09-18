@@ -118,3 +118,16 @@ test('all twelve patterns are valid restorable values, including the two newest'
     assert.equal(restorePoster(JSON.stringify(draft), current).background.pattern, pattern);
   }
 });
+test('stroke, chaos and blend mode persist, default to the previous fixed look, and reject bad values', () => {
+  const current = event(2); const draft = initialPoster(current);
+  assert.equal(draft.background.patternStroke, 1); assert.equal(draft.background.patternChaos, 1); assert.equal(draft.background.patternBlend, 'source-over');
+  draft.background.patternStroke = 2.2; draft.background.patternChaos = 1.7; draft.background.patternBlend = 'multiply';
+  const restored = restorePoster(JSON.stringify(draft), current);
+  assert.equal(restored.background.patternStroke, 2.2); assert.equal(restored.background.patternChaos, 1.7); assert.equal(restored.background.patternBlend, 'multiply');
+  delete draft.background.patternStroke; delete draft.background.patternChaos; delete draft.background.patternBlend;
+  const legacy = restorePoster(JSON.stringify(draft), current);
+  assert.equal(legacy.background.patternStroke, 1); assert.equal(legacy.background.patternChaos, 1); assert.equal(legacy.background.patternBlend, 'source-over');
+  draft.background.patternStroke = 10; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+  draft.background.patternStroke = 1; draft.background.patternChaos = -1; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+  draft.background.patternChaos = 1; draft.background.patternBlend = 'hue'; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+});

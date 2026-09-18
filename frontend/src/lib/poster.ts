@@ -4,6 +4,10 @@ export const POSTER_WIDTH = 1000;
 export const POSTER_HEIGHT = 1414;
 export const patterns = ["Verlauf", "Strahlen", "Streifen", "Punkte", "Körnung", "Blitze", "Spritzer", "Risse", "Schachbrett", "Wirbel", "Höhenlinien", "Marmor"] as const;
 export type Pattern = typeof patterns[number];
+// Canvas globalCompositeOperation values, curated to ones that read well over a poster's own
+// gradient/photo instead of the full (much longer, mostly redundant-looking) browser list.
+export const blendModes = ["source-over", "multiply", "screen", "overlay", "difference", "color-dodge", "exclusion"] as const;
+export type BlendMode = typeof blendModes[number];
 export interface PosterLayer {
   id: string; kind: "title" | "band" | "footer"; label: string;
   x: number; y: number; width: number; height: number; scale: number; rotation: number;
@@ -13,7 +17,7 @@ export interface PosterLayer {
 }
 export interface PosterDraft {
   version: 1; eventId: number;
-  background: { image: string | null; color1: string; color2: string; pattern: Pattern; patternColor: string; patternOpacity: number; patternDensity: number; seed: number; scale: number; x: number; y: number; rotation: number; dim: number };
+  background: { image: string | null; color1: string; color2: string; pattern: Pattern; patternColor: string; patternOpacity: number; patternDensity: number; patternStroke: number; patternChaos: number; patternBlend: BlendMode; seed: number; scale: number; x: number; y: number; rotation: number; dim: number };
   footerOpacity: number; cornerRadius: number; ticketLabel: string | null; layers: PosterLayer[];
 }
 export function posterDate(date: string, time: string | null): string {
@@ -80,7 +84,7 @@ export function initialPoster(event: EventResponse): PosterDraft {
   const footerY = ticketLabel ? 1294 - TICKET_LABEL_GAP : 1294;
   layers.push({ ...base, id: "footer", kind: "footer", label: "Ort & Termin", text: event.location.name,
     genre: posterDate(event.date, event.startTime), x: 500, y: footerY, width: 1000, height: 240 });
-  return { version: 1, eventId: event.id, background: { image: null, color1: "#171f2c", color2: "#c84b24", pattern: "Körnung", patternColor: "#ffffff", patternOpacity: .17, patternDensity: 1, seed: 42, scale: 1, x: 500, y: 707, rotation: 0, dim: .12 }, footerOpacity: .65, cornerRadius: 0, ticketLabel, layers };
+  return { version: 1, eventId: event.id, background: { image: null, color1: "#171f2c", color2: "#c84b24", pattern: "Körnung", patternColor: "#ffffff", patternOpacity: .17, patternDensity: 1, patternStroke: 1, patternChaos: 1, patternBlend: "source-over", seed: 42, scale: 1, x: 500, y: 707, rotation: 0, dim: .12 }, footerOpacity: .65, cornerRadius: 0, ticketLabel, layers };
 }
 export function hitLayer(layer: PosterLayer, x: number, y: number): boolean {
   const angle = -layer.rotation * Math.PI / 180;
@@ -101,6 +105,12 @@ export function restorePoster(raw: string, event: EventResponse): PosterDraft {
   b.patternOpacity ??= .17;
   if (b.patternDensity !== undefined && !finite(b.patternDensity, .3, 3)) throw Error("Die gespeicherte Musterdichte ist ungültig.");
   b.patternDensity ??= 1;
+  if (b.patternStroke !== undefined && !finite(b.patternStroke, .3, 3)) throw Error("Die gespeicherte Strichstärke ist ungültig.");
+  b.patternStroke ??= 1;
+  if (b.patternChaos !== undefined && !finite(b.patternChaos, 0, 2)) throw Error("Das gespeicherte Chaos ist ungültig.");
+  b.patternChaos ??= 1;
+  if (b.patternBlend !== undefined && !blendModes.includes(b.patternBlend)) throw Error("Der gespeicherte Mischmodus ist ungültig.");
+  b.patternBlend ??= "source-over";
   if (d.cornerRadius !== undefined && !finite(d.cornerRadius, 0, 80)) throw Error("Der gespeicherte Eckenradius ist ungültig.");
   d.cornerRadius ??= 0;
   // Event-owned, like logoUrl below - never trust a saved ticket label, always re-derive it.
