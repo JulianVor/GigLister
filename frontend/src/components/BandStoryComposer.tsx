@@ -527,7 +527,7 @@ function StoryCropEditor({
   return (
     <div
       ref={frameRef}
-      className="relative mt-3 aspect-[9/16] w-full touch-none overflow-hidden border border-line"
+      className="absolute inset-0 touch-none overflow-hidden"
       style={{ backgroundColor: bgColor ?? FALLBACK_BG, containerType: "inline-size" }}
       onPointerDown={(e) => {
         onSelectLayer("photo");
@@ -832,17 +832,21 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-sm border border-line bg-surface p-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-meta text-sm uppercase tracking-wide text-muted">Status posten</h3>
-          <button type="button" onClick={reset} aria-label="Schließen" className="font-meta text-lg leading-none hover:text-accent">
-            ✕
-          </button>
-        </div>
+  const hasImage = !!imageUrl && !!transform && imgAspect != null;
 
-        {!imageUrl || !transform || imgAspect == null ? (
+  return (
+    <div
+      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Status posten"
+    >
+      {/* Same true-9:16 phone-frame sizing as BandStoryViewer (full-bleed on mobile, a centered
+          card with room around it on anything wider) - editing in exactly the shape the story
+          will actually be shown in is the whole point of a full-page editor over the old small
+          dialog, which only ever showed a cramped preview of that shape. */}
+      <div className="relative aspect-[9/16] h-full max-h-[900px] max-w-full overflow-hidden bg-black sm:h-[85vh]">
+        {!hasImage ? (
           <div
             role="button"
             tabIndex={0}
@@ -852,9 +856,9 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
               const file = item?.getAsFile();
               if (file) pickFile(file);
             }}
-            className="mt-3 flex aspect-[9/16] cursor-pointer flex-col items-center justify-center gap-1 border border-dashed border-line text-center outline-none focus:border-accent"
+            className="flex h-full cursor-pointer flex-col items-center justify-center gap-1 border border-dashed border-white/30 text-center outline-none focus:border-accent"
           >
-            <span className="font-meta text-sm text-muted">{uploading ? "Wird hochgeladen …" : "Foto wählen oder einfügen (Strg+V)"}</span>
+            <span className="font-meta text-sm text-white/70">{uploading ? "Wird hochgeladen …" : "Foto wählen oder einfügen (Strg+V)"}</span>
           </div>
         ) : (
           <>
@@ -876,41 +880,27 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
               onStopEditing={stopEditingLayer}
             />
 
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <p className="font-meta text-xs text-muted">
-                {isTouchPrimary ? "Ziehen zum Verschieben · zwei Finger zum Zoomen und Drehen" : "Ziehen zum Verschieben"}
-              </p>
-              <div className="relative flex flex-none gap-3">
-                {selectedLayerId !== "photo" && (
-                  <button type="button" onClick={deleteSelectedLayer} className="font-meta text-xs text-accent hover:underline">
-                    Löschen
-                  </button>
-                )}
-                {(selectedTextLayer || selectedBandTag) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedTextLayer) toggleTextLayerBox(selectedTextLayer.id);
-                      else if (selectedBandTag) toggleBandTagBox(selectedBandTag.id);
-                    }}
-                    className="font-meta text-xs text-accent hover:underline"
-                  >
-                    {(selectedTextLayer?.hasBox ?? selectedBandTag?.hasBox) ? "Kasten ✓" : "Kasten"}
-                  </button>
-                )}
-                <button type="button" onClick={addTextLayer} className="font-meta text-xs text-accent hover:underline">
-                  + Text
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowBandPicker((v) => !v)}
-                  className="font-meta text-xs text-accent hover:underline"
-                >
-                  + Band
+            {/* Right-edge bubble toolbar - "Text"/"Band", each a label plus a circular icon
+                button, per the band's own reference (Instagram's story editor sidebar). A
+                deliberate exception to the site's square-corners look elsewhere: asked for by
+                name against that exact reference. */}
+            <div className="absolute right-3 top-1/2 z-20 flex -translate-y-1/2 flex-col items-end gap-5">
+              <button type="button" onClick={addTextLayer} className="flex items-center gap-2">
+                <span className="font-meta text-sm text-white drop-shadow">Text</span>
+                <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-black/45 font-display text-base font-bold text-white backdrop-blur">
+                  Aa
+                </span>
+              </button>
+              <div className="relative">
+                <button type="button" onClick={() => setShowBandPicker((v) => !v)} className="flex items-center gap-2">
+                  <span className="font-meta text-sm text-white drop-shadow">Band</span>
+                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-black/45 text-lg font-bold text-white backdrop-blur">
+                    @
+                  </span>
                 </button>
 
                 {showBandPicker && (
-                  <div className="absolute right-0 top-full z-20 mt-1 w-56 border border-line bg-surface p-2 shadow-lg">
+                  <div className="absolute right-full top-0 z-20 mr-2 w-56 border border-line bg-surface p-2 shadow-lg">
                     <input
                       autoFocus
                       type="text"
@@ -956,59 +946,111 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
               </div>
             </div>
 
-            {!isTouchPrimary && (
-              <>
-                <label className="mt-2 flex items-center gap-2" htmlFor="story-zoom">
-                  <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Zoom</span>
-                  <input
-                    id="story-zoom"
-                    type="range"
-                    min={sliderMin}
-                    max={sliderMax}
-                    step={0.01}
-                    value={currentScale}
-                    onChange={(e) => handleScaleChange(Number(e.target.value))}
-                    className="w-full"
-                  />
-                </label>
-                <label className="mt-2 flex items-center gap-2" htmlFor="story-rotation">
-                  <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Drehen</span>
-                  <input
-                    id="story-rotation"
-                    type="range"
-                    min={-180}
-                    max={180}
-                    step={1}
-                    value={currentRotation}
-                    onChange={(e) => handleRotationChange(Number(e.target.value))}
-                    className="w-full"
-                  />
-                </label>
-              </>
-            )}
+            {/* Bottom control panel - hint text, Löschen/Kasten for whatever's selected, the
+                Zoom/Drehen/Farbe sliders, and Posten. Faded into the frame rather than a solid
+                bar so it never fully hides the bottom of the photo behind it. */}
+            <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/50 to-transparent px-4 pb-4 pt-10">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-meta text-xs text-white/70">
+                  {isTouchPrimary ? "Ziehen zum Verschieben · zwei Finger zum Zoomen und Drehen" : "Ziehen zum Verschieben"}
+                </p>
+                {selectedLayerId !== "photo" && (
+                  <div className="flex flex-none gap-3">
+                    <button type="button" onClick={deleteSelectedLayer} className="font-meta text-xs text-white hover:underline">
+                      Löschen
+                    </button>
+                    {(selectedTextLayer || selectedBandTag) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedTextLayer) toggleTextLayerBox(selectedTextLayer.id);
+                          else if (selectedBandTag) toggleBandTagBox(selectedBandTag.id);
+                        }}
+                        className="font-meta text-xs text-white hover:underline"
+                      >
+                        {(selectedTextLayer?.hasBox ?? selectedBandTag?.hasBox) ? "Kasten ✓" : "Kasten"}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
-            {(selectedTextLayer || selectedBandTag) && (
-              <label className="mt-2 flex items-center gap-2" htmlFor="story-object-color">
-                <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-muted">Farbe</span>
-                <input
-                  id="story-object-color"
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={currentColorPos}
-                  onChange={(e) => {
-                    const pos = Number(e.target.value);
-                    if (selectedTextLayer) updateTextLayerColor(selectedTextLayer.id, pos);
-                    else if (selectedBandTag) updateBandTagColor(selectedBandTag.id, pos);
-                  }}
-                  className="w-full"
-                  style={{ background: COLOR_SLIDER_GRADIENT_CSS }}
-                />
-              </label>
-            )}
+              {!isTouchPrimary && (
+                <>
+                  <label className="mt-2 flex items-center gap-2" htmlFor="story-zoom">
+                    <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-white/70">Zoom</span>
+                    <input
+                      id="story-zoom"
+                      type="range"
+                      min={sliderMin}
+                      max={sliderMax}
+                      step={0.01}
+                      value={currentScale}
+                      onChange={(e) => handleScaleChange(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </label>
+                  <label className="mt-2 flex items-center gap-2" htmlFor="story-rotation">
+                    <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-white/70">Drehen</span>
+                    <input
+                      id="story-rotation"
+                      type="range"
+                      min={-180}
+                      max={180}
+                      step={1}
+                      value={currentRotation}
+                      onChange={(e) => handleRotationChange(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </label>
+                </>
+              )}
+
+              {(selectedTextLayer || selectedBandTag) && (
+                <label className="mt-2 flex items-center gap-2" htmlFor="story-object-color">
+                  <span className="w-14 flex-none font-meta text-xs uppercase tracking-wide text-white/70">Farbe</span>
+                  <input
+                    id="story-object-color"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={currentColorPos}
+                    onChange={(e) => {
+                      const pos = Number(e.target.value);
+                      if (selectedTextLayer) updateTextLayerColor(selectedTextLayer.id, pos);
+                      else if (selectedBandTag) updateBandTagColor(selectedBandTag.id, pos);
+                    }}
+                    className="w-full"
+                    style={{ background: COLOR_SLIDER_GRADIENT_CSS }}
+                  />
+                </label>
+              )}
+
+              {error && <p className="mt-2 font-meta text-xs text-accent">{error}</p>}
+
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={pending}
+                  className="bg-accent px-6 py-2 font-meta text-sm text-accent-fg disabled:opacity-50"
+                >
+                  {pending ? "Wird gepostet …" : "Posten"}
+                </button>
+              </div>
+            </div>
           </>
         )}
+
+        <button
+          type="button"
+          onClick={reset}
+          aria-label="Schließen"
+          className="absolute left-3 top-3 z-20 px-2 py-1 font-meta text-2xl leading-none text-white drop-shadow hover:text-white/70"
+        >
+          ✕
+        </button>
 
         <input
           ref={inputRef}
@@ -1022,21 +1064,9 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
           className="hidden"
         />
 
-        {error && <p className="mt-2 font-meta text-xs text-accent">{error}</p>}
-
-        <div className="mt-4 flex justify-end gap-3">
-          <button type="button" onClick={reset} className="font-meta text-sm text-muted hover:text-accent">
-            Abbrechen
-          </button>
-          <button
-            type="button"
-            onClick={submit}
-            disabled={!imageUrl || !transform || pending}
-            className="bg-accent px-5 py-2 font-meta text-sm text-accent-fg disabled:opacity-50"
-          >
-            {pending ? "Wird gepostet …" : "Posten"}
-          </button>
-        </div>
+        {!hasImage && error && (
+          <p className="absolute inset-x-4 bottom-4 z-20 font-meta text-xs text-accent">{error}</p>
+        )}
       </div>
     </div>
   );
