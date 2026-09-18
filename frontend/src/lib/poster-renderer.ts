@@ -2,6 +2,12 @@ import { POSTER_WIDTH as W, POSTER_HEIGHT as H, TICKET_LABEL_GAP, backgroundGrad
 
 export type PosterImages = Map<string, HTMLImageElement>;
 export interface PosterFonts { display: string; meta: string }
+/** Deterministic PRNG from a single seed - patterns redraw identically across re-renders and
+ * exports, and a fresh one only appears via "Neue Farbstimmung" picking a new seed. */
+function seededRandom(seed: number) {
+  let s = seed || 1;
+  return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+}
 /** Rectangle path, rounded when radius > 0 - shared by the box fill, the logo frame stroke and
  * the selection outline, so "Eckenradius" affects all of a poster's chrome consistently. */
 function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
@@ -57,9 +63,54 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
     }
     if (bg.pattern === "Streifen") { ctx.rotate(-.5); for (let x = -1500; x < 2500; x += 90) ctx.fillRect(x, -1500, 24, 4000); }
     if (bg.pattern === "Punkte") for (let y = 0; y < H; y += 52) for (let x = 0; x < W; x += 52) { ctx.beginPath(); ctx.arc(x + (y % 104 ? 26 : 0), y, 4, 0, Math.PI * 2); ctx.fill(); }
-    if (bg.pattern === "Körnung") {
-      let seed = bg.seed || 1;
-      for (let i = 0; i < 13000; i++) { seed = (seed * 1664525 + 1013904223) >>> 0; const x = seed / 4294967296 * W; seed = (seed * 1664525 + 1013904223) >>> 0; ctx.fillRect(x, seed / 4294967296 * H, 2, 2); }
+    if (bg.pattern === "Körnung") { const rand = seededRandom(bg.seed); for (let i = 0; i < 13000; i++) ctx.fillRect(rand() * W, rand() * H, 2, 2); }
+    if (bg.pattern === "Blitze") {
+      const rand = seededRandom(bg.seed); ctx.lineWidth = 14; ctx.lineJoin = "miter";
+      for (let i = 0; i < 8; i++) {
+        let x = rand() * W * 1.2 - W * .1, y = -60;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        while (y < H + 60) { x += (rand() - .5) * 240; y += rand() * 140 + 90; ctx.lineTo(x, y); }
+        ctx.stroke();
+      }
+    }
+    if (bg.pattern === "Spritzer") {
+      const rand = seededRandom(bg.seed);
+      for (let i = 0; i < 22; i++) {
+        const cx = rand() * W, cy = rand() * H, r = rand() * 46 + 14;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        for (let d = Math.floor(rand() * 5) + 2; d > 0; d--) {
+          const angle = rand() * Math.PI * 2, dist = r + rand() * 70;
+          ctx.beginPath(); ctx.arc(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, rand() * 8 + 2, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    }
+    if (bg.pattern === "Risse") {
+      const rand = seededRandom(bg.seed); ctx.lineWidth = 3;
+      for (let c = 0; c < 4; c++) {
+        const cx = rand() * W, cy = rand() * H;
+        for (let b = Math.floor(rand() * 5) + 6; b > 0; b--) {
+          let angle = rand() * Math.PI * 2, x = cx, y = cy;
+          ctx.beginPath(); ctx.moveTo(x, y);
+          for (let s = Math.floor(rand() * 4) + 3; s > 0; s--) { angle += (rand() - .5) * 1.1; const len = rand() * 90 + 40; x += Math.cos(angle) * len; y += Math.sin(angle) * len; ctx.lineTo(x, y); }
+          ctx.stroke();
+        }
+      }
+    }
+    if (bg.pattern === "Schachbrett") {
+      ctx.rotate(-.4); const size = 70;
+      for (let row = 0, y = -1600; y < 2400; y += size, row++) for (let col = 0, x = -1600; x < 2600; x += size, col++) if ((row + col) % 2 === 0) ctx.fillRect(x, y, size, size);
+    }
+    if (bg.pattern === "Wirbel") {
+      ctx.lineWidth = 16;
+      for (let arm = 0; arm < 3; arm++) {
+        ctx.beginPath();
+        for (let t = 0; t < 60; t++) {
+          const theta = t * .25 + arm * (Math.PI * 2 / 3) + bg.seed / 50, r = t * 16;
+          const x = W / 2 + Math.cos(theta) * r, y = H * .42 + Math.sin(theta) * r;
+          if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
     }
     ctx.restore();
   }

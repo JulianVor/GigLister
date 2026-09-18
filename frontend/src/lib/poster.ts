@@ -2,7 +2,7 @@ import type { EventResponse } from "./types";
 
 export const POSTER_WIDTH = 1000;
 export const POSTER_HEIGHT = 1414;
-export const patterns = ["Verlauf", "Strahlen", "Streifen", "Punkte", "Körnung"] as const;
+export const patterns = ["Verlauf", "Strahlen", "Streifen", "Punkte", "Körnung", "Blitze", "Spritzer", "Risse", "Schachbrett", "Wirbel"] as const;
 export type Pattern = typeof patterns[number];
 export interface PosterLayer {
   id: string; kind: "title" | "band" | "footer"; label: string;
