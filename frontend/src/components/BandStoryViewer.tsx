@@ -7,6 +7,7 @@ import { CroppedStoryImage } from "@/components/CroppedStoryImage";
 import { EntityPlaceholder } from "@/components/EntityPlaceholder";
 import { parseTextLayers } from "@/lib/storyTextLayers";
 import { parseBandTags } from "@/lib/storyBandTags";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 import type { BandStory } from "@/lib/types";
 
 const STORY_DURATION_MS = 6000;
@@ -90,6 +91,7 @@ export function BandStoryViewer({
   const [index, setIndex] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const pausedRef = useRef(false);
+  useLockBodyScroll(true);
 
   const goNext = useCallback(() => {
     setIndex((i) => (i < stories.length - 1 ? i + 1 : i));
@@ -142,15 +144,22 @@ export function BandStoryViewer({
 
   return (
     <div
-      className="fixed inset-0 z-[2000] flex select-none items-center justify-center bg-black/90 [-webkit-touch-callout:none]"
+      className="fixed inset-x-0 top-0 z-[2000] flex h-[100dvh] select-none items-center justify-center [-webkit-touch-callout:none]"
+      style={{ backgroundColor: story.imgBackgroundColor ?? "#000" }}
       role="dialog"
       aria-modal="true"
       aria-label={`Status von ${bandName}`}
     >
       {/* True 9:16, not just "whatever box happens to be available" - the crop a band chose in
           BandStoryComposer is expressed as % of that exact ratio, so reproducing it accurately
-          (rather than stretching into an arbitrarily-shaped box) needs the same ratio here. */}
-      <div className="relative aspect-[9/16] h-full max-h-[900px] max-w-full overflow-hidden bg-black sm:h-[85vh]">
+          (rather than stretching into an arbitrarily-shaped box) needs the same ratio here.
+          Sized off svh (not h-full/vh) so a mobile browser's address bar hiding/showing mid-
+          scroll - which resizes the *actual* viewport - never resizes this frame along with
+          it: svh locks to the viewport's smallest state (bar visible), so any extra height a
+          hidden bar frees up just shows as more of the backdrop above/below instead of
+          stretching the frame - centered here by the parent's items-center, matching the
+          image's own dominant color set as that backdrop above. */}
+      <div className="relative aspect-[9/16] h-[100svh] max-h-[900px] max-w-full overflow-hidden bg-black sm:h-[85svh]">
         <div className="absolute inset-x-0 top-0 z-10 flex gap-1 p-2">
           {stories.map((s, i) => (
             <StoryProgressSegment

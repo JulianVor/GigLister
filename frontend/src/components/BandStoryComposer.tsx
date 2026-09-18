@@ -8,6 +8,7 @@ import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
 import { createTextLayer, serializeTextLayers, textLayerColor, textLayerBoxColor, TEXT_LAYER_BASE_FONT_CQW, type TextLayer } from "@/lib/storyTextLayers";
 import { createBandTagLayer, serializeBandTags, bandTagColor, bandTagBoxColor, BAND_TAG_BASE_FONT_CQW, type BandTagLayer } from "@/lib/storyBandTags";
 import { COLOR_SLIDER_GRADIENT_CSS } from "@/lib/storyColor";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 import type { BandTagOption } from "@/lib/types";
 
 // Same pattern as BandStoryAvatarButton/EntityPicker: a client component fetching directly
@@ -587,6 +588,7 @@ function StoryCropEditor({
  * "Posten" (there's nothing sensible to save it onto before the story itself exists). */
 export function BandStoryComposer({ bandId }: { bandId: number }) {
   const [open, setOpen] = useState(false);
+  useLockBodyScroll(open);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imgAspect, setImgAspect] = useState<number | null>(null);
   const [transform, setTransform] = useState<PhotoTransform | null>(null);
@@ -836,7 +838,8 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
 
   return (
     <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black"
+      className="fixed inset-x-0 top-0 z-[2000] flex h-[100dvh] items-center justify-center"
+      style={{ backgroundColor: bgColor ?? "#000" }}
       role="dialog"
       aria-modal="true"
       aria-label="Status posten"
@@ -844,8 +847,11 @@ export function BandStoryComposer({ bandId }: { bandId: number }) {
       {/* Same true-9:16 phone-frame sizing as BandStoryViewer (full-bleed on mobile, a centered
           card with room around it on anything wider) - editing in exactly the shape the story
           will actually be shown in is the whole point of a full-page editor over the old small
-          dialog, which only ever showed a cramped preview of that shape. */}
-      <div className="relative aspect-[9/16] h-full max-h-[900px] max-w-full overflow-hidden bg-black sm:h-[85vh]">
+          dialog, which only ever showed a cramped preview of that shape. Sized off svh, not
+          h-full/vh - see BandStoryViewer's matching comment: a mobile browser's address bar
+          hiding/showing mid-scroll resizes the real viewport, and svh (unlike vh) stays locked
+          to its smallest state instead of visibly resizing the frame along with it. */}
+      <div className="relative aspect-[9/16] h-[100svh] max-h-[900px] max-w-full overflow-hidden bg-black sm:h-[85svh]">
         {!hasImage ? (
           <div
             role="button"
