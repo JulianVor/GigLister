@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { detectLogoTransparency, type LogoTransparency } from "@/lib/logo-transparency";
 import type { EventResponse } from "@/lib/types";
 import { initialPoster, hitLayer, patterns, restorePoster, POSTER_WIDTH as W, POSTER_HEIGHT as H, type PosterDraft } from "@/lib/poster";
-import { drawPoster, type PosterImages, type PosterFonts } from "@/lib/poster-renderer";
+import { drawPoster, suggestTextColor, type PosterImages, type PosterFonts } from "@/lib/poster-renderer";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/upload";
 
 const button = "border border-line px-3 py-2 font-meta text-sm hover:border-fg disabled:opacity-40 disabled:cursor-not-allowed";
@@ -163,7 +163,14 @@ export function PosterDesigner({ event }: { event: EventResponse }) {
         <p className="mt-3 text-center font-meta text-xs tracking-wide text-white/60">A4 HOCHFORMAT · {step === "design" ? "Ebenen mit Maus, Touch oder Pfeiltasten verschieben" : "Vorschau mit euren Konzertdaten"}</p>
       </div>
       <aside className="space-y-5 border border-line bg-surface p-5">
-        {step === "background" ? <>{backgroundControls}<button className={primary + " w-full"} disabled={!ready || imageBusy} onClick={() => { setStep("design"); setSelected(draft.layers[0]?.id ?? "background"); }}>Weiter zum Designer →</button></> : <>
+        {step === "background" ? <>{backgroundControls}<button className={primary + " w-full"} disabled={!ready || imageBusy} onClick={() => {
+          if (assets) {
+            const suggestion = suggestTextColor(draft.background, assets.images);
+            const layers = draft.layers.map(layer => layer.color === "#ffffff" ? { ...layer, color: suggestion } : layer);
+            if (layers.some((layer, index) => layer.color !== draft.layers[index].color)) change({ ...draft, layers }, false);
+          }
+          setStep("design"); setSelected(draft.layers[0]?.id ?? "background");
+        }}>Weiter zum Designer →</button></> : <>
           <div className="flex gap-2"><button className={button} onClick={() => setStep("background")}>← Hintergrund</button><button className={button} disabled={!undoCount} onClick={undo}>Rückgängig</button></div>
           <h2 className="font-display text-xl">Dein Line-up. Dein Look.</h2>
           <label className="block font-meta text-sm">Ebene auswählen<select aria-label="Ebene auswählen" className="input mt-1" value={selected} onChange={e => setSelected(e.target.value)}><option value="background">Hintergrund</option>{draft.layers.map(layer => <option key={layer.id} value={layer.id}>{layer.label}</option>)}</select></label>
@@ -188,6 +195,7 @@ export function PosterDesigner({ event }: { event: EventResponse }) {
           </>}
           <button className={button + " w-full"} onClick={() => { const original = initialPoster(event); if (selected === "background") transform({ x: W / 2, y: H / 2, rotation: 0, scale: 1 }); else change({ ...draft, layers: draft.layers.map(layer => layer.id === selected ? original.layers.find(item => item.id === selected)! : layer) }); }}>Ebene zurücksetzen</button>
           <button className={button + " w-full"} onClick={() => change({ ...draft, layers: initialPoster(event).layers })}>Line-up automatisch anordnen</button>
+          <label className="block border-t border-line pt-4 font-meta text-sm">Eckenradius · {draft.cornerRadius}<input aria-label="Eckenradius" className="mt-2 w-full accent-[var(--accent)]" type="range" min="0" max="80" step="1" value={draft.cornerRadius} onChange={e => change({ ...draft, cornerRadius: Number(e.target.value) })} /></label>
           <div className="space-y-3 border-t border-line pt-4"><button className={primary + " w-full"} disabled={!ready || busy || imageBusy} onClick={() => void download()}>{busy ? "Plakat wird exportiert …" : "Plakat als PNG herunterladen"}</button><button className={button + " w-full"} onClick={saveDraft}>Entwurf speichern</button><p className="text-xs text-muted">2480 × 3508 Pixel · für A4. Entwürfe bleiben in diesem Browser; das Konzert wird nicht verändert.</p></div>
         </>}
         {!ready && <p className="font-meta text-sm" role="status">Bilder und Schriften werden geladen …</p>}

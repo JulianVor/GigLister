@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { initialPoster, restorePoster, hitLayer, posterDate } from '../src/lib/poster.ts';
-const event = (count, title = 'Rails on Fire') => ({ id: 7, title, date: '2026-09-17', startTime: '20:00:00', location: { name: 'Stellwerk Hamburg' }, bands: Array.from({ length: count }, (_, i) => ({ id: i + 1, name: `Band ${i + 1}`, logoUrl: i ? null : '/uploads/logo.png', genres: ['Rock', 'Punk'] })) });
+import { initialPoster, restorePoster, hitLayer, posterDate, ticketProviderLabel, luminanceTextColor, backgroundGradientLuminance } from '../src/lib/poster.ts';
+const event = (count, title = 'Rails on Fire', ticketUrl = null) => ({ id: 7, title, date: '2026-09-17', startTime: '20:00:00', location: { name: 'Stellwerk Hamburg' }, ticketUrl, bands: Array.from({ length: count }, (_, i) => ({ id: i + 1, name: `Band ${i + 1}`, logoUrl: i ? null : '/uploads/logo.png', genres: ['Rock', 'Punk'] })) });
 test('optional event name and first genre are taken from concert data', () => {
   const draft = initialPoster(event(3, null));
   assert.equal(draft.layers.some(l => l.kind === 'title'), false);
@@ -52,4 +52,39 @@ test('logo frames persist and old drafts receive disabled defaults', () => {
   for (const layer of draft.layers) { delete layer.logoFrame; delete layer.logoFrameWidth; delete layer.logoFrameColor; }
   assert.equal(restorePoster(JSON.stringify(draft), current).layers[1].logoFrame, false);
   draft.layers[1].logoFrameWidth = -5; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+});
+test('ticket provider label is the bare domain, or null when there is none', () => {
+  assert.equal(ticketProviderLabel('https://www.tix4gigs.com/event/123'), 'tix4gigs.com');
+  assert.equal(ticketProviderLabel('http://hhgigs.com'), 'hhgigs.com');
+  assert.equal(ticketProviderLabel('www.eventim.de/foo'), 'eventim.de');
+  assert.equal(ticketProviderLabel('  '), null);
+  assert.equal(ticketProviderLabel(null), null);
+  assert.equal(ticketProviderLabel(undefined), null);
+  assert.equal(ticketProviderLabel('not a url'), null);
+});
+test('the footer moves up and carries a ticket label only when the concert has a ticket link', () => {
+  const withTicket = initialPoster(event(2, 'Rails on Fire', 'https://www.tix4gigs.com'));
+  const withoutTicket = initialPoster(event(2));
+  assert.equal(withTicket.ticketLabel, 'tix4gigs.com');
+  assert.equal(withoutTicket.ticketLabel, null);
+  const footer = draft => draft.layers.find(l => l.kind === 'footer');
+  assert.ok(footer(withTicket).y < footer(withoutTicket).y);
+  assert.equal(footer(withoutTicket).y + footer(withoutTicket).height / 2, 1414);
+});
+test('a restored draft always re-derives the ticket label and corner radius from the current concert', () => {
+  const current = event(2, 'Rails on Fire', 'https://www.tix4gigs.com');
+  const draft = initialPoster(current); draft.cornerRadius = 30;
+  const restored = restorePoster(JSON.stringify(draft), current);
+  assert.equal(restored.cornerRadius, 30);
+  assert.equal(restored.ticketLabel, 'tix4gigs.com');
+  const restoredWithoutTicket = restorePoster(JSON.stringify(draft), event(2, 'Rails on Fire'));
+  assert.equal(restoredWithoutTicket.ticketLabel, null);
+  delete draft.cornerRadius;
+  assert.equal(restorePoster(JSON.stringify(draft), current).cornerRadius, 0);
+  draft.cornerRadius = 500; assert.throws(() => restorePoster(JSON.stringify(draft), current));
+});
+test('suggested text color reads black or white off the gradient/dim combination', () => {
+  assert.equal(luminanceTextColor(backgroundGradientLuminance({ color1: '#ffffff', color2: '#ffffff' }), 0), '#000000');
+  assert.equal(luminanceTextColor(backgroundGradientLuminance({ color1: '#000000', color2: '#000000' }), 0), '#ffffff');
+  assert.equal(luminanceTextColor(backgroundGradientLuminance({ color1: '#ffffff', color2: '#ffffff' }), .8), '#ffffff');
 });

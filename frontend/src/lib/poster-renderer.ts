@@ -1,7 +1,40 @@
-import { POSTER_WIDTH as W, POSTER_HEIGHT as H, type PosterDraft, type PosterLayer } from "./poster";
+import { POSTER_WIDTH as W, POSTER_HEIGHT as H, TICKET_LABEL_GAP, backgroundGradientLuminance, luminanceTextColor, type PosterDraft, type PosterLayer } from "./poster";
 
 export type PosterImages = Map<string, HTMLImageElement>;
 export interface PosterFonts { display: string; meta: string }
+/** Rectangle path, rounded when radius > 0 - shared by the box fill, the logo frame stroke and
+ * the selection outline, so "Eckenradius" affects all of a poster's chrome consistently. */
+function roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+  ctx.beginPath();
+  const r = Math.min(radius, width / 2, height / 2);
+  if (r > 0) ctx.roundRect(x, y, width, height, r); else ctx.rect(x, y, width, height);
+}
+/** Average luminance of a background image, downscaled - same "read a handful of pixels, not
+ * the whole photo" approach as logo-transparency.ts, just averaged instead of alpha-checked.
+ * Falls back to the gradient colors (which drawPoster paints regardless, visible or not) if
+ * the image can't be read for any reason. */
+function imageLuminance(image: HTMLImageElement): number | null {
+  try {
+    const size = 32;
+    const canvas = document.createElement("canvas"); canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(image, 0, 0, size, size);
+    const pixels = ctx.getImageData(0, 0, size, size).data;
+    let sum = 0, n = 0;
+    for (let i = 0; i < pixels.length; i += 4) { sum += (.2126 * pixels[i] + .7152 * pixels[i + 1] + .0722 * pixels[i + 2]) / 255; n++; }
+    return n ? sum / n : null;
+  } catch { return null; }
+}
+/** Black or white, whichever actually reads against this specific background - a real photo's
+ * average brightness when there is one (drawn exactly as the poster shows it, including the
+ * always-on dim overlay), otherwise the gradient's own two colors. Just a starting point: the
+ * band can still repaint any layer's own Textfarbe afterwards. */
+export function suggestTextColor(background: PosterDraft["background"], images: PosterImages): string {
+  const image = background.image ? images.get(background.image) : null;
+  const luminance = (image && imageLuminance(image)) ?? backgroundGradientLuminance(background);
+  return luminanceTextColor(luminance, background.dim);
+}
 export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images: PosterImages, fonts: PosterFonts, selected?: string) {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw Error("Dein Browser unterstützt den Plakat-Export nicht.");
@@ -34,15 +67,21 @@ export function drawPoster(canvas: HTMLCanvasElement, draft: PosterDraft, images
   for (const layer of draft.layers) {
     ctx.save(); ctx.translate(layer.x, layer.y); ctx.rotate(layer.rotation * Math.PI / 180); ctx.scale(layer.scale, layer.scale);
     const { width, height } = layer;
-    if (layer.kind === "footer" || layer.box) { ctx.fillStyle = `rgba(0,0,0,${layer.kind === "footer" ? draft.footerOpacity : .7})`; ctx.fillRect(-width / 2, -height / 2, width, height); }
+    if (layer.kind === "footer" || layer.box) { ctx.fillStyle = `rgba(0,0,0,${layer.kind === "footer" ? draft.footerOpacity : .7})`; roundedRectPath(ctx, -width / 2, -height / 2, width, height, draft.cornerRadius); ctx.fill(); }
     ctx.fillStyle = layer.color; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     if (layer.kind === "footer") {
       fitText(ctx, layer.genre ?? "", width * .91, height * .38, 78, fonts.display, 0, -height * .22);
       fitText(ctx, layer.text, width * .92, height * .4, 72, fonts.display, 0, height * .21);
     } else if (layer.kind === "title") fitText(ctx, layer.text, width, height, 94, fonts.display, 0, 0);
-    else drawBand(ctx, layer, images, fonts);
-    if (selected === layer.id) { ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2 / layer.scale; ctx.setLineDash([8, 5]); ctx.strokeRect(-width / 2, -height / 2, width, height); }
+    else drawBand(ctx, layer, images, fonts, draft.cornerRadius);
+    if (selected === layer.id) { ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2 / layer.scale; ctx.setLineDash([8, 5]); roundedRectPath(ctx, -width / 2, -height / 2, width, height, draft.cornerRadius); ctx.stroke(); }
     ctx.restore();
+  }
+  if (draft.ticketLabel) {
+    const footer = draft.layers.find(item => item.kind === "footer");
+    const y = footer ? footer.y + footer.height / 2 + TICKET_LABEL_GAP / 2 : H - TICKET_LABEL_GAP / 2;
+    ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `26px ${fonts.meta}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(`VVK: ${draft.ticketLabel}`, W / 2, y);
   }
   ctx.restore();
 }
@@ -64,7 +103,7 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, width: number, hei
   } while (size > 4);
   lines.forEach((line, i) => ctx.fillText(line, x, y + (i - (lines.length - 1) / 2) * size * 1.15, width));
 }
-function drawBand(ctx: CanvasRenderingContext2D, layer: PosterLayer, images: PosterImages, fonts: PosterFonts) {
+function drawBand(ctx: CanvasRenderingContext2D, layer: PosterLayer, images: PosterImages, fonts: PosterFonts, cornerRadius: number) {
   const genreHeight = layer.genre ? Math.min(35, layer.height * .2) : 0;
   const h = layer.height - genreHeight - 16;
   const image = layer.logoUrl ? images.get(layer.logoUrl) : null;
@@ -72,7 +111,7 @@ function drawBand(ctx: CanvasRenderingContext2D, layer: PosterLayer, images: Pos
     const frame = layer.logoFrame ? layer.logoFrameWidth : 0;
     const ratio = Math.min(Math.max(1, layer.width - frame * 2) / image.naturalWidth, Math.max(1, h - frame * 2) / image.naturalHeight);
     const width = image.naturalWidth * ratio, height = image.naturalHeight * ratio;
-    if (frame) { ctx.save(); ctx.strokeStyle = layer.logoFrameColor; ctx.lineWidth = frame; ctx.strokeRect(-width / 2 - frame / 2, -height / 2 - genreHeight / 2 - frame / 2, width + frame, height + frame); ctx.restore(); }
+    if (frame) { ctx.save(); ctx.strokeStyle = layer.logoFrameColor; ctx.lineWidth = frame; roundedRectPath(ctx, -width / 2 - frame / 2, -height / 2 - genreHeight / 2 - frame / 2, width + frame, height + frame, cornerRadius); ctx.stroke(); ctx.restore(); }
     if (layer.logoMode === "original") ctx.drawImage(image, -width / 2, -height / 2 - genreHeight / 2, width, height);
     else {
       const mask = document.createElement("canvas"); mask.width = Math.ceil(width * 3); mask.height = Math.ceil(height * 3);

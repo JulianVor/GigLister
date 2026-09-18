@@ -14,12 +14,44 @@ export interface PosterLayer {
 export interface PosterDraft {
   version: 1; eventId: number;
   background: { image: string | null; color1: string; color2: string; pattern: Pattern; seed: number; scale: number; x: number; y: number; rotation: number; dim: number };
-  footerOpacity: number; layers: PosterLayer[];
+  footerOpacity: number; cornerRadius: number; ticketLabel: string | null; layers: PosterLayer[];
 }
 export function posterDate(date: string, time: string | null): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   const label = match ? `${match[3]}.${match[2]}.${match[1]}` : date;
   return label + (time ? ` · ${time.slice(0, 5)} UHR` : "");
+}
+// Bottom margin (poster-space px) reserved below the footer box for the ticket-provider line
+// when one exists - the footer simply keeps its original full-bleed position otherwise.
+export const TICKET_LABEL_GAP = 70;
+/** Just the bare domain ("tix4gigs.com"), never the scheme/www/path - this is printed on the
+ * poster itself, not clicked, so anything more than the domain is just noise (or, worse, a
+ * full URL someone would need to type out by hand off a printed poster). */
+export function ticketProviderLabel(url: string | null | undefined): string | null {
+  if (!url?.trim()) return null;
+  try {
+    const parsed = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(url) ? url : `https://${url}`);
+    return parsed.hostname.replace(/^www\./i, "") || null;
+  } catch { return null; }
+}
+function relativeLuminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  const channels = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(c => {
+    const s = c / 255;
+    return s <= .03928 ? s / 12.92 : ((s + .055) / 1.055) ** 2.4;
+  });
+  return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+}
+/** Black or white, whichever reads better against a given luminance once the background's own
+ * dim overlay (always painted, see drawPoster) is factored in. Exported separately from
+ * suggestTextColor (poster-renderer.ts) because it has no DOM dependency - a background image's
+ * actual luminance needs canvas pixel access, which only exists there; this is the pure
+ * gradient-only fallback, used directly whenever there's no image to sample. */
+export function luminanceTextColor(luminance: number, dim: number): string {
+  return luminance * (1 - dim) > .4 ? "#000000" : "#ffffff";
+}
+export function backgroundGradientLuminance(background: Pick<PosterDraft["background"], "color1" | "color2">): number {
+  return (relativeLuminance(background.color1) + relativeLuminance(background.color2)) / 2;
 }
 export function initialPoster(event: EventResponse): PosterDraft {
   const title = event.title?.trim();
@@ -44,9 +76,11 @@ export function initialPoster(event: EventResponse): PosterDraft {
       x: (column + .5) * (900 / rowCount) + 50, y: top + (row + .5) * rowHeight,
       width: hero ? 790 : 820 / rowCount, height: Math.min(hero ? 300 : 260, rowHeight * .82) });
   });
+  const ticketLabel = ticketProviderLabel(event.ticketUrl);
+  const footerY = ticketLabel ? 1294 - TICKET_LABEL_GAP : 1294;
   layers.push({ ...base, id: "footer", kind: "footer", label: "Ort & Termin", text: event.location.name,
-    genre: posterDate(event.date, event.startTime), x: 500, y: 1294, width: 1000, height: 240 });
-  return { version: 1, eventId: event.id, background: { image: null, color1: "#171f2c", color2: "#c84b24", pattern: "Körnung", seed: 42, scale: 1, x: 500, y: 707, rotation: 0, dim: .12 }, footerOpacity: .65, layers };
+    genre: posterDate(event.date, event.startTime), x: 500, y: footerY, width: 1000, height: 240 });
+  return { version: 1, eventId: event.id, background: { image: null, color1: "#171f2c", color2: "#c84b24", pattern: "Körnung", seed: 42, scale: 1, x: 500, y: 707, rotation: 0, dim: .12 }, footerOpacity: .65, cornerRadius: 0, ticketLabel, layers };
 }
 export function hitLayer(layer: PosterLayer, x: number, y: number): boolean {
   const angle = -layer.rotation * Math.PI / 180;
@@ -61,6 +95,10 @@ export function restorePoster(raw: string, event: EventResponse): PosterDraft {
   if (d?.version !== 1 || d.eventId !== event.id || !Array.isArray(d.layers) || d.layers.length > 200 || !d.background) throw Error("Dieser Entwurf passt nicht zum Konzert.");
   const b = d.background;
   if (!validColor(b.color1) || !validColor(b.color2) || !patterns.includes(b.pattern) || !finite(b.seed, 0, 1e9) || !finite(b.scale, .4, 5) || !finite(b.rotation, -360, 360) || !finite(b.x, -1000, 2000) || !finite(b.y, -1414, 2828) || !finite(b.dim, 0, .85) || !finite(d.footerOpacity, 0, 1)) throw Error("Der gespeicherte Hintergrund ist ungültig.");
+  if (d.cornerRadius !== undefined && !finite(d.cornerRadius, 0, 80)) throw Error("Der gespeicherte Eckenradius ist ungültig.");
+  d.cornerRadius ??= 0;
+  // Event-owned, like logoUrl below - never trust a saved ticket label, always re-derive it.
+  d.ticketLabel = ticketProviderLabel(event.ticketUrl);
   if (b.image !== null && (typeof b.image !== "string" || !/^data:image\/(png|jpeg|webp);base64,/.test(b.image) || b.image.length > 8_000_000)) throw Error("Das gespeicherte Bild ist ungültig.");
   const current = initialPoster(event);
   const ids = new Set<string>();
